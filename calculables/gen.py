@@ -1,6 +1,4 @@
-from core.wrappedChain import wrappedChain
-from core import utils
-import calculables
+from supy import wrappedChain,utils,calculables
 import ROOT as r
 ##############################
 class TwoToTwo(wrappedChain.calculable) :

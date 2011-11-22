@@ -1,7 +1,4 @@
-from core.wrappedChain import *
-from core import utils
-import math,calculables
-
+from supy import wrappedChain,utils,calculables
 #####################################
 class ID(wrappedChain.calculable) :
     def __init__(self, minNdof = 5.0, maxAbsZ = 24.0, maxD0 = 2.0 ) :
@@ -38,7 +35,7 @@ class Indices(wrappedChain.calculable) :
             else : other.append(i)
         self.value.sort( key = sumPt.__getitem__, reverse = True )
 #####################################
-class IndicesOther(calculables.indicesOther) :
+class IndicesOther(calculables.IndicesOther) :
     def __init__(self) :
         self.fixes = ("vertex","")
         super(IndicesOther, self).__init__(self.fixes)

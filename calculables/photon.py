@@ -1,8 +1,7 @@
-from core.wrappedChain import *
-from core import utils,configuration
-import calculables,collections
+from supy import wrappedChain,calculables,utils,configuration
+import collections
 ##############################
-class IndicesOther(calculables.indicesOther) :
+class IndicesOther(calculables.IndicesOther) :
     def __init__(self,collection = None) :
         super(IndicesOther, self).__init__(collection)
         self.moreName = "pass ptMin; fail id/iso"

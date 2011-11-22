@@ -1,7 +1,5 @@
-import ROOT as r
-import calculables,collections,os
-from core import luminosity,utils
-from core.wrappedChain import wrappedChain
+from supy import calculables,utils
+import collections,os, ROOT as r
 try:
     import numpy as np
 except:
@@ -89,7 +87,7 @@ class TriggerWeight(calculables.secondary) :
         lumiDir = self.outputFileName
         if not os.path.exists(lumiDir) : utils.mkdir(lumiDir)
         
-        lumis = luminosity.recordedInvMicrobarnsShotgun( [utils.jsonFromRunDict(self.epochLumis[epoch]) for epoch in self.epochLumis ] , cores = 4, cacheDir = lumiDir)
+        lumis = utils.luminosity.recordedInvMicrobarnsShotgun( [utils.jsonFromRunDict(self.epochLumis[epoch]) for epoch in self.epochLumis ] , cores = 4, cacheDir = lumiDir)
         probs = [ [1./prescale if prescale else 0 for prescale in epoch] for epoch in self.epochLumis ]
         inclu = [ [utils.unionProbability(prob[:i+1]) for i in range(len(prob))] for prob in probs ]
         thresholds = sorted(set(self.thresholds))

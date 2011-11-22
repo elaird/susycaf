@@ -1,6 +1,5 @@
-from core import utils,configuration
-from core.wrappedChain import *
-from calculables.Muon import IndicesOther,IndicesNonIso,IndicesAnyIso,IndicesAnyIsoIsoOrder,LeadingPt
+from supy import wrappedChain,utils,configuration
+from muon import IndicesOther,IndicesNonIso,IndicesAnyIso,IndicesAnyIsoIsoOrder,LeadingPt
 ##############################
 barrelEtaMax = configuration.detectorSpecs()["cms"]["barrelEtaMax"]
 endcapEtaMin = configuration.detectorSpecs()["cms"]["endcapEtaMin"]

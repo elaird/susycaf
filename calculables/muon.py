@@ -1,6 +1,4 @@
-from core import utils
-from core.wrappedChain import *
-import calculables
+from supy import wrappedChain,utils,calculables
 ##############################
 class NumberOfMatches(wrappedChain.calculable) :
     def __init__(self, collection = None) :
@@ -78,12 +76,12 @@ class HcalRelIso(wrappedChain.calculable) :
     def update(self,ignored) :
         self.value = utils.hackMap(self.hcalreliso, self.source[self.HcalIso],self.source[self.P4] )
 ##############################
-class IndicesOther(calculables.indicesOther) :
+class IndicesOther(calculables.IndicesOther) :
     def __init__(self, collection = None) :
         super(IndicesOther, self).__init__(collection)
         self.moreName = "pass ptMin; fail id"
 ##############################
-class IndicesNonIso(calculables.indicesOther) :
+class IndicesNonIso(calculables.IndicesOther) :
     def __init__(self, collection = None) :
         super(IndicesNonIso, self).__init__(collection)
         self.indicesOther = "%sIndicesNonIso%s"%collection

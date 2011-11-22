@@ -1,6 +1,5 @@
-from core.wrappedChain import *
-from core import utils
-import copy,bisect,math, ROOT as r
+from supy import wrappedChain,utils
+import bisect,math, ROOT as r
 ##############################
 class xcJet(wrappedChain.calculable) :
     @property

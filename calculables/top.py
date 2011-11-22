@@ -1,6 +1,5 @@
-from core.wrappedChain import *
-from core import utils,fitKinematic
-import calculables,math,operator,itertools
+from supy import wrappedChain,utils
+import math,operator,itertools
 try:
     import numpy as np
 except:
@@ -417,7 +416,7 @@ class TopReconstruction(wrappedChain.calculable) :
             if iPQH[2] not in bIndices : continue
             if np.dot(*(2*[self.ellipseR.dot(comboDRawMass[iPQH]) / [35,70]])) > 1 : continue # elliptical window on raw masses
 
-            hadFit = fitKinematic.leastsqHadronicTop(*zip(*((p4[i], resolution[i]) for i in iPQH)))
+            hadFit = utils.fitKinematic.leastsqHadronicTop(*zip(*((p4[i], resolution[i]) for i in iPQH)))
             sumP4 = self.source[self.SumP4] - hadFit.rawT + hadFit.fitT
             nuErr = self.source["metCovariancePF"] - sum( covRes2[i] for i in iPQH )
             nuXY = -np.array([sumP4.x(), sumP4.y()])
@@ -427,7 +426,7 @@ class TopReconstruction(wrappedChain.calculable) :
                 iPQHL = iPQH+(iL,)
                 iQQBB = iPQHL[:2]+tuple(sorted(iPQHL[2:]))
                 for zPlus in [0,1] :
-                    lepFit = fitKinematic.leastsqLeptonicTop( p4[iL], resolution[iL], lepP4, nuXY, nuErr-covRes2[iL], zPlus = zPlus )
+                    lepFit = utils.fitKinematic.leastsqLeptonicTop( p4[iL], resolution[iL], lepP4, nuXY, nuErr-covRes2[iL], zPlus = zPlus )
                     recos.append( {"nu"   : lepFit.fitNu,       "hadP" : hadFit.fitJ[0],
                                    "lep"  : lepFit.mu,          "hadQ" : hadFit.fitJ[1],
                                    "lepB" : lepFit.fitB,        "hadB" : hadFit.fitJ[2],

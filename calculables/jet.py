@@ -1,11 +1,9 @@
-from core.wrappedChain import *
-import calculables,math,collections,bisect,itertools
-from core import utils
+import math,bisect,itertools
+from supy import wrappedChain,calculables,utils
 try:
     import numpy as np
 except:
     pass
-
 
 def xcStrip(collection) :
     return (collection[0].lstrip("xc"),collection[1])
@@ -25,7 +23,7 @@ class IndicesKilled(wrappedChain.calculable) :
         self.fixes = collection
     def update(self,ignored) : self.value = set()
 ##############################
-class IndicesOther(calculables.indicesOther) :
+class IndicesOther(calculables.IndicesOther) :
     def __init__(self, collection = None) :
         super(IndicesOther, self).__init__(collection)
         self.moreName = "pass ptMin; fail jetID or etaMax"
