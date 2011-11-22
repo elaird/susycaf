@@ -1,6 +1,6 @@
-import samples
-from sites import srm
-muon = samples.SampleHolder()
+from supy.samples import SampleHolder
+from supy.sites import srm
+muon = SampleHolder()
 
 muon.add("SingleMu.2011A-May.1",'%s/bbetchar/ICF/automated/2011_11_06_08_14_36/")'%srm, lumi = 200.1519)
 muon.add("SingleMu.2011A-PR4.1",'%s/bbetchar/ICF/automated/2011_11_06_08_25_27/",alwaysUseLastAttempt = True)'%srm, lumi = 886.7901)
