@@ -1,6 +1,6 @@
-import samples
-from sites import srm
-electron = samples.SampleHolder()
+from supy.samples import SampleHolder
+from supy.sites import srm
+electron = SampleHolder()
 
 # 2011
 electron.add("ElectronHad.Run2011A-PromptReco-v1.Burt",    '%s/bbetchar//ICF/automated/2011_04_02_22_49_42/")'%srm, lumi = 5.81) #/pb

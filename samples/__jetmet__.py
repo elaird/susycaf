@@ -1,6 +1,6 @@
-import samples
-from sites import srm
-jetmet = samples.SampleHolder()
+from supy.samples import SampleHolder
+from supy.sites import srm
+jetmet = SampleHolder()
 
 #2011
 jetmet.add("HT.Run2011A-May10ReReco-v1.AOD.Bryn",   '%s/bm409//ICF/automated/2011_06_08_19_31_55/")'                               %srm, lumi = 1.0)

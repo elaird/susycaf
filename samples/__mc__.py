@@ -1,6 +1,6 @@
-import samples
-from sites import srm
-mc = samples.SampleHolder()
+from supy.samples import SampleHolder
+from supy.sites import srm
+mc = SampleHolder()
 
 mgKFactor = 3048.0/2400.0 #Z+jets NNLO/LO
 

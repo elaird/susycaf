@@ -1,6 +1,6 @@
-import samples
+from supy.samples import SampleHolder
 
-signalSkim = samples.SampleHolder()
+signalSkim = SampleHolder()
 
 #<             steps.Trigger.lowestUnPrescaledTriggerFilter(),
 #<             steps.Trigger.l1Filter("L1Tech_BPTX_plus_AND_minus.v0"),

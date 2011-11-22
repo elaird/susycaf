@@ -1,6 +1,6 @@
-import samples
-from sites import srm
-mumu = samples.SampleHolder()
+from supy.samples import SampleHolder
+from supy.sites import srm
+mumu = SampleHolder()
 
 #L1FJL2L3Residual
 a = ", alwaysUseLastAttempt = True"

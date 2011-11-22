@@ -1,6 +1,6 @@
-import samples
-from sites import srm
-photon = samples.SampleHolder()
+from supy.samples import SampleHolder
+from supy.sites import srm
+photon = SampleHolder()
 
 #L1FJL2L3Residual
 a = "alwaysUseLastAttempt = True"
