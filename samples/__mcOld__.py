@@ -1,6 +1,6 @@
-import samples
-from sites import srm
-mcOld = samples.SampleHolder()
+from supy.samples import SampleHolder
+from supy.sites import srm
+mcOld = SampleHolder()
 
 ###############
 ##V14 samples##

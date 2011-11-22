@@ -1,11 +1,10 @@
-from core.analysis import analysis
-import os,steps,calculables,samples
+import supy,samples
 
-class benchmark(analysis) :
+class benchmark(supy.analysis) :
 
-    def listOfSampleDictionaries(self) :  return [samples.JetMET.jetmet]
+    def listOfSampleDictionaries(self) :  return [samples.jetmet]
 
-    def listOfSamples(self,_) :  return samples.specify(names = "JetMETTau.Run2010A-Nov4ReReco_v1.RECO.Burt", nFilesMax = 10)
+    def listOfSamples(self,_) :  return supy.samples.specify(names = "JetMETTau.Run2010A-Nov4ReReco_v1.RECO.Burt", nFilesMax = 10)
 
     def listOfCalculables(self,_) :  return []
     
@@ -21,7 +20,7 @@ class benchmark(analysis) :
             "muonP4Pat",
             "electronP4Pat",
             ]
-        return [ steps.Other.touchstuff(touch) ]
+        return [ supy.steps.other.touchstuff(touch) ]
 
 
     

@@ -1,5 +1,6 @@
 for module in [
     "mc",
+    "mcOld",
     "jetmet",
     "ht",
     "muon",

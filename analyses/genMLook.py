@@ -1,33 +1,27 @@
-#!/usr/bin/env python
+import supy,steps,samples, ROOT as r
 
-import os,analysis,steps,calculables,samples,organizer,plotter
-import ROOT as r
+class genMLook(supy.analysis) :
 
-class genMLook(analysis.analysis) :
-    def listOfCalculables(self,params) :
-        return calculables.zeroArgs()
+    def listOfCalculables(self,_) :  return supy.calculables.zeroArgs()
 
-    def listOfSteps(self,params) :
+    def listOfSampleDictionaries(self) :  return [samples.mc, samples.jetmet]
+
+    def listOfSamples(self,params) :
+        return supy.samples.specify(names = "t2", nFilesMax = 1, nEventsMax = 10, color = r.kYellow-3)
+
+    def listOfSteps(self,_) :
         outList=[
-            steps.Print.progressPrinter(),
+            supy.steps.printer.progressPrinter(),
             steps.Gen.genParticlePrinter(minPt = -1.0, minStatus = 3),
             #steps.Gen.genMassHistogrammer(),
             #steps.Gen.genSHatHistogrammer(),
             ]
         return outList
 
-    def listOfSampleDictionaries(self) :
-        return [samples.mc, samples.jetmet]
-
-    def listOfSamples(self,params) :
-        from samples import specify
-        return specify(names = "t2", nFilesMax = 1, nEventsMax = 10, color = r.kYellow-3)
-
-#    def conclude(self) :
-#        org=organizer.organizer( self.sampleSpecs() )
-#        org.scale(100.0)
-#
-#        pl = plotter.plotter(org,
-#                             psFileName = self.psFileName(""),
-#                             )
-#        pl.plotAll()
+    def conclude(self,pars) :
+        org = self.organizer(pars)
+        org.scale(100.0)
+        
+        supy.plotter( org,
+                      psFileName = self.psFileName(""),
+                      ).plotAll()

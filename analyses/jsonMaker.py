@@ -1,11 +1,10 @@
-from core.analysis import analysis
-import os,steps,samples,calculables
+import supy,steps,samples,calculables
 
-class jsonMaker(analysis) :
+class jsonMaker(supy.analysis) :
     def parameters(self) :
-        jwPrompt = calculables.Other.jsonWeight("cert/Cert_160404-178677_7TeV_PromptReco_Collisions11_JSON.sub.txt")
-        jwMay = calculables.Other.jsonWeight("cert/Cert_160404-163869_7TeV_May10ReReco_Collisions11_JSON_v3.txt")
-        jwAug = calculables.Other.jsonWeight("cert/Cert_170249-172619_7TeV_ReReco5Aug_Collisions11_JSON_v3.txt")
+        jwPrompt = calculables.other.jsonWeight("cert/Cert_160404-178677_7TeV_PromptReco_Collisions11_JSON.sub.txt")
+        jwMay = calculables.other.jsonWeight("cert/Cert_160404-163869_7TeV_May10ReReco_Collisions11_JSON_v3.txt")
+        jwAug = calculables.other.jsonWeight("cert/Cert_170249-172619_7TeV_ReReco5Aug_Collisions11_JSON_v3.txt")
 
         group = self.vary()
 
@@ -66,18 +65,18 @@ class jsonMaker(analysis) :
         return {'group':group}
 
     def listOfSteps(self,pars) :
-        return [ steps.Print.progressPrinter(2,300),
-                 steps.Other.jsonMaker(),
+        return [ supy.steps.printer.progressPrinter(2,300),
+                 steps.other.jsonMaker(),
                  ]
 
     def listOfCalculables(self,pars) :
-        return calculables.zeroArgs()
+        return supy.calculables.zeroArgs()
 
     def listOfSamples(self,pars) :
-        return sum([samples.specify(names = samps, weights = jw) for samps,jw in pars['group']],[])
+        return sum([supy.samples.specify(names = samps, weights = jw) for samps,jw in pars['group']],[])
 
     def listOfSampleDictionaries(self) :
-        return [samples.HT.ht, samples.Muon.muon, samples.Photon.photon, samples.Electron.electron, samples.DoubleMu.mumu]
+        return [samples.ht, samples.muon, samples.photon, samples.electron, samples.mumu]
 
     def mainTree(self) :
         return ("lumiTree","tree")
