@@ -1,7 +1,6 @@
-from core.analysis import analysis
-import os,steps,calculables,samples,ROOT as r
+import supy,steps,calculables,samples,ROOT as r
 
-class prescales2(analysis) :
+class prescales2(supy.analysis) :
     def mutriggers(self) :             # L1 prescaling evidence
         ptv = { 12   :(1,2,3,4,5),     # 7,8,11,12
                 15   :(2,3,4,5,6,8,9), # 12,13
@@ -36,43 +35,43 @@ class prescales2(analysis) :
                 }
     
     def listOfCalculables(self,pars) :
-        return (calculables.zeroArgs() +
-                calculables.fromCollections(calculables.Muon,[pars["muon"]]) +
-                [calculables.Muon.Indices( pars["muon"], ptMin = 10, combinedRelIsoMax = 0.15),
-                 calculables.Muon.IndicesTriggering(pars['muon'], ptMin = 10),
-                 calculables.Other.lowestUnPrescaledTrigger(zip(*pars["triggers"])[0]),
-                 calculables.Vertex.ID(),
-                 calculables.Vertex.Indices(),
+        return (supy.calculables.zeroArgs() +
+                supy.calculables.fromCollections(calculables.muon,[pars["muon"]]) +
+                [calculables.muon.Indices( pars["muon"], ptMin = 10, combinedRelIsoMax = 0.15),
+                 calculables.muon.IndicesTriggering(pars['muon'], ptMin = 10),
+                 calculables.other.lowestUnPrescaledTrigger(zip(*pars["triggers"])[0]),
+                 calculables.vertex.ID(),
+                 calculables.vertex.Indices(),
                  ])
 
     def listOfSteps(self,pars) :
         return [
-            steps.Print.progressPrinter(),
-            steps.Filter.multiplicity("vertexIndices",min=1),
-            steps.Trigger.l1Filter("L1Tech_BPTX_plus_AND_minus.v0"),
-            steps.Trigger.physicsDeclaredFilter(),
-            steps.Filter.monster(),
-            steps.Filter.hbheNoise(),
-            steps.Filter.value("%sTriggeringPt%s"%pars["muon"],min=10),
-            steps.Trigger.prescaleLumiEpochs(pars['triggers']),
-            steps.Trigger.anyTrigger(zip(*pars['triggers'])[0], unreliable = self.unreliableTriggers()),
-            steps.Histos.value("%sTriggeringPt%s"%pars["muon"],100,0,200),
-            steps.Trigger.hltPrescaleHistogrammer(zip(*pars["triggers"])[0]),
-            steps.Trigger.lowestUnPrescaledTriggerHistogrammer(),
-            steps.Trigger.lowestUnPrescaledTriggerFilter(),
-            steps.Histos.value("%sTriggeringPt%s"%pars["muon"],100,0,200),
-            ]+[ steps.Trigger.prescaleScan(trig,ptMin,"%sTriggeringPt%s"%pars['muon']) for trig,ptMin in pars['triggers']]+[
-            steps.Filter.value( "%sTriggeringPt%s"%pars['muon'],min = 41)]
+            supy.steps.printer.progressPrinter(),
+            supy.steps.filters.multiplicity("vertexIndices",min=1),
+            steps.trigger.l1Filter("L1Tech_BPTX_plus_AND_minus.v0"),
+            steps.trigger.physicsDeclaredFilter(),
+            steps.filter.monster(),
+            steps.filter.hbheNoise(),
+            supy.steps.filter.value("%sTriggeringPt%s"%pars["muon"],min=10),
+            steps.trigger.prescaleLumiEpochs(pars['triggers']),
+            steps.trigger.anyTrigger(zip(*pars['triggers'])[0], unreliable = self.unreliableTriggers()),
+            supy.steps.histos.value("%sTriggeringPt%s"%pars["muon"],100,0,200),
+            steps.trigger.hltPrescaleHistogrammer(zip(*pars["triggers"])[0]),
+            steps.trigger.lowestUnPrescaledTriggerHistogrammer(),
+            steps.trigger.lowestUnPrescaledTriggerFilter(),
+            supy.steps.histos.value("%sTriggeringPt%s"%pars["muon"],100,0,200),
+            ]+[ steps.trigger.prescaleScan(trig,ptMin,"%sTriggeringPt%s"%pars['muon']) for trig,ptMin in pars['triggers']]+[
+            supy.steps.filter.value( "%sTriggeringPt%s"%pars['muon'],min = 41)]
 
-    def listOfSampleDictionaries(self) : return [samples.Muon.muon]
+    def listOfSampleDictionaries(self) : return [samples.muon]
 
     def listOfSamples(self,params) :
-        return ( samples.specify( names = "SingleMu.2011B-PR1.1b", color = r.kViolet) +
-                 samples.specify( names = "SingleMu.2011B-PR1.1a", color = r.kOrange) +
-                 samples.specify( names = "SingleMu.2011A-Oct.1", color = r.kBlack) +
-                 samples.specify( names = "SingleMu.2011A-Aug.1", color = r.kGreen) +
-                 samples.specify( names = "SingleMu.2011A-PR4.1", color = r.kRed) +
-                 samples.specify( names = "SingleMu.2011A-May.1", color = r.kBlue) )
+        return ( supy.samples.specify( names = "SingleMu.2011B-PR1.1b", color = r.kViolet) +
+                 supy.samples.specify( names = "SingleMu.2011B-PR1.1a", color = r.kOrange) +
+                 supy.samples.specify( names = "SingleMu.2011A-Oct.1", color = r.kBlack) +
+                 supy.samples.specify( names = "SingleMu.2011A-Aug.1", color = r.kGreen) +
+                 supy.samples.specify( names = "SingleMu.2011A-PR4.1", color = r.kRed) +
+                 supy.samples.specify( names = "SingleMu.2011A-May.1", color = r.kBlue) )
     
     def conclude(self,pars) :
         import re
@@ -83,11 +82,10 @@ class prescales2(analysis) :
         args = {"blackList":["lumiHisto","xsHisto","nJobsHisto"] + black,
                 "detailedCalculables" : True }
 
-        from core.plotter import plotter
-        plotter(org, psFileName = self.psFileName(org.tag+"unmerged"), **args ).plotAll()
-        plotter(org, psFileName = self.psFileName(org.tag+"unmerged_nolog"), doLog=False, **args ).plotAll()
+        supy.plotter(org, psFileName = self.psFileName(org.tag+"unmerged"), **args ).plotAll()
+        supy.plotter(org, psFileName = self.psFileName(org.tag+"unmerged_nolog"), doLog=False, **args ).plotAll()
         org.mergeSamples(targetSpec = {"name":"SingleMu","color":r.kRed}, allWithPrefix="SingleMu")
-        plotter(org, psFileName = self.psFileName(org.tag), **args ).plotAll()
+        supy.plotter(org, psFileName = self.psFileName(org.tag), **args ).plotAll()
         self.printPrescales(org)
 
                 

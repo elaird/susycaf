@@ -1,10 +1,9 @@
-from core.analysis import analysis
-import samples,calculables,steps
+import supy,samples,calculables,steps
 
-class topAsymmShell(analysis) :
+class topAsymmShell(supy.analysis) :
 
     def parameters(self) :
-        def mutriggers() :
+        def mutriggers() : # FIXME
             ptv = {
                 #3:(3,4),
                 #5:(3,4,5,6),
@@ -49,56 +48,56 @@ class topAsymmShell(analysis) :
     def listOfCalculables(self, pars) :
         obj = pars["objects"]
         lepton = obj[pars["lepton"]["name"]]
-        outList  = calculables.zeroArgs()
-        outList += calculables.fromCollections(calculables.Muon, [obj["muon"]])
-        outList += calculables.fromCollections(calculables.Electron, [obj["electron"]])
-        outList += calculables.fromCollections(calculables.Photon, [obj["photon"]])
-        outList += calculables.fromCollections(calculables.Jet, [obj["jet"]])
+        outList  = supy.calculables.zeroArgs()
+        outList += supy.calculables.fromCollections(calculables.muon, [obj["muon"]])
+        outList += supy.calculables.fromCollections(calculables.electron, [obj["electron"]])
+        outList += supy.calculables.fromCollections(calculables.photon, [obj["photon"]])
+        outList += supy.calculables.fromCollections(calculables.jet, [obj["jet"]])
         outList += [
-            calculables.Jet.IndicesBtagged(obj["jet"],pars["bVar"]),
-            calculables.Jet.Indices(      obj["jet"],      ptMin = 20, etaMax = 3.5, flagName = "JetIDloose"),
-            calculables.Muon.Indices(     obj["muon"],     ptMin = 10, combinedRelIsoMax = 0.15),
-            calculables.Muon.IndicesTriggering(obj["muon"]),
-            calculables.Electron.Indices( obj["electron"], ptMin = 10, simpleEleID = "80", useCombinedIso = True),
-            calculables.Photon.Indices(   obj["photon"],   ptMin = 25, flagName = "photonIDLooseFromTwikiPat"),
+            calculables.jet.IndicesBtagged(obj["jet"],pars["bVar"]),
+            calculables.jet.Indices(      obj["jet"],      ptMin = 20, etaMax = 3.5, flagName = "JetIDloose"),
+            calculables.muon.Indices(     obj["muon"],     ptMin = 10, combinedRelIsoMax = 0.15),
+            calculables.muon.IndicesTriggering(obj["muon"]),
+            calculables.electron.Indices( obj["electron"], ptMin = 10, simpleEleID = "80", useCombinedIso = True),
+            calculables.photon.Indices(   obj["photon"],   ptMin = 25, flagName = "photonIDLooseFromTwikiPat"),
 
-            calculables.XClean.IndicesUnmatched(collection = obj["photon"], xcjets = obj["jet"], DR = 0.5),
-            calculables.XClean.IndicesUnmatched(collection = obj["electron"], xcjets = obj["jet"], DR = 0.5),
-            calculables.XClean.xcJet(obj["jet"], applyResidualCorrectionsToData = False,
+            calculables.xclean.IndicesUnmatched(collection = obj["photon"], xcjets = obj["jet"], DR = 0.5),
+            calculables.xclean.IndicesUnmatched(collection = obj["electron"], xcjets = obj["jet"], DR = 0.5),
+            calculables.xclean.xcJet(obj["jet"], applyResidualCorrectionsToData = False,
                                      gamma    = obj["photon"],      gammaDR = 0.5,
                                      electron = obj["electron"], electronDR = 0.5,
                                      muon     = obj["muon"],         muonDR = 0.5, correctForMuons = not obj["muonsInJets"]),
-            calculables.XClean.SumP4(obj["jet"], obj["photon"], obj["electron"], obj["muon"]),
-            calculables.XClean.SumPt(obj["jet"], obj["photon"], obj["electron"], obj["muon"]),
+            calculables.xclean.SumP4(obj["jet"], obj["photon"], obj["electron"], obj["muon"]),
+            calculables.xclean.SumPt(obj["jet"], obj["photon"], obj["electron"], obj["muon"]),
 
-            calculables.Vertex.ID(),
-            calculables.Vertex.Indices(),
-            calculables.Other.lowestUnPrescaledTrigger(zip(*pars["lepton"]["triggers"])[0]),
+            calculables.vertex.ID(),
+            calculables.vertex.Indices(),
+            calculables.other.lowestUnPrescaledTrigger(zip(*pars["lepton"]["triggers"])[0]),
 
-            calculables.Top.mixedSumP4(transverse = obj["met"], longitudinal = obj["sumP4"]),
-            calculables.Other.pt("mixedSumP4"),
-            calculables.Top.SemileptonicTopIndex(lepton),            
-            calculables.Top.fitTopLeptonCharge(lepton),
-            calculables.Top.TopReconstruction(lepton,obj["jet"],"mixedSumP4"),
+            calculables.top.mixedSumP4(transverse = obj["met"], longitudinal = obj["sumP4"]),
+            calculables.other.pt("mixedSumP4"),
+            calculables.top.SemileptonicTopIndex(lepton),            
+            calculables.top.fitTopLeptonCharge(lepton),
+            calculables.top.TopReconstruction(lepton,obj["jet"],"mixedSumP4"),
             
-            calculables.Other.Mt(lepton,"mixedSumP4", allowNonIso=True, isSumP4=True),
-            calculables.Muon.IndicesAnyIsoIsoOrder(obj[pars["lepton"]["name"]], pars["lepton"]["isoVar"]),
-            calculables.Other.PtSorted(obj['muon']),
-            calculables.Other.Covariance(('met','PF')),
-            calculables.Other.abbreviation( "TrkCountingHighEffBJetTags", "NTrkHiEff", fixes = calculables.Jet.xcStrip(obj['jet']) ),
-            calculables.Other.abbreviation( "nVertexRatio", "nvr" ),
-            calculables.Other.abbreviation('muonTriggerWeightPF','tw'),
-            calculables.Jet.pt( obj['jet'], index = 0, Btagged = True ),
-            calculables.Jet.absEta( obj['jet'], index = 3, Btagged = False)
+            calculables.other.Mt(lepton,"mixedSumP4", allowNonIso=True, isSumP4=True),
+            calculables.muon.IndicesAnyIsoIsoOrder(obj[pars["lepton"]["name"]], pars["lepton"]["isoVar"]),
+            calculables.other.PtSorted(obj['muon']),
+            calculables.other.Covariance(('met','PF')),
+            supy.calculables.other.abbreviation( "TrkCountingHighEffBJetTags", "NTrkHiEff", fixes = calculables.jet.xcStrip(obj['jet']) ),
+            supy.calculables.other.abbreviation( "nVertexRatio", "nvr" ),
+            supy.calculables.other.abbreviation('muonTriggerWeightPF','tw'),
+            calculables.jet.pt( obj['jet'], index = 0, Btagged = True ),
+            calculables.jet.absEta( obj['jet'], index = 3, Btagged = False)
             ]
-        outList += calculables.fromCollections(calculables.Top,[('genTop',""),('fitTop',"")])
-        outList.append( calculables.Top.TopComboQQBBLikelihood(pars['objects']['jet'], pars['bVar']))
-        outList.append( calculables.Top.OtherJetsLikelihood(pars['objects']['jet'], pars['bVar']))
-        outList.append( calculables.Top.TopRatherThanWProbability(priorTop=0.5) )
+        outList += calculables.fromCollections(calculables.top,[('genTop',""),('fitTop',"")])
+        outList.append( calculables.top.TopComboQQBBLikelihood(pars['objects']['jet'], pars['bVar']))
+        outList.append( calculables.top.OtherJetsLikelihood(pars['objects']['jet'], pars['bVar']))
+        outList.append( calculables.top.TopRatherThanWProbability(priorTop=0.5) )
         return outList
 
     def listOfSampleDictionaries(self) :
-        return [samples.MC.mc, samples.Muon.muon]
+        return [samples.mc, samples.muon]
     
 
     @staticmethod
@@ -126,14 +125,14 @@ class topAsymmShell(analysis) :
                                                             "%sIndicesUnmatched%s"%obj["electron"],
                                                             "%sIndicesOther%s"%obj["muon"],
                                                             ]]+[
-            steps.Jet.forwardFailedJetVeto( obj["jet"], ptAbove = 50, etaAbove = 3.5),
-            steps.Jet.uniquelyMatchedNonisoMuons(obj["jet"]),
+            steps.jet.forwardFailedJetVeto( obj["jet"], ptAbove = 50, etaAbove = 3.5),
+            steps.jet.uniquelyMatchedNonisoMuons(obj["jet"]),
             ])
 
     @staticmethod
     def selectionSteps(pars, withPlots = True) :
         obj = pars["objects"]
-        bVar = ("%s"+pars["bVar"]+"%s")%calculables.Jet.xcStrip(obj["jet"])
+        bVar = ("%s"+pars["bVar"]+"%s")%calculables.jet.xcStrip(obj["jet"])
         lepton = obj[pars["lepton"]["name"]]
         lPtMin = pars["lepton"]["ptMin"]
         lEtaMax = pars["lepton"]["etaMax"]
@@ -157,7 +156,7 @@ class topAsymmShell(analysis) :
              steps.Filter.absEta("%sP4%s"%lepton, max = lEtaMax, indices = lIsoIndices, index = 0),
              
              ]+[steps.Histos.value(bVar, 60,0,15, indices = "%sIndicesBtagged%s"%obj["jet"], index = i) for i in range(3)]+[
-            calculables.Jet.ProbabilityGivenBQN(obj["jet"], pars['bVar'], binning=(64,-1,15), samples = pars['topBsamples'], tag = topTag),
+            calculables.jet.ProbabilityGivenBQN(obj["jet"], pars['bVar'], binning=(64,-1,15), samples = pars['topBsamples'], tag = topTag),
             steps.Histos.value("TopRatherThanWProbability", 100,0,1),
             #steps.Filter.value("TopRatherThanWProbability", min = 0.2),
             steps.Filter.value(bVar, indices = "%sIndicesBtagged%s"%obj["jet"], index = 1, min = 0.0),

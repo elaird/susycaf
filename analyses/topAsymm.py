@@ -1,5 +1,4 @@
-import topAsymmShell,steps,calculables,samples
-from core import plotter,utils,organizer,templateFit
+import supy,topAsymmShell,steps,calculables,samples
 import os,math,copy,ROOT as r, numpy as np
 
 class topAsymm(topAsymmShell.topAsymmShell) :
@@ -17,15 +16,15 @@ class topAsymm(topAsymmShell.topAsymmShell) :
 
     def listOfCalculables(self, pars) :
         calcs = super(topAsymm,self).listOfCalculables(pars)
-        calcs.append( calculables.Other.TriDiscriminant(LR = "DiscriminantWQCD", LC = "DiscriminantTopW", RC = "DiscriminantTopQCD") )
-        calcs.append( calculables.Other.KarlsruheDiscriminant(pars['objects']['jet'], pars['objects']['met']) )
+        calcs.append( calculables.other.TriDiscriminant(LR = "DiscriminantWQCD", LC = "DiscriminantTopW", RC = "DiscriminantTopQCD") )
+        calcs.append( calculables.other.KarlsruheDiscriminant(pars['objects']['jet'], pars['objects']['met']) )
         calcs.append( calculables.size("%sIndices%s"%pars['objects']['jet']))
-        calcs.append( calculables.Top.RadiativeCoherence(('fitTop',''),pars['objects']['jet']))
+        calcs.append( calculables.top.RadiativeCoherence(('fitTop',''),pars['objects']['jet']))
         return calcs
     ########################################################################################
 
     def listOfSamples(self,pars) :
-        from samples import specify
+        from supy.samples import specify
 
         def data( ) :
             return specify( names = ["SingleMu.Run2011A-PR-v4.FJ.Burt","SingleMu.Run2011A-May10-v1.FJ.Burt"], weights = 'tw' )
@@ -41,12 +40,12 @@ class topAsymm(topAsymmShell.topAsymmShell) :
                             names = ["qcd_mg_ht_%s_%s"%t for t in zip(qM,qM[1:]+["inf"])]) if "Wlv" not in pars['tag'] else []
         def ttbar_mg(eL = None) :
             return (specify( names = "tt_tauola_mg", effectiveLumi = eL, color = r.kBlue, weights = ['wNonQQbar','tw','nvr']) +
-                    sum([specify( names = "tt_tauola_mg", effectiveLumi = eL, color = color, weights = [calculables.Top.wTopAsym( asym, R_sm = -0.05), 'nvr' ])
+                    sum([specify( names = "tt_tauola_mg", effectiveLumi = eL, color = color, weights = [calculables.top.wTopAsym( asym, R_sm = -0.05), 'nvr' ])
                          for asym,color in [(0.0,r.kOrange),(-0.3,r.kGreen),(0.3,r.kRed)]], [])
                     )[: 0 if "QCD" in pars['tag'] else 2 if 'Wlv' in pars['tag'] else None]
         def ttbar_py(eL = None) :
             return (specify(names = "tt_tauola_fj", effectiveLumi = eL, color = r.kBlue, weights = ["wNonQQbar",'tw','nvr']) +
-                    sum( [specify(names = "tt_tauola_fj", effectiveLumi = eL, color = color, weights = [ calculables.Top.wTopAsym(asym), 'tw','nvr' ] )
+                    sum( [specify(names = "tt_tauola_fj", effectiveLumi = eL, color = color, weights = [ calculables.top.wTopAsym(asym), 'tw','nvr' ] )
                           for asym,color in [(0.0,r.kOrange),
                                              (-0.3,r.kGreen),(0.3,r.kRed),
                                              #(-0.6,r.kYellow),(0.6,r.kYellow),
@@ -70,28 +69,28 @@ class topAsymm(topAsymmShell.topAsymmShell) :
         bVar = ("%s"+pars["bVar"]+"%s")%calculables.Jet.xcStrip(obj["jet"])
 
         return ([
-            steps.Print.progressPrinter(),
-            steps.Other.histogrammer("genpthat",200,0,1000,title=";#hat{p_{T}} (GeV);events / bin"),
+            supy.steps.printer.progressPrinter(),
+            supy.steps.other.histogrammer("genpthat",200,0,1000,title=";#hat{p_{T}} (GeV);events / bin"),
             ] + self.dataCleanupSteps(pars) + [
-            calculables.Trigger.TriggerWeight(samples = ['SingleMu.Run2011A-PR-v4.FJ.Burt.tw','SingleMu.Run2011A-May10-v1.FJ.Burt.tw'],
+            calculables.trigger.TriggerWeight(samples = ['SingleMu.Run2011A-PR-v4.FJ.Burt.tw','SingleMu.Run2011A-May10-v1.FJ.Burt.tw'],
                                               triggers = zip(*pars['lepton']['triggers'])[0], thresholds = zip(*pars['lepton']['triggers'])[1]),
-            calculables.Other.Ratio("nVertex", binning = (15,-0.5,14.5), thisSample = pars['baseSample'],
-                                    target = ("SingleMu",[]), groups = [('qcd_mg',[]),('qcd_py6',[]),('w_jets_fj_mg',[]),
+            supy.calculables.other.Ratio("nVertex", binning = (15,-0.5,14.5), thisSample = pars['baseSample'],
+                                         target = ("SingleMu",[]), groups = [('qcd_mg',[]),('qcd_py6',[]),('w_jets_fj_mg',[]),
                                                                         ('tt_tauola_fj',['tt_tauola_fj%s.tw.nvr'%s for s in ['','.wNonQQbar','.wTopAsymP00']])]),
             ] + self.xcleanSteps(pars) + [
-            steps.Histos.value("%sTriggeringPt%s"%lepton, 200,0,200),
-            steps.Filter.value("%sTriggeringPt%s"%lepton, min = lPtMin),
-            steps.Histos.value(obj["sumPt"],50,0,1500),
-            steps.Histos.value("rho",100,0,40),
+            supy.steps.histos.value("%sTriggeringPt%s"%lepton, 200,0,200),
+            supy.steps.filters.value("%sTriggeringPt%s"%lepton, min = lPtMin),
+            supy.steps.histos.value(obj["sumPt"],50,0,1500),
+            supy.steps.histos.value("rho",100,0,40),
             ] + self.selectionSteps(pars, withPlots = True) + [
-            #steps.Filter.stop(),#####################################
-            steps.Filter.multiplicity("TopReconstruction",min=1),
-            steps.Filter.label("selection complete"),
-            steps.Histos.value("%sM3%s"%obj['jet'], 20,0,800),
-            steps.Histos.value("KarlsruheDiscriminant", 28, -320, 800 ),
-            steps.Histos.value("TopRatherThanWProbability",100,0,1),
-            steps.Histos.value("fitTopRadiativeCoherence", 100,-1,1),
-            #calculables.Other.Discriminant( fixes = ("","TopQqQg"),
+            #supy.steps.filters.label('before top reco').invert(),#####################################
+            supy.steps.filters.multiplicity("TopReconstruction",min=1),
+            supy.steps.filters.label("selection complete"),
+            supy.steps.histos.value("%sM3%s"%obj['jet'], 20,0,800),
+            supy.steps.histos.value("KarlsruheDiscriminant", 28, -320, 800 ),
+            supy.steps.histos.value("TopRatherThanWProbability",100,0,1),
+            supy.steps.histos.value("fitTopRadiativeCoherence", 100,-1,1),
+            #supy.calculables.other.Discriminant( fixes = ("","TopQqQg"),
             #                                left = {"pre":"qq", "tag":"top_muon_pf", "samples":['tt_tauola_fj.wNonQQbar.tw.nvr']},
             #                                right = {"pre":"qg", "tag":"top_muon_pf", "samples":['tt_tauola_fj.wTopAsymP00.tw.nvr']},
             #                                dists = {"fitTopPtOverSumPt" : (20,0,1),
@@ -101,64 +100,64 @@ class topAsymm(topAsymmShell.topAsymmShell) :
             #                                         },
             #                                correlations = True,
             #                                bins = 14),
-            #steps.Filter.stop(),#####################################
-            calculables.Other.Discriminant( fixes = ("","TopW"),
-                                            left = {"pre":"w_jets_fj_mg", "tag":"top_muon_pf", "samples":[]},
-                                            right = {"pre":"tt_tauola_fj", "tag":"top_muon_pf", "samples": ['tt_tauola_fj.%s.tw.nvr'%s for s in ['wNonQQbar','wTopAsymP00']]},
-                                            correlations = True,
-                                            dists = {"%sKt%s"%obj["jet"] : (25,0,150),
-                                                     "%sB0pt%s"%obj["jet"] : (30,0,300),
-                                                     "%s3absEta%s"%obj["jet"] : (20,0,4),
-                                                     "fitTopHadChi2"     : (20,0,100),
-                                                     "mixedSumP4.pt"     : (30,0,180),
-                                                     #"fitTopLeptonPt"    : (30,0,180),  # not so powerful?
-                                                     "fitTopDeltaPhiLNu" : (20,0,math.pi),
-                                                     "TopRatherThanWProbability" : (20,0,1),
-                                                     }),
-            calculables.Other.Discriminant( fixes = ("","TopQCD"),
-                                            left = {"pre":"SingleMu", "tag":"QCD_muon_pf", "samples":[]},
-                                            right = {"pre":"tt_tauola_fj", "tag":"top_muon_pf", "samples": ['tt_tauola_fj.%s.tw.nvr'%s for s in ['wNonQQbar','wTopAsymP00']]},
-                                            correlations = True,
-                                            dists = {"%sKt%s"%obj["jet"] : (25,0,150),
-                                                     "%sB0pt%s"%obj["jet"] : (30,0,300),
-                                                     "%s3absEta%s"%obj["jet"] : (20,0,4),
-                                                     "%sMt%s"%obj['muon']+"mixedSumP4" : (30,0,180),
-                                                     "%sDeltaPhiB01%s"%obj["jet"] : (20,0,math.pi),
-                                                     #"mixedSumP4.pt"     : (30,0,180),
-                                                     #"fitTopLeptonPt"    : (30,0,180),
-                                                     #"fitTopDeltaPhiLNu" : (20,0,math.pi),
-                                                     }),
-            calculables.Other.Discriminant( fixes = ("","WQCD"),
-                                            left = {"pre":"w_jets_fj_mg", "tag":"top_muon_pf", "samples":[]},
-                                            right = {"pre":"SingleMu", "tag":"QCD_muon_pf", "samples":[]},
-                                            correlations = True,
-                                            dists = {"%sB0pt%s"%obj["jet"] : (30,0,300),
-                                                     "%sMt%s"%obj['muon']+"mixedSumP4" : (30,0,180),
-                                                     "%sDeltaPhiB01%s"%obj["jet"] : (20,0,math.pi),
-                                                     "fitTopCosHelicityThetaL": (20,-1,1),
-                                                     }),
-            calculables.Gen.qDirProbPlus('fitTopSumP4Eta', 10, 'top_muon_pf', 'tt_tauola_fj.wTopAsymP00.tw.nvr', path = self.globalStem),
-            #steps.Filter.stop(),#####################################
-            steps.Histos.multiplicity("%sIndices%s"%obj["jet"]),
-            steps.Histos.value("TriDiscriminant",50,-1,1),
-            steps.Top.Asymmetry(('fitTop',''), bins = 640),
-            steps.Top.Spin(('fitTop','')),
+            #supy.steps.filters.label('before discriminants').invert(),#####################################
+            supy.calculables.other.Discriminant( fixes = ("","TopW"),
+                                                 left = {"pre":"w_jets_fj_mg", "tag":"top_muon_pf", "samples":[]},
+                                                 right = {"pre":"tt_tauola_fj", "tag":"top_muon_pf", "samples": ['tt_tauola_fj.%s.tw.nvr'%s for s in ['wNonQQbar','wTopAsymP00']]},
+                                                 correlations = True,
+                                                 dists = {"%sKt%s"%obj["jet"] : (25,0,150),
+                                                          "%sB0pt%s"%obj["jet"] : (30,0,300),
+                                                          "%s3absEta%s"%obj["jet"] : (20,0,4),
+                                                          "fitTopHadChi2"     : (20,0,100),
+                                                          "mixedSumP4.pt"     : (30,0,180),
+                                                          #"fitTopLeptonPt"    : (30,0,180),  # not so powerful?
+                                                          "fitTopDeltaPhiLNu" : (20,0,math.pi),
+                                                          "TopRatherThanWProbability" : (20,0,1),
+                                                          }),
+            supy.calculables.other.Discriminant( fixes = ("","TopQCD"),
+                                                 left = {"pre":"SingleMu", "tag":"QCD_muon_pf", "samples":[]},
+                                                 right = {"pre":"tt_tauola_fj", "tag":"top_muon_pf", "samples": ['tt_tauola_fj.%s.tw.nvr'%s for s in ['wNonQQbar','wTopAsymP00']]},
+                                                 correlations = True,
+                                                 dists = {"%sKt%s"%obj["jet"] : (25,0,150),
+                                                          "%sB0pt%s"%obj["jet"] : (30,0,300),
+                                                          "%s3absEta%s"%obj["jet"] : (20,0,4),
+                                                          "%sMt%s"%obj['muon']+"mixedSumP4" : (30,0,180),
+                                                          "%sDeltaPhiB01%s"%obj["jet"] : (20,0,math.pi),
+                                                          #"mixedSumP4.pt"     : (30,0,180),
+                                                          #"fitTopLeptonPt"    : (30,0,180),
+                                                          #"fitTopDeltaPhiLNu" : (20,0,math.pi),
+                                                          }),
+            supy.calculables.other.Discriminant( fixes = ("","WQCD"),
+                                                 left = {"pre":"w_jets_fj_mg", "tag":"top_muon_pf", "samples":[]},
+                                                 right = {"pre":"SingleMu", "tag":"QCD_muon_pf", "samples":[]},
+                                                 correlations = True,
+                                                 dists = {"%sB0pt%s"%obj["jet"] : (30,0,300),
+                                                          "%sMt%s"%obj['muon']+"mixedSumP4" : (30,0,180),
+                                                          "%sDeltaPhiB01%s"%obj["jet"] : (20,0,math.pi),
+                                                          "fitTopCosHelicityThetaL": (20,-1,1),
+                                                          }),
+            calculables.gen.qDirProbPlus('fitTopSumP4Eta', 10, 'top_muon_pf', 'tt_tauola_fj.wTopAsymP00.tw.nvr', path = self.globalStem),
+            #supy.steps.filters.label('before signal distributions').invert(),#####################################
+            supy.steps.histos.multiplicity("%sIndices%s"%obj["jet"]),
+            supy.steps.histos.value("TriDiscriminant",50,-1,1),
+            steps.top.Asymmetry(('fitTop',''), bins = 640),
+            steps.top.Spin(('fitTop','')),
 
-            #steps.Histos.value('fitTopSumP4Eta', 12, -6, 6),
-            #steps.Filter.absEta('fitTopSumP4', min = 1),
-            #steps.Histos.value('fitTopSumP4Eta', 12, -6, 6),
-            #steps.Top.Asymmetry(('fitTop',''), bins = 640),
-            #steps.Top.Spin(('fitTop','')),
+            #steps.histos.value('fitTopSumP4Eta', 12, -6, 6),
+            #steps.filters.absEta('fitTopSumP4', min = 1),
+            #steps.histos.value('fitTopSumP4Eta', 12, -6, 6),
+            #steps.top.Asymmetry(('fitTop',''), bins = 640),
+            #steps.top.Spin(('fitTop','')),
 
-            #steps.Top.kinFitLook("fitTopRecoIndex"),
-            #steps.Filter.value("TriDiscriminant",min=-0.64,max=0.8),
-            #steps.Histos.value("TriDiscriminant",50,-1,1),
-            #steps.Top.Asymmetry(('fitTop',''), bins = 640),
-            #steps.Top.Spin(('fitTop','')),
-            #steps.Filter.value("TriDiscriminant",min=-.56,max=0.72),
-            #steps.Histos.value("TriDiscriminant",50,-1,1),
-            #steps.Top.Asymmetry(('fitTop','')),
-            #steps.Top.Spin(('fitTop','')),
+            #steps.top.kinFitLook("fitTopRecoIndex"),
+            #steps.filters.value("TriDiscriminant",min=-0.64,max=0.8),
+            #steps.histos.value("TriDiscriminant",50,-1,1),
+            #steps.top.Asymmetry(('fitTop',''), bins = 640),
+            #steps.top.Spin(('fitTop','')),
+            #steps.filters.value("TriDiscriminant",min=-.56,max=0.72),
+            #steps.histos.value("TriDiscriminant",50,-1,1),
+            #steps.top.Asymmetry(('fitTop','')),
+            #steps.top.Spin(('fitTop','')),
             ])
     ########################################################################################
 
@@ -437,20 +436,20 @@ class topAsymm(topAsymmShell.topAsymmShell) :
     def pickleEnsemble(self, iStep, dist, qqFrac ) :
         utils.mkdir(self.globalStem+'/ensembles')
         templates,observed = self.templates(iStep, dist, qqFrac)
-        ensemble = templateFit.templateEnsembles(2e3, *zip(*templates) )
+        ensemble = supy.utils.templateFit.templateEnsembles(2e3, *zip(*templates) )
         utils.writePickle(self.ensembleFileName(iStep,dist,qqFrac), ensemble)
 
         name = self.ensembleFileName(iStep,dist,qqFrac,'')
         canvas = r.TCanvas()
         canvas.Print(name+'.ps[')
-        stuff = templateFit.drawTemplateEnsembles(ensemble, canvas)
+        stuff = supy.utils.templateFit.drawTemplateEnsembles(ensemble, canvas)
         canvas.Print(name+".ps")
         import random
         for i in range(20) :
             par, templ = random.choice(zip(ensemble.pars,ensemble.templates)[2:-2])
             pseudo = [np.random.poisson(mu) for mu in templ]
-            tf = templateFit.templateFitter(pseudo,ensemble.pars,ensemble.templates, 1e3)
-            stuff = templateFit.drawTemplateFitter(tf,canvas, trueVal = par)
+            tf = supy.utils.templateFit.templateFitter(pseudo,ensemble.pars,ensemble.templates, 1e3)
+            stuff = supy.utils.templateFit.drawTemplateFitter(tf,canvas, trueVal = par)
             canvas.Print(name+".ps")
             for item in sum([i if type(i) is list else [i] for i in stuff[1:]],[]) : utils.delete(item)
 

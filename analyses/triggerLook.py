@@ -1,23 +1,15 @@
-#!/usr/bin/env python
+import supy,steps,samples
 
-from core import analysis,organizer,plotter
-import steps,calculables,samples
-import ROOT as r
+class triggerLook(supy.analysis) :
 
-class triggerLook(analysis.analysis) :
-    def listOfCalculables(self,params) :
-        return calculables.zeroArgs()
+    def listOfCalculables(self,_) : return supy.calculables.zeroArgs()
 
-    def listOfSteps(self,params) :
-        return [
-            steps.Trigger.Counts(useCache = True),
-            ]
+    def listOfSampleDictionaries(self) : return [samples.ht, samples.photon, samples.mumu]
 
-    def listOfSampleDictionaries(self) :
-        return [samples.HT.ht, samples.Photon.photon, samples.DoubleMu.mumu]
+    def listOfSteps(self,params) :  return [ steps.trigger.Counts(useCache = True) ]
 
     def listOfSamples(self,params) :
-        from samples import specify
+        from supy.samples import specify
         out = []
 
         #out += specify(names = "Photon.Run2011A-05Aug2011-v1.AOD.job663")
@@ -34,7 +26,6 @@ class triggerLook(analysis.analysis) :
 
         return out
 
-    def conclude(self, conf) :
-        org = self.organizer(conf)
-        pl = plotter.plotter(org, psFileName = self.psFileName(org.tag), blackList = ["lumiHisto","xsHisto","nJobsHisto"])
-        pl.plotAll()
+    def conclude(self, pars) :
+        org = self.organizer(pars)
+        supy.plotter(org, psFileName = self.psFileName(org.tag), blackList = ["lumiHisto","xsHisto","nJobsHisto"]).plotAll()
