@@ -1,11 +1,11 @@
 for module in [
     "mc",
-    "jetMet",
+    "jetmet",
     "ht",
     "muon",
     "electron",
     "photon",
     "signalSkim",
-    "wPol",
-    "doubleMu",
+    "wpol",
+    "mumu",
     ] : exec("from __%s__ import %s"%s)
