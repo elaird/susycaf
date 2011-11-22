@@ -188,4 +188,4 @@ class secondary(wrappedChain.calculable,analysisStep) :
         return sampleHists
                      
 ##############################
-import Compatibility,Electron,Gen,Jet,Muon,Other,Photon,Top,Vertex,XClean,Trigger,Davide
+import compatibility,electron,gen,jet,muon,other,photon,top,trigger,vertex,xclean
