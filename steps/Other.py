@@ -1,196 +1,106 @@
-import copy,array,os,collections
-import ROOT as r
-from core.analysisStep import analysisStep
-import Master
-from core import utils,luminosity
+import array,collections, ROOT as r
+from supy import analysisStep,utils,steps
 #####################################
-class histogrammer(analysisStep) :
+class handleChecker(analysisStep) :
+    def __init__(self, matches = ["handle", "Handle", "valid", "Valid"]) :
+        self.run = False
+        self.matches = matches
 
-    def __init__(self,var,N,low,up,title="", funcString = "lambda x:x" , suffix = "") :
-        for item in ["var","N","low","up","title","funcString"] : setattr(self,item,eval(item))
-        self.oneD = type(var) != tuple
-        self.hName = (var if self.oneD else "_vs_".join(reversed(var)))+suffix
-        self.moreName = "%s(%s)"% ("(%s)"%funcString if funcString!="lambda x:x" else "", str(self.hName))
-        self.funcStringEvaluated = False
-
-    def uponAcceptance(self,eventVars) :
-        if not self.funcStringEvaluated :
-            self.func = eval(self.funcString)
-            self.funcStringEvaluated = True
-            
-        value = eventVars[self.var] if self.oneD else \
-                tuple(map(eventVars.__getitem__,self.var))
-        if value is None or (not self.oneD and not all(value)) : return #temporary bug
-
-        self.book.fill( self.func(value), self.hName, self.N, self.low, self.up, title=self.title)
-#####################################
-class iterHistogrammer(histogrammer) :
-
-    def uponAcceptance(self,eventVars) :
-        if not self.funcStringEvaluated :
-            self.func = eval(self.funcString)
-            self.funcStringEvaluated = True
-
-        values = eventVars[self.var] if self.oneD else \
-                 zip(*map(eventVars.__getitem__,self.var))
-
-        for i in range(len(values)) :
-            value = values[i]
-            if value is None or (not self.oneD and None in value) : continue
-            self.book.fill( self.func(value), self.hName, self.N, self.low, self.up, title=self.title)
-#####################################
-class passFilter(analysisStep) :
-    def __init__(self,title) : self.moreName = title
-    def select(self,eventVars) : return True
-#####################################
-class multiplicityFilter(analysisStep) :
-
-    def __init__(self,var, nMin = 0, nMax = None ) :
-        self.moreName = "%d <= %s"%(nMin,var) + (" <= %d" % nMax if nMax!=None else "")
-        self.var = var
-        self.nMin = nMin
-        self.nMax = nMax if nMax!=None else 1e6
-    def select(self,eventVars) :
-        return self.nMin <= len(eventVars[self.var]) <= self.nMax
-#####################################
-def multiplicityPlotFilter(var, nMin=0, nMax=None, xlabel="") :
-    return ([ histogrammer(var, 20, -0.5, 19.5, title=";%s;events / bin"%xlabel, funcString="lambda x:len(x)")] if xlabel else []) + \
-           [ multiplicityFilter(var, nMin = nMin , nMax = nMax) ]
-#####################################
-class orFilter(analysisStep) :
-    def __init__(self, listOfSelectorSteps = []) :
-        self.steps = listOfSelectorSteps
-        self.moreName = '|'.join(["%s:%s"%(step.name,step.moreName) for step in self.steps])
-    def select(self,eventVars) :
-        for step in self.steps :
-            if step.select(eventVars) : return True
-        return False
-#####################################
-class assertNotYetCalculated(analysisStep) :
-    def __init__(self,var) : self.var = var
-    def uponAcceptance(self, eV) : assert not dict.__getitem__(eV, self.var).updated
-#####################################
-class skimmer(analysisStep) :
+    def ofInterest(self, eventVars) :
+        out = []
+        for var in eventVars :
+            for item in self.matches :
+                if item in var :
+                    out.append(var)
+        return list(set(out))
     
-    def __init__(self) :
-        self.outputTree=0
-        self.moreName="(see below)"
-        self.alsoWriteExtraTree=False #hard-code until this functionality is fixed
-        self.outputTreeExtraIsSetup=False
+    def uponAcceptance(self, eventVars) :
+        if self.run : return
+        self.run = True
 
-    def requiresNoSetBranchAddress(self) :
-        return True
-
-    def requiresNoTrace(self) :
-        return True
-
-    def setup(self, chain, fileDir) :
-        self.fileDir = fileDir
-        self.outputFile = r.TFile(self.outputFileName, "RECREATE")
-        self.setupMainChain(chain)
-        self.initExtraTree()
-
-    def setupMainChain(self, chain) :
-        self.outputFile.mkdir(self.fileDir)
-        self.outputFile.cd(self.fileDir)
-        if chain and chain.GetEntry(0)>0 :
-            self.outputTree = chain.CloneTree(0)  #clone structure of tree (but no entries)
-        if not self.outputTree :                  #in case the chain has 0 entries
-            r.gROOT.cd()
-            return
-        self.outputTree.SetDirectory(r.gDirectory)#put output tree in correct place
-        chain.CopyAddresses(self.outputTree)      #associate branch addresses
-
-    def writeOtherChains(self, chains) :
-        for (dirName,treeName),chain in chains.iteritems() :
-            if dirName==self.fileDir and self.outputTree and treeName==self.outputTree.GetName() : continue
-            self.outputFile.mkdir(dirName)
-            self.outputFile.cd(dirName)
-            if chain and chain.GetEntry(0)>0 :
-                outChain = chain.CloneTree()
-                if outChain :
-                    outChain.SetName(treeName)
-                    outChain.SetDirectory(r.gDirectory)
-                    outChain.Write()
-
-    def initExtraTree(self) :
-        if self.alsoWriteExtraTree :
-            raise Exception("at the moment, adding the extra tree with the skimmer is broken")
-            self.arrayDictionary={}
-            self.supportedBuiltInTypes=[type(True),type(0),type(0L),type(0.0)]
-            self.supportedOtherTypes=[type(utils.LorentzV())]
-            
-            extraName=self.outputTree.GetName()+"Extra"
-            self.outputTreeExtra=r.TTree(extraName,extraName)
-            self.outputTreeExtra.SetDirectory(r.gDirectory)
-        r.gROOT.cd()
-
-
-    def select(self,eventVars) :
-        #read all the data for this event
-        if eventVars["chain"].GetEntry(eventVars["entry"],1)<=0 :
-            return False #skip this event in case of i/o error
-        #fill the skim tree
-        self.outputTree.Fill()
-        
-        #optionally fill an extra tree
-        if self.alsoWriteExtraTree :
-            if not self.outputTreeExtraIsSetup : self.setupExtraTree(eventVars)
-            self.fillExtraVariables(eventVars)
-            self.outputTreeExtra.Fill()
-            
-        return True
-
-    def setupExtraTree(self,eventVars) :
-        crockCopy=copy.deepcopy(eventVars["crock"])
-        branchNameList=dir(crockCopy)
-        skipList=['__doc__','__init__','__module__']
-
-        #set up remaining suitable branches as doubles
-        for branchName in branchNameList :
-            if (branchName in skipList) : continue
-
-            thisType=type(eventVars["crock"][branchName])
-            if (thisType in self.supportedBuiltInTypes) :
-                self.arrayDictionary[branchName]=array.array('d',[0.0])
-                self.outputTreeExtra.Branch(branchName,self.arrayDictionary[branchName],branchName+"/D")
-            elif (thisType in self.supportedOtherTypes) :
-                self.outputTreeExtra.Branch(branchName,eventVars["crock"][branchName])
+        true = []
+        false = []
+        for var in self.ofInterest(eventVars) :
+            if eventVars[var] :
+                true.append(var)
             else :
-                #print "The variable \""+branchName+"\" has been rejected from the extra tree."
-                continue
-            
-        self.outputTreeExtraIsSetup=True
+                false.append(var)
+        print "True:",sorted(true)
+        print
+        print "False:",sorted(false)
+#####################################
+class jsonMaker(analysisStep) :
 
-    def fillExtraVariables(self,eventVars) :
-        for key in self.arrayDictionary :
-            self.arrayDictionary[key][0]=eventVars["crock"][key]
-        
-    def endFunc(self, chains) :
-        self.outputFile.cd(self.fileDir)                          #cd to file
-        if self.outputTree :         self.outputTree.Write()      #write main tree
-        if self.alsoWriteExtraTree : self.outputTreeExtra.Write() #write a tree with "extra" variables
-        self.writeOtherChains(chains)
-        self.outputFile.Close()
+    def __init__(self, calculateLumi = True) :
+        self.lumisByRun = collections.defaultdict(list)
+        self.calculateLumi = calculateLumi
+        self.moreName="see below"
 
-    def outputSuffix(self) :
-        return "_skim.root"
+    def uponAcceptance(self,eventVars) :
+        self.lumisByRun[eventVars["run"]].append(eventVars["lumiSection"])
     
-    def modifiedFileName(self, s) :
-        l = s.split("/")
-        return "/".join(l[:-2]+l[-1:])
+    def varsToPickle(self) : return ["lumisByRun"]
 
+    def outputSuffix(self) : return ".json"
+    
     def mergeFunc(self, products) :
-        print "The %d skim files have been written."%len(products["outputFileName"])
-        for fileName in products["outputFileName"] :
-            os.system("mv %s %s"%(fileName, self.modifiedFileName(fileName)))
-        print "( e.g. %s )"%self.modifiedFileName(products["outputFileName"][0])
+        d = collections.defaultdict(list)
+        for lumisByRun in products["lumisByRun"] :
+            for run,lumis in lumisByRun.iteritems() :
+                d[run] += lumis
+
+        d2 = {}
+        for run,lumis in d.iteritems() :
+            d2[run] = sorted(set(lumis))
+            for ls in d2[run] :
+                if 1 < lumis.count(ls) :
+                    print "Run %d ls %d appears %d times in the lumiTree."%(run,ls,lumis.count(ls))
+
+        json = utils.jsonFromRunDict(d2)
+        lumi = utils.luminosity.recordedInvMicrobarns(json)/1e6 if self.calculateLumi else -1.0
+        with open(self.outputFileName,"w") as file: print >> file, str(json).replace("'",'"')
+        print "Wrote %.4f/pb json to : %s"%(lumi,self.outputFileName)
         print utils.hyphens
 #####################################
-class hbheNoiseFilter(analysisStep) :
+class duplicateEventCheck(analysisStep) :
+    def __init__(self) :
+        self.events = collections.defaultdict(list)
 
-    def select (self,eventVars) :
-        return eventVars["hbheNoiseFilterResult"]
+    def uponAcceptance(self,ev) :
+        self.events[(ev["run"], ev["lumiSection"])].append(ev["event"])
+
+    def varsToPickle(self) : return ["events"]
+
+    def mergeFunc(self, products) :
+        def mergedEventDicts(l) :
+            out = collections.defaultdict(list)
+            for d in l :
+                for key,value in d.iteritems() :
+                    out[key] += value
+            return out
+
+        def duplicates(l) :
+            s = set(l)
+            for item in s :
+                l.remove(item)
+            return list(set(l))
+
+        anyDups = False
+        events = mergedEventDicts(products["events"])
+        for runLs in sorted(events.keys()) :
+            d = duplicates(events[runLs])
+            if d :
+                print "DUPLICATE EVENTS FOUND in run %d ls %d: %s"%(runLs[0], runLs[1], d)
+                anyDups = True
+        if not anyDups :
+            print "No duplicate events were found."
+#####################################
+
+
+
+
+
+
 #####################################
 class productGreaterFilter(analysisStep) :
 
@@ -242,57 +152,6 @@ class ptRatioHistogrammer(analysisStep) :
         value = ev[self.numVar].pt() / ev[self.denVar].pt()
         self.book.fill(value,"ptRatio", 50, 0.0, 2.0, title = ";%s / %s;events / bin"%(self.numVar,self.denVar) )
 #####################################
-class monsterEventFilter(analysisStep) :
-    
-    def __init__(self,maxNumTracks=10,minGoodTrackFraction=0.25) :
-        self.maxNumTracks=maxNumTracks
-        self.minGoodTrackFraction=minGoodTrackFraction
-
-        self.moreName = "<=%d tracks or >%.2f good fraction" % (maxNumTracks, minGoodTrackFraction)
-
-    def select (self,eventVars) :
-        nTracks    = eventVars["tracksNEtaLT0p9AllTracks"] + eventVars["tracksNEta0p9to1p5AllTracks"] + eventVars["tracksNEtaGT1p5AllTracks"]
-        nGoodTracks = eventVars["tracksNEtaLT0p9HighPurityTracks"] + eventVars["tracksNEta0p9to1p5HighPurityTracks"] + eventVars["tracksNEtaGT1p5HighPurityTracks"]
-        return (nTracks <= self.maxNumTracks or nGoodTracks > self.minGoodTrackFraction*nTracks)
-#####################################
-class touchstuff(analysisStep) :
-
-    def __init__(self,stuff) :
-        self.stuff = stuff
-        self.moreName = "touch all in %s" % str(stuff)
-        
-    def uponAcceptance(self,eventVars) :
-        for s in self.stuff : eventVars[s]
-#####################################
-class printstuff(analysisStep) :
-    def __init__(self,stuff) :
-        self.stuff = stuff
-        self.moreName = "touch all in %s" % str(stuff)
-    def uponAcceptance(self,eventVars) :
-        for s in self.stuff : print s.rjust(20), eventVars[s]
-#####################################
-class runLsEventFilter(analysisStep) :
-
-    def __init__(self, fileName) :
-        self.moreName = "run:ls:event in %s"%fileName
-        file = open(fileName)
-        self.tuples = [ eval("(%s,%s,%s)"%tuple(line.replace("\n","").split(":"))) for line in file]
-        file.close()
-
-    def select (self,eventVars) :
-        return (eventVars["run"], eventVars["lumiSection"], eventVars["event"]) in self.tuples
-#####################################
-class runNumberFilter(analysisStep) :
-
-    def __init__(self,runList,acceptRatherThanReject) :
-        self.runList = runList
-        self.accept = acceptRatherThanReject
-
-        self.moreName = "run%s in list %s" % ( ("" if self.accept else " not"),str(runList) )
-        
-    def select (self,eventVars) :
-        return not ((eventVars["run"] in self.runList) ^ self.accept)
-#####################################
 class runHistogrammer(analysisStep) :
 
     def __init__(self) :
@@ -321,15 +180,6 @@ class bxFilter(analysisStep) :
     def select (self,eventVars) :
         return eventVars["bunch"] in self.bxList
 #####################################
-class counter(analysisStep) :
-
-    def __init__(self,label) :
-        self.label = label
-        self.moreName = '("%s")' % label
-
-    def uponAcceptance(self,eventVars) :
-        self.book.fill(0.0,"countsHisto_"+self.label,1,-0.5,0.5,";dummy axis;number of events")
-#####################################
 class pickEventSpecMaker(analysisStep) :
     #https://twiki.cern.ch/twiki/bin/viewauth/CMS/WorkBookPickEvents
 
@@ -352,73 +202,6 @@ class pickEventSpecMaker(analysisStep) :
                 out.write("%14d:%6d:%14d\n"%event)
         out.close()
         print "The pick events spec. file %s has been written."%self.outputFileName
-#####################################
-class jsonMaker(analysisStep) :
-
-    def __init__(self, calculateLumi = True) :
-        self.lumisByRun = collections.defaultdict(list)
-        self.calculateLumi = calculateLumi
-        self.moreName="see below"
-
-    def uponAcceptance(self,eventVars) :
-        self.lumisByRun[eventVars["run"]].append(eventVars["lumiSection"])
-    
-    def varsToPickle(self) : return ["lumisByRun"]
-
-    def outputSuffix(self) : return ".json"
-    
-    def mergeFunc(self, products) :
-        d = collections.defaultdict(list)
-        for lumisByRun in products["lumisByRun"] :
-            for run,lumis in lumisByRun.iteritems() :
-                d[run] += lumis
-
-        d2 = {}
-        for run,lumis in d.iteritems() :
-            d2[run] = sorted(set(lumis))
-            for ls in d2[run] :
-                if 1 < lumis.count(ls) :
-                    print "Run %d ls %d appears %d times in the lumiTree."%(run,ls,lumis.count(ls))
-
-        json = utils.jsonFromRunDict(d2)
-        lumi = luminosity.recordedInvMicrobarns(json)/1e6 if self.calculateLumi else -1.0
-        with open(self.outputFileName,"w") as file: print >> file, str(json).replace("'",'"')
-        print "Wrote %.4f/pb json to : %s"%(lumi,self.outputFileName)
-        print utils.hyphens
-#####################################
-class duplicateEventCheck(analysisStep) :
-    def __init__(self) :
-        self.events = collections.defaultdict(list)
-
-    def uponAcceptance(self,ev) :
-        self.events[(ev["run"], ev["lumiSection"])].append(ev["event"])
-
-    def varsToPickle(self) : return ["events"]
-
-    def mergeFunc(self, products) :
-        def mergedEventDicts(l) :
-            out = collections.defaultdict(list)
-            for d in l :
-                for key,value in d.iteritems() :
-                    out[key] += value
-            return out
-
-        def duplicates(l) :
-            s = set(l)
-            for item in s :
-                l.remove(item)
-            return list(set(l))
-
-        anyDups = False
-        events = mergedEventDicts(products["events"])
-        for runLs in sorted(events.keys()) :
-            d = duplicates(events[runLs])
-            if d :
-                print "DUPLICATE EVENTS FOUND in run %d ls %d: %s"%(runLs[0], runLs[1], d)
-                anyDups = True
-        if not anyDups :
-            print "No duplicate events were found."
-#####################################
 class deadEcalFilter(analysisStep) :
     def __init__(self, jets = None, extraName = "", dR = None, dPhiStarCut = None) :
         for item in ["jets","extraName","dR","dPhiStarCut"] :
@@ -484,47 +267,6 @@ class compareMissing(analysisStep) :
             self.book.fill((eV[pair[0]].pt(),eV[pair[1]].pt()), "%s.pt_vs_%s.pt"%pair, self.binsPair, self.minPair, self.maxPair,
                            title = ";%s.pt;%s.pt;events / bin"%pair)
 #####################################
-class collector(analysisStep) :
-    def __init__(self, vars) :
-        self.vars = vars
-        self.collection = set([])
-    def uponAcceptance(self, eventVars) :
-        self.collection.add(tuple([eventVars[var] for var in self.vars]))
-    def varsToPickle(self) :
-        return ["collection"]
-    def mergeFunc(self, products) :
-        print "These points %s have been found:"%str(self.vars)
-        s = set([]).union(*products["collection"])
-        print sorted(list(s))
-#####################################
-class handleChecker(analysisStep) :
-    def __init__(self, matches = ["handle", "Handle", "valid", "Valid"]) :
-        self.run = False
-        self.matches = matches
-
-    def ofInterest(self, eventVars) :
-        out = []
-        for var in eventVars :
-            for item in self.matches :
-                if item in var :
-                    out.append(var)
-        return list(set(out))
-    
-    def uponAcceptance(self, eventVars) :
-        if self.run : return
-        self.run = True
-
-        true = []
-        false = []
-        for var in self.ofInterest(eventVars) :
-            if eventVars[var] :
-                true.append(var)
-            else :
-                false.append(var)
-        print "True:",sorted(true)
-        print
-        print "False:",sorted(false)
-#####################################
 class smsMedianHistogrammer(analysisStep) :
     def __init__(self, cs) :
         self.cs = cs
@@ -588,11 +330,11 @@ class smsMedianHistogrammer(analysisStep) :
         self.jets(eventVars)
         self.forwardJets(eventVars)
         
-    def outputSuffix(self) : return stepsMaster.Master.outputSuffix()
+    def outputSuffix(self) : return steps.master.outputSuffix()
 
     def oneHisto(self, name, zAxisTitle) :
         f = r.TFile(self.outputFileName, "UPDATE")
-        h = f.Get("Master/orFilter/%s"%name)
+        h = f.Get("master/orFilter/%s"%name)
         outName = "%s_median"%name
         out = r.TH2D(outName, h.GetTitle(),
                      h.GetNbinsX(), h.GetXaxis().GetXmin(), h.GetXaxis().GetXmax(),
@@ -613,7 +355,7 @@ class smsMedianHistogrammer(analysisStep) :
                 oneD.GetQuantiles(len(probSum), q, probSum)
                 out.SetBinContent(iBinX, iBinY, q[0])
 
-        f.cd("Master/orFilter")
+        f.cd("master/orFilter")
         out.Write()
         r.gROOT.cd()
         f.Close()

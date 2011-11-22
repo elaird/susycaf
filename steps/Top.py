@@ -1,8 +1,5 @@
-import copy,array,os,collections,math,ROOT as r
-import steps.Master
-from core.analysisStep import analysisStep
-from core import utils
-
+import math,ROOT as r
+from supy import analysisStep,steps
 #####################################
 class Asymmetry(analysisStep) :
     def __init__(self, collection, bins = 18 ) :
@@ -358,7 +355,7 @@ class mcTruthAsymmetryBinned(analysisStep) :
         bin = min(self.book[self.binVar].FindFixBin(binVar),self.bins)
         self.book.fill(Dy, self.binName%bin, 2, -50, 50, title = ";%s %d;events / bin"%(self.asymmVar,bin))
 
-    def outputSuffix(self) : return steps.Master.Master.outputSuffix()
+    def outputSuffix(self) : return steps.master.outputSuffix()
 
     def varsToPickle(self) :
         return ["bins","min","max","binName","asymmVar","binVar"]

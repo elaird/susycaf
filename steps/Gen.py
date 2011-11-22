@@ -1,6 +1,5 @@
-import collections, itertools, ROOT as r
-from core import utils
-from core.analysisStep import analysisStep
+import collections, ROOT as r
+from supy import utils,analysisStep
 #####################################
 pdgLookupExists=False
 try:

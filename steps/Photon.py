@@ -1,6 +1,5 @@
 import math, ROOT as r
-from core import configuration
-from core.analysisStep import analysisStep
+from supy import analysisStep,configuration
 #####################################
 class photonPtSelector(analysisStep) :
 

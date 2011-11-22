@@ -1,7 +1,5 @@
-import ROOT as r
-from core.analysisStep import analysisStep
-from core import luminosity,utils
-import math,collections,os,re
+import math,collections,re, ROOT as r
+from supy import analysisStep,utils
 #####################################
 class physicsDeclaredFilter(analysisStep) :
 
@@ -372,7 +370,7 @@ class prescaleLumiEpochs(analysisStep) :
             print >> file, ""
             for epoch in self.epochLumis:
                 json = utils.jsonFromRunDict(self.epochLumis[epoch])
-                lumi = luminosity.recordedInvMicrobarns(json)/1e6
+                lumi = utils.luminosity.recordedInvMicrobarns(json)/1e6
                 probs = [(thresh,1./prescale) for thresh,prescale in zip(self.thresh,epoch)[:epoch.index(1.0)+1] if prescale]
                 inclusive = [(probs[i][0],probs[i+1][0] if (i<len(probs)-1) else None,utils.unionProbability(zip(*probs[:i+1])[1])) for i in range(len(probs))]
                 lumiProbs.append((lumi,inclusive))

@@ -1,6 +1,5 @@
 import time, ROOT as r
-from core import utils
-from core.analysisStep import analysisStep
+from supy import analysisStep,utils
 #####################################
 class progressPrinter(analysisStep) :
 

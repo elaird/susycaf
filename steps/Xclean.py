@@ -1,5 +1,5 @@
-from core.analysisStep import analysisStep
 import ROOT as r
+from supy import analysisStep
 #####################################
 class vetoCounts(analysisStep) :
     def __init__(self, objects) :

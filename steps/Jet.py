@@ -1,6 +1,5 @@
 import ROOT as r
-import math
-from core.analysisStep import analysisStep
+from supy import analysisStep
 #####################################
 class preIdJetPtSelector(analysisStep) :
 
