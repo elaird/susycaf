@@ -18,7 +18,7 @@ class topAsymm(topAsymmShell.topAsymmShell) :
         calcs = super(topAsymm,self).listOfCalculables(pars)
         calcs.append( calculables.other.TriDiscriminant(LR = "DiscriminantWQCD", LC = "DiscriminantTopW", RC = "DiscriminantTopQCD") )
         calcs.append( calculables.other.KarlsruheDiscriminant(pars['objects']['jet'], pars['objects']['met']) )
-        calcs.append( calculables.size("%sIndices%s"%pars['objects']['jet']))
+        calcs.append( supy.calculables.size("%sIndices%s"%pars['objects']['jet']))
         calcs.append( calculables.top.RadiativeCoherence(('fitTop',''),pars['objects']['jet']))
         return calcs
     ########################################################################################
@@ -66,11 +66,11 @@ class topAsymm(topAsymmShell.topAsymmShell) :
         lepton = obj[pars["lepton"]["name"]]
         lPtMin = pars["lepton"]["ptMin"]
         lEtaMax = pars["lepton"]["etaMax"]
-        bVar = ("%s"+pars["bVar"]+"%s")%calculables.Jet.xcStrip(obj["jet"])
+        bVar = ("%s"+pars["bVar"]+"%s")%calculables.jet.xcStrip(obj["jet"])
 
         return ([
             supy.steps.printer.progressPrinter(),
-            supy.steps.other.histogrammer("genpthat",200,0,1000,title=";#hat{p_{T}} (GeV);events / bin"),
+            supy.steps.histos.histogrammer("genpthat",200,0,1000,title=";#hat{p_{T}} (GeV);events / bin"),
             ] + self.dataCleanupSteps(pars) + [
             calculables.trigger.TriggerWeight(samples = ['SingleMu.Run2011A-PR-v4.FJ.Burt.tw','SingleMu.Run2011A-May10-v1.FJ.Burt.tw'],
                                               triggers = zip(*pars['lepton']['triggers'])[0], thresholds = zip(*pars['lepton']['triggers'])[1]),

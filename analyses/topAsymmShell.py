@@ -48,7 +48,8 @@ class topAsymmShell(supy.analysis) :
     def listOfCalculables(self, pars) :
         obj = pars["objects"]
         lepton = obj[pars["lepton"]["name"]]
-        outList  = supy.calculables.zeroArgs()
+        outList  = supy.calculables.zeroArgs(supy.calculables)
+        outList += supy.calculables.zeroArgs(calculables)
         outList += supy.calculables.fromCollections(calculables.muon, [obj["muon"]])
         outList += supy.calculables.fromCollections(calculables.electron, [obj["electron"]])
         outList += supy.calculables.fromCollections(calculables.photon, [obj["photon"]])
@@ -90,7 +91,7 @@ class topAsymmShell(supy.analysis) :
             calculables.jet.pt( obj['jet'], index = 0, Btagged = True ),
             calculables.jet.absEta( obj['jet'], index = 3, Btagged = False)
             ]
-        outList += calculables.fromCollections(calculables.top,[('genTop',""),('fitTop',"")])
+        outList += supy.calculables.fromCollections(calculables.top,[('genTop',""),('fitTop',"")])
         outList.append( calculables.top.TopComboQQBBLikelihood(pars['objects']['jet'], pars['bVar']))
         outList.append( calculables.top.OtherJetsLikelihood(pars['objects']['jet'], pars['bVar']))
         outList.append( calculables.top.TopRatherThanWProbability(priorTop=0.5) )
@@ -104,27 +105,27 @@ class topAsymmShell(supy.analysis) :
     def dataCleanupSteps(pars) :
         obj = pars['objects']
         return ([
-            steps.Filter.hbheNoise(),
-            steps.Trigger.physicsDeclaredFilter(),
-            steps.Filter.monster(),
-            steps.Trigger.l1Filter("L1Tech_BPTX_plus_AND_minus.v0"),
-            steps.Trigger.hltPrescaleHistogrammer(zip(*pars['lepton']['triggers'])[0]),
-            steps.Trigger.lowestUnPrescaledTriggerHistogrammer(),
-            steps.Histos.multiplicity("vertexIndices", max=15),
-            steps.Histos.value("%sPtSorted%s"%obj['muon'], 2,-0.5,1.5),
-            steps.Filter.multiplicity("vertexIndices",min=1),
+            steps.filters.hbheNoise(),
+            steps.trigger.physicsDeclaredFilter(),
+            steps.filters.monster(),
+            steps.trigger.l1Filter("L1Tech_BPTX_plus_AND_minus.v0"),
+            steps.trigger.hltPrescaleHistogrammer(zip(*pars['lepton']['triggers'])[0]),
+            steps.trigger.lowestUnPrescaledTriggerHistogrammer(),
+            supy.steps.histos.multiplicity("vertexIndices", max=15),
+            supy.steps.histos.value("%sPtSorted%s"%obj['muon'], 2,-0.5,1.5),
+            supy.steps.filters.multiplicity("vertexIndices",min=1),
             ])
 
     @staticmethod
     def xcleanSteps(pars) :
         obj = pars['objects']
         return ([
-            steps.Filter.multiplicity(s, max = 0) for s in ["%sIndices%s"%obj["photon"],
-                                                            "%sIndicesUnmatched%s"%obj["photon"],
-                                                            "%sIndices%s"%(obj["electron" if pars["lepton"]["name"]=="muon" else "muon"]),
-                                                            "%sIndicesUnmatched%s"%obj["electron"],
-                                                            "%sIndicesOther%s"%obj["muon"],
-                                                            ]]+[
+            supy.steps.filters.multiplicity(s, max = 0) for s in ["%sIndices%s"%obj["photon"],
+                                                                  "%sIndicesUnmatched%s"%obj["photon"],
+                                                                  "%sIndices%s"%(obj["electron" if pars["lepton"]["name"]=="muon" else "muon"]),
+                                                                  "%sIndicesUnmatched%s"%obj["electron"],
+                                                                  "%sIndicesOther%s"%obj["muon"],
+                                                                  ]]+[
             steps.jet.forwardFailedJetVeto( obj["jet"], ptAbove = 50, etaAbove = 3.5),
             steps.jet.uniquelyMatchedNonisoMuons(obj["jet"]),
             ])
@@ -140,31 +141,31 @@ class topAsymmShell(supy.analysis) :
 
         topTag = pars['tag'].replace("Wlv","top").replace("QCD","top")
         selections = (
-            [steps.Histos.multiplicity("%sIndices%s"%obj["jet"]),
-             steps.Filter.multiplicity("%sIndices%s"%obj["jet"], **pars["nJets"]),
+            [supy.steps.histos.multiplicity("%sIndices%s"%obj["jet"]),
+             supy.steps.filters.multiplicity("%sIndices%s"%obj["jet"], **pars["nJets"]),
              
-             steps.Histos.pt("mixedSumP4",100,0,300),
-             steps.Filter.pt("mixedSumP4",min=20),
+             supy.steps.histos.pt("mixedSumP4",100,0,300),
+             supy.steps.filters.pt("mixedSumP4",min=20),
              
              topAsymmShell.lepIso(1,pars),
-             steps.Filter.multiplicity("%sIndices%s"%lepton, max = 1), # drell-yann rejection
+             supy.steps.filters.multiplicity("%sIndices%s"%lepton, max = 1), # drell-yann rejection
              topAsymmShell.lepIso(0,pars),
 
-             steps.Filter.value(("%s"+pars["lepton"]["isoVar"]+"%s")%lepton, max = 1.0, indices = lIsoIndices, index = 0),
-             steps.Filter.multiplicity("%sIndices%s"%lepton, min=pars["selection"]["lIso"]["N"],max=pars["selection"]["lIso"]["N"]),
-             steps.Filter.pt("%sP4%s"%lepton, min = lPtMin, indices = lIsoIndices, index = 0),
-             steps.Filter.absEta("%sP4%s"%lepton, max = lEtaMax, indices = lIsoIndices, index = 0),
+             supy.steps.filters.value(("%s"+pars["lepton"]["isoVar"]+"%s")%lepton, max = 1.0, indices = lIsoIndices, index = 0),
+             supy.steps.filters.multiplicity("%sIndices%s"%lepton, min=pars["selection"]["lIso"]["N"],max=pars["selection"]["lIso"]["N"]),
+             supy.steps.filters.pt("%sP4%s"%lepton, min = lPtMin, indices = lIsoIndices, index = 0),
+             supy.steps.filters.absEta("%sP4%s"%lepton, max = lEtaMax, indices = lIsoIndices, index = 0),
              
-             ]+[steps.Histos.value(bVar, 60,0,15, indices = "%sIndicesBtagged%s"%obj["jet"], index = i) for i in range(3)]+[
+             ]+[supy.steps.histos.value(bVar, 60,0,15, indices = "%sIndicesBtagged%s"%obj["jet"], index = i) for i in range(3)]+[
             calculables.jet.ProbabilityGivenBQN(obj["jet"], pars['bVar'], binning=(64,-1,15), samples = pars['topBsamples'], tag = topTag),
-            steps.Histos.value("TopRatherThanWProbability", 100,0,1),
-            #steps.Filter.value("TopRatherThanWProbability", min = 0.2),
-            steps.Filter.value(bVar, indices = "%sIndicesBtagged%s"%obj["jet"], index = 1, min = 0.0),
-            steps.Filter.value(bVar, indices = "%sIndicesBtagged%s"%obj["jet"], **pars["selection"]["bCut"]),
+            supy.steps.histos.value("TopRatherThanWProbability", 100,0,1),
+            #supy.steps.filters.value("TopRatherThanWProbability", min = 0.2),
+            supy.steps.filters.value(bVar, indices = "%sIndicesBtagged%s"%obj["jet"], index = 1, min = 0.0),
+            supy.steps.filters.value(bVar, indices = "%sIndicesBtagged%s"%obj["jet"], **pars["selection"]["bCut"]),
             ])
-        return [s for s in selections if withPlots or s.isSelector or issubclass(type(s),calculables.secondary)]
+        return [s for s in selections if withPlots or s.isSelector or issubclass(type(s),supy.calculables.secondary)]
 
     @staticmethod
     def lepIso(index,pars) :
         lepton = pars["objects"][pars["lepton"]["name"]]
-        return steps.Histos.value(("%s"+pars["lepton"]["isoVar"]+"%s")%lepton, 55,0,1.1, indices = "%sIndicesAnyIsoIsoOrder%s"%lepton, index=index)
+        return supy.steps.histos.value(("%s"+pars["lepton"]["isoVar"]+"%s")%lepton, 55,0,1.1, indices = "%sIndicesAnyIsoIsoOrder%s"%lepton, index=index)
