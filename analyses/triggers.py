@@ -8,7 +8,7 @@ class triggers(supy.analysis) :
                  "electron":("electron","PF") }
     
     def listOfCalculables(self, pars) :
-        outList  = supy.calculables.zeroArgs()
+        outList  = supy.calculables.zeroArgs(supy.calculables)
         outList += supy.calculables.fromCollections(calculables.muon, [pars["muon"]])
         outList += supy.calculables.fromCollections(calculables.electron, [pars["electron"]])
         outList +=[calculables.muon.Indices( pars["muon"], ptMin = 10, combinedRelIsoMax = 0.15),

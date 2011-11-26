@@ -19,12 +19,12 @@ class topAsymmKinfit(topAsymmShell.topAsymmShell) :
         obj = pars["objects"]
         lepton = obj[pars["lepton"]["name"]]
         lPtMin = pars["lepton"]["ptMin"]
-        bVar = ("%s"+pars["bVar"]+"%s")%calculables.Jet.xcStrip(obj["jet"])
+        bVar = ("%s"+pars["bVar"]+"%s")%calculables.jet.xcStrip(obj["jet"])
         
         return ([
             supy.steps.printer.progressPrinter(),
             supy.steps.filters.pt("%sP4%s"%lepton, min = lPtMin, indices = "%sIndicesAnyIso%s"%lepton, index = 0),
-            ]+topAsymmShell.topAsymmShell.cleanupSteps(pars)+[
+            ]+topAsymmShell.topAsymmShell.dataCleanupSteps(pars)+[
             ]+topAsymmShell.topAsymmShell.selectionSteps(pars, withPlots = False) +[
             #steps.top.kinFitLook("fitTopRecoIndex"),
             supy.steps.filters.value("genTopSemiLeptonicWithinAcceptance", min = True),
@@ -32,7 +32,7 @@ class topAsymmKinfit(topAsymmShell.topAsymmShell) :
             supy.steps.filters.value("genTopSemiLeptonicAccepted", min = True),
             #steps.Histos.value("genTopWqqDeltaR",50,0,4),
             #steps.top.topProbLook(obj['jet']),
-            supy.steps.other.assertNotYetCalculated("TopReconstruction"),
+            supy.steps.filters.assertNotYetCalculated("TopReconstruction"),
             supy.steps.filters.multiplicity("TopReconstruction",min=1),
             supy.steps.filters.value("genTopRecoIndex", min = 0),
             steps.top.combinatorialBG(obj['jet']),

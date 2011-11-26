@@ -7,10 +7,10 @@ class exampleInclusive(supy.analysis) :
 
     def listOfSteps(self,pars) :
         return [ supy.steps.printer.progressPrinter(),
-                 supy.steps.other.histogrammer("genpthat",200,0,1000,title=";#hat{p_{T}} (GeV);events / bin"),
+                 supy.steps.histos.histogrammer("genpthat",200,0,1000,title=";#hat{p_{T}} (GeV);events / bin"),
                  ]
     
-    def listOfCalculables(self,pars) : return supy.calculables.zeroArgs()
+    def listOfCalculables(self,pars) : return supy.calculables.zeroArgs(supy.calculables)
     def listOfSampleDictionaries(self) : return [samples.mcOld]
 
     def listOfSamples(self,pars) :

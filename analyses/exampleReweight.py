@@ -4,7 +4,7 @@ class exampleReweight(supy.analysis) :
 
     def listOfSteps(self,pars) :
         return [ supy.steps.printer.progressPrinter(),
-                 supy.steps.other.histogrammer("genpthat",200,0,1000,title=";#hat{p_{T}} (GeV);events / bin"),
+                 supy.steps.histos.value("genpthat",200,0,1000,xtitle=";#hat{p_{T}} (GeV)").onlySim(),
                  supy.steps.histos.multiplicity("vertexIndices",max=15),
                  supy.steps.filters.multiplicity("vertexIndices",min=1),
                  supy.steps.filters.pt("muonP4PF", min = 25, indices = "muonIndicesPF", index=0),
@@ -17,8 +17,9 @@ class exampleReweight(supy.analysis) :
     
     def listOfCalculables(self,pars) :
         muon = ("muon","PF")
-        return ( supy.calculables.zeroArgs() +
-                 supy.calculables.fromCollections(calculables.Muon, [muon]) +
+        return ( supy.calculables.zeroArgs(supy.calculables) +
+                 supy.calculables.zeroArgs(calculables) +
+                 supy.calculables.fromCollections(calculables.muon, [muon]) +
                  [ calculables.muon.Indices( muon, ptMin = 10, combinedRelIsoMax = 0.15),
                    calculables.vertex.ID(),
                    calculables.vertex.Indices(),

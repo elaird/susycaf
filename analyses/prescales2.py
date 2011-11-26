@@ -35,7 +35,8 @@ class prescales2(supy.analysis) :
                 }
     
     def listOfCalculables(self,pars) :
-        return (supy.calculables.zeroArgs() +
+        return (supy.calculables.zeroArgs(supy.calculables) +
+                supy.calculables.zeroArgs(calculables) +
                 supy.calculables.fromCollections(calculables.muon,[pars["muon"]]) +
                 [calculables.muon.Indices( pars["muon"], ptMin = 10, combinedRelIsoMax = 0.15),
                  calculables.muon.IndicesTriggering(pars['muon'], ptMin = 10),
@@ -50,9 +51,9 @@ class prescales2(supy.analysis) :
             supy.steps.filters.multiplicity("vertexIndices",min=1),
             steps.trigger.l1Filter("L1Tech_BPTX_plus_AND_minus.v0"),
             steps.trigger.physicsDeclaredFilter(),
-            steps.filter.monster(),
-            steps.filter.hbheNoise(),
-            supy.steps.filter.value("%sTriggeringPt%s"%pars["muon"],min=10),
+            steps.filters.monster(),
+            steps.filters.hbheNoise(),
+            supy.steps.filters.value("%sTriggeringPt%s"%pars["muon"],min=10),
             steps.trigger.prescaleLumiEpochs(pars['triggers']),
             steps.trigger.anyTrigger(zip(*pars['triggers'])[0], unreliable = self.unreliableTriggers()),
             supy.steps.histos.value("%sTriggeringPt%s"%pars["muon"],100,0,200),
@@ -61,7 +62,7 @@ class prescales2(supy.analysis) :
             steps.trigger.lowestUnPrescaledTriggerFilter(),
             supy.steps.histos.value("%sTriggeringPt%s"%pars["muon"],100,0,200),
             ]+[ steps.trigger.prescaleScan(trig,ptMin,"%sTriggeringPt%s"%pars['muon']) for trig,ptMin in pars['triggers']]+[
-            supy.steps.filter.value( "%sTriggeringPt%s"%pars['muon'],min = 41)]
+            supy.steps.filters.value( "%sTriggeringPt%s"%pars['muon'],min = 41)]
 
     def listOfSampleDictionaries(self) : return [samples.muon]
 
