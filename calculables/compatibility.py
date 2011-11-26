@@ -1,3 +1,4 @@
+import ROOT as r
 from supy import wrappedChain,utils
 ##############################
 class deadEcalRegionsFromFile(wrappedChain.calculable) :
