@@ -13,8 +13,8 @@ class example(supy.analysis) :
         
         outList=[
             supy.steps.printer.progressPrinter(),
-            steps.trigger.techBitFilter([0],True),
-            steps.trigger.physicsDeclaredFilter(),
+            steps.trigger.techBitFilter([0],True).onlyData(),
+            steps.trigger.physicsDeclaredFilter().onlyData(),
             steps.other.vertexRequirementFilter(),
             steps.filters.monster(),
             
@@ -36,7 +36,7 @@ class example(supy.analysis) :
     def listOfCalculables(self,pars) :
         jets = pars["jets"]
         pt = pars["jetPtMin"]
-        listOfCalculables = supy.calculables.zeroArgs()
+        listOfCalculables = supy.calculables.zeroArgs(supy.calculables)
         listOfCalculables += supy.calculables.fromCollections(calculables.jet,[jets])
         listOfCalculables += [
             calculables.jet.Indices( jets, ptMin = pt, etaMax = 3.0, flagName = "JetIDloose"),
