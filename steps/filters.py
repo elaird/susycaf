@@ -21,11 +21,8 @@ class run(analysisStep) :
         return not ((eventVars["run"] in self.runs) ^ self.accept)
 #####################################
 class hbheNoise(analysisStep) :
-    def __init__(self, invert = False) :
-        self.invert = invert
-
     def select (self,eventVars) :
-        return eventVars["hbheNoiseFilterResult"]^self.invert
+        return eventVars["hbheNoiseFilterResult"]
 #####################################
 class monster(analysisStep) :
     def __init__(self,maxNumTracks=10,minGoodTrackFraction=0.25) :
