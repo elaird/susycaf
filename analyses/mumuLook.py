@@ -115,7 +115,7 @@ class mumuLook(supy.analysis) :
         _etRatherThanPt = params["etRatherThanPt"]
         _et = "Et" if _etRatherThanPt else "Pt"
 
-        htUpper = [steps.other.variableLessFilter(params["thresholds"][1],"%sSum%s%s"%(_jet[0], _et, _jet[1]), "GeV")] if params["thresholds"][1]!=None else []
+        htUpper = [supy.steps.filters.value("%sSum%s%s"%(_jet[0], _et, _jet[1]), max = params["thresholds"][1])] if params["thresholds"][1]!=None else []
         return [
             supy.steps.printer.progressPrinter(),
             steps.trigger.lowestUnPrescaledTriggerFilter().onlyData(),
@@ -137,8 +137,6 @@ class mumuLook(supy.analysis) :
             supy.steps.histos.multiplicity("%sIndices%s"%_muon),
             supy.steps.filters.multiplicity("%sIndices%s"%_muon, min = 2, max = 2),
 
-            #supy.steps.other.skimmer(),
-            
             steps.muon.muonHistogrammer(_muon, 1),
             steps.muon.diMuonHistogrammer(_muon),
             supy.steps.filters.value("%sDiMuonMass%s"%_muon, min = 80.0, max = 110.0),
@@ -255,11 +253,11 @@ class mumuLook(supy.analysis) :
 
         def dataDoubleMu() :
             out = []
-            out += specify(names = "DoubleMu.Run2011A-05Aug2011-v1.AOD.job663"  )
-            out += specify(names = "DoubleMu.Run2011A-May10ReReco-v1.AOD.job662")
-            out += specify(names = "DoubleMu.Run2011A-PromptReco-v4.AOD.job664" )
-            out += specify(names = "DoubleMu.Run2011A-PromptReco-v6.AOD.job665" )
-            out += specify(names = "DoubleMu.Run2011B-PromptReco-v1.AOD.job666" )
+            out += specify(names = "DoubleMu.Run2011A-05Aug2011-v1.AOD.job663_skim"  )
+            out += specify(names = "DoubleMu.Run2011A-May10ReReco-v1.AOD.job662_skim")
+            out += specify(names = "DoubleMu.Run2011A-PromptReco-v4.AOD.job664_skim" )
+            out += specify(names = "DoubleMu.Run2011A-PromptReco-v6.AOD.job665_skim" )
+            out += specify(names = "DoubleMu.Run2011B-PromptReco-v1.AOD.job666_skim" )
             
             return out
 
@@ -277,9 +275,6 @@ class mumuLook(supy.analysis) :
     def conclude(self, conf) :
         org = self.organizer(conf)
 
-        ##for skimming only
-        #utils.printSkimResults(org)            
-
         lineWidth = 3; goptions = "hist"
         org.mergeSamples(targetSpec = {"name":"2011 Data", "color":r.kBlack, "markerStyle":20}, allWithPrefix="DoubleMu.Run2011")
         org.mergeSamples(targetSpec = {"name":"t#bar{t}",  "color":r.kOrange, "lineWidth":lineWidth, "goptions":goptions}, allWithPrefix="tt")
@@ -291,8 +286,8 @@ class mumuLook(supy.analysis) :
         org.scale()
         supy.plotter(org,
                      psFileName = self.psFileName(org.tag),
-                     samplesForRatios = ("2011 Data","DY->ll"),
-                     sampleLabelsForRatios = ("data","DY"),
+                     samplesForRatios = ("2011 Data","s.m."),
+                     sampleLabelsForRatios = ("data","s.m."),
                      showStatBox = True,
                      #doLog = False,
                      linYAfter = ("value", "0.40<=xcak5JetMhtOverHtPat"),
