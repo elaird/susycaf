@@ -1,21 +1,7 @@
-* fix required synch between increment weight default and fill weight default
-
 * jets factors and rewriting jets
-* cut flow study infrastructure
-* in/dependence tools
-* in/dependence shotgun
-* consider uncertainty on zero
-
-* config sample interface
-* multi-site samples handles
-* other directories in organizer/plotter
-* make 1/10 configurable
-* step ID check
 
 * continue clean-up of hadronicLook
 * consider threshold for adding muons to jets
-
-* review utils.operateOnListUsingQueue()
 
 (ongoing)
 * profile
@@ -24,21 +10,6 @@
 * xs by event
 
 (low priority)
-* fnalbatch
-* lxbatch
-* store inputFileList in root file?
-* move ratio marker
-* 2D ratios
-* logfiles
-* organize files in cvs
 * named arguments everywhere
 * update example ntuples
-* non-linear cutflow
 * fix extra tree functionality in skimmer
-* handle subdirectories of input file directories
-* kill vertexRequirementFilter in favor of vertexIndices and multiplicityFilter
-* kill variablePt(Greater/Less)Filter in favor of ptFilter
-* kill jetPtFilter in favor of ptFilter
-
-* move all the filters in stepsOther to stepsFilter.
-* rename 'passFilter' to 'label'
