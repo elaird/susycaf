@@ -1,6 +1,6 @@
 import supy,steps,calculables,samples, ROOT as r
 
-class muonLook(supy.analysis) :
+class mumuLook(supy.analysis) :
     def parameters(self) :
         objects = self.vary()
         fields =                                                  [ "jet",                        "jetId",     "muonsInJets",           "met",
@@ -34,17 +34,12 @@ class muonLook(supy.analysis) :
                                                 ("225_scaled", (225.0, 275.0,  60.0, 30.0)),#5
                                                 ][2:3] )),
 
-                 #"triggerList":tuple(["HLT_Mu15_v%d" %i for i in range(2,7)]+
-                 #                    ["HLT_Mu20_v%d" %i for i in range(1,6)]+
-                 #                    ["HLT_Mu24_v%d" %i for i in range(1,6)]+
-                 #                    ["HLT_Mu30_v%d" %i for i in range(1,6)]+
-                 #                    ["HLT_Mu40_v%d" %i for i in range(1,4)]+
-                 #                    ["HLT_Mu100_v%d"%i for i in range(1,4)])
                  "triggerList":tuple(["HLT_DoubleMu3_v%d" %i for i in [3,4,5,7,9,10,13,14]]+
                                      ["HLT_DoubleMu5_v%d" %i for i in [1,4,5]]+
                                      ["HLT_DoubleMu6_v%d" %i for i in [1,2,3,5,7,8]]+
                                      ["HLT_DoubleMu7_v%d" %i for i in [1,2,3,5,7,8,11,12]]+
-                                     ["HLT_DoubleMu45_v%d" %i for i in [1,3,5,6,9,10]]
+                                     ["HLT_Mu13_Mu8_v%d"%i for i in [2,3,4,6,7,10,11]]+
+                                     ["HLT_Mu17_Mu8_v%d"%i for i in [2,3,4,6,7,10,11]]
                                      )
                  }
 
@@ -74,7 +69,7 @@ class muonLook(supy.analysis) :
                 calculables.jet.MhtOverMet((jet[0], jet[1]+highPtName), met = "%sPlus%s%s"%(obj["met"], obj["muon"][0], obj["muon"][1])),                
                 calculables.jet.deadEcalDR(jet, extraName = lowPtName, minNXtals = 10),
                 ]
-            return outList+calculables.fromCollections(calculables.jet, [jet])
+            return outList+supy.calculables.fromCollections(calculables.jet, [jet])
 
         outList = calcList(obj["jet"], obj["met"], obj["photon"], obj["muon"], obj["electron"], obj["muonsInJets"], obj["jetId"])
         if all([("comp"+item in obj) for item in ["Jet", "Met","MuonsInJets","JetId"]]) :
@@ -101,10 +96,11 @@ class muonLook(supy.analysis) :
     
     def listOfCalculables(self, params) :
         obj = params["objects"]
-        outList  = calculables.zeroArgs()
-        outList += calculables.fromCollections(calculables.muon, [obj["muon"]])
-        outList += calculables.fromCollections(calculables.electron, [obj["electron"]])
-        outList += calculables.fromCollections(calculables.photon, [obj["photon"]])
+        outList  = supy.calculables.zeroArgs(supy.calculables)
+        outList += supy.calculables.zeroArgs(calculables)
+        outList += supy.calculables.fromCollections(calculables.muon, [obj["muon"]])
+        outList += supy.calculables.fromCollections(calculables.electron, [obj["electron"]])
+        outList += supy.calculables.fromCollections(calculables.photon, [obj["photon"]])
         outList += self.calcListOther(obj, params["triggerList"])
         outList += self.calcListJet(obj, params["etRatherThanPt"], params["thresholds"][3],
                                     params["lowPtThreshold"], params["lowPtName"], params["highPtThreshold"], params["highPtName"])
@@ -122,57 +118,60 @@ class muonLook(supy.analysis) :
         htUpper = [steps.other.variableLessFilter(params["thresholds"][1],"%sSum%s%s"%(_jet[0], _et, _jet[1]), "GeV")] if params["thresholds"][1]!=None else []
         return [
             supy.steps.printer.progressPrinter(),
-            steps.Trigger.lowestUnPrescaledTriggerFilter(),
-            steps.Trigger.l1Filter("L1Tech_BPTX_plus_AND_minus.v0"),
+            steps.trigger.lowestUnPrescaledTriggerFilter().onlyData(),
+            steps.trigger.l1Filter("L1Tech_BPTX_plus_AND_minus.v0").onlyData(),
             
-            steps.Trigger.physicsDeclaredFilter(),
-            steps.other.monsterEventFilter(),
-            steps.other.histogrammer("genpthat",200,0,1000,title=";#hat{p_{T}} (GeV);events / bin"),
-            steps.Trigger.hltPrescaleHistogrammer(params["triggerList"]),
+            steps.trigger.physicsDeclaredFilter().onlyData(),
+            steps.filters.monster(),
+            steps.filters.hbheNoise().onlyData(),
+            supy.steps.histos.histogrammer("genpthat",200,0,1000,title=";#hat{p_{T}} (GeV);events / bin").onlySim(),
+            steps.trigger.hltPrescaleHistogrammer(params["triggerList"]),
 
-            steps.Filter.pt ("%sP4%s"%_muon, min = 32.0,            indices = "%sIndices%s"%_muon, index = 0),
-            steps.Filter.eta("%sP4%s"%_muon, min = -2.1, max = 2.1, indices = "%sIndices%s"%_muon, index = 0),
-            ]+(
-            steps.other.multiplicityPlotFilter("vertexIndices",     nMin = 1,           xlabel = "N vertices") +
-            steps.other.multiplicityPlotFilter("%sIndices%s"%_muon, nMin = 2, nMax = 2, xlabel = "N muons")
-            )+[
-            #steps.other.skimmer(),            
+            supy.steps.filters.pt ("%sP4%s"%_muon, min = 32.0,            indices = "%sIndices%s"%_muon, index = 0),
+            supy.steps.filters.eta("%sP4%s"%_muon, min = -2.1, max = 2.1, indices = "%sIndices%s"%_muon, index = 0),
+            supy.steps.filters.pt ("%sP4%s"%_muon, min = 10.0,            indices = "%sIndices%s"%_muon, index = 1),
+            supy.steps.filters.eta("%sP4%s"%_muon, min = -2.1, max = 2.1, indices = "%sIndices%s"%_muon, index = 1),
+
+            supy.steps.histos.multiplicity("vertexIndices", max = 20),
+            supy.steps.filters.multiplicity("vertexIndices", min = 1),
+            supy.steps.histos.multiplicity("%sIndices%s"%_muon),
+            supy.steps.filters.multiplicity("%sIndices%s"%_muon, min = 2, max = 2),
+
+            #supy.steps.other.skimmer(),
             
             steps.muon.muonHistogrammer(_muon, 1),
             steps.muon.diMuonHistogrammer(_muon),
-            steps.Filter.value("%sDiMuonMass%s"%_muon, min = 80.0, max = 110.0),
-            steps.other.histogrammer("%sDiMuonMass%s"%_muon, 80, 50., 130., title = ";#mu#mu mass (GeV);events / bin"),
+            supy.steps.filters.value("%sDiMuonMass%s"%_muon, min = 80.0, max = 110.0),
+            supy.steps.histos.histogrammer("%sDiMuonMass%s"%_muon, 80, 50., 130., title = ";#mu#mu mass (GeV);events / bin"),
             
-            ]+(
-            steps.other.multiplicityPlotFilter("%sIndices%s"%_electron,          nMax = 0, xlabel = "N electrons") +
-            steps.other.multiplicityPlotFilter("%sIndices%s"%_photon,            nMax = 0, xlabel = "N photons") +
-            steps.other.multiplicityPlotFilter("%sIndicesOther%s"%_jet,          nMax = 0, xlabel = "number of %s%s above p_{T}#semicolon failing ID or #eta"%_jet) +
-            steps.other.multiplicityPlotFilter("%sIndicesOther%s"%_muon,         nMax = 0, xlabel = "number of %s%s above p_{T}#semicolon failing ID or #eta"%_muon) +
-            steps.other.multiplicityPlotFilter("%sIndicesUnmatched%s"%_electron, nMax = 0, xlabel = "N electrons unmatched") +
-            steps.other.multiplicityPlotFilter("%sIndicesUnmatched%s"%_photon,   nMax = 0, xlabel = "N photons unmatched") +
-            steps.other.multiplicityPlotFilter("%sIndices%s"%_jet, nMin = 2, xlabel="number of %s%s passing ID#semicolon p_{T}#semicolon #eta cuts"%_jet)
-            )+[
+            supy.steps.filters.multiplicity("%sIndices%s"%_electron,          max = 0),
+            supy.steps.filters.multiplicity("%sIndices%s"%_photon,            max = 0),
+            supy.steps.filters.multiplicity("%sIndicesOther%s"%_jet,          max = 0),
+            #supy.steps.filters.multiplicity("%sIndicesOther%s"%_muon,         max = 0),
+            #supy.steps.filters.multiplicity("%sIndicesUnmatched%s"%_electron, max = 0),
+            #supy.steps.filters.multiplicity("%sIndicesUnmatched%s"%_photon,   max = 0),
+            supy.steps.filters.multiplicity("%sIndices%s"%_jet,               min = 2),
             steps.jet.uniquelyMatchedNonisoMuons(_jet), 
             
             #many plots
-            steps.Trigger.lowestUnPrescaledTriggerHistogrammer(),
+            steps.trigger.lowestUnPrescaledTriggerHistogrammer(),
             supy.steps.filters.label("singleJetPlots1"),
             steps.jet.singleJetHistogrammer(_jet, 1),
             supy.steps.filters.label("jetSumPlots1"), 
             steps.jet.cleanJetHtMhtHistogrammer(_jet,_etRatherThanPt),
-            steps.other.histogrammer("%sSum%s%s"%(_jet[0], _et, _jet[1]), 50, 0, 2500, title = ";H_{T} (GeV) from %s%s %ss;events / bin"%(_jet[0], _jet[1], _et)),
+            supy.steps.histos.histogrammer("%sSum%s%s"%(_jet[0], _et, _jet[1]), 50, 0, 2500, title = ";H_{T} (GeV) from %s%s %ss;events / bin"%(_jet[0], _jet[1], _et)),
             
             #ht and leading jet cuts
-            steps.other.variableGreaterFilter(params["thresholds"][0],"%sSum%s%s"%(_jet[0], _et, _jet[1]), "GeV"),
+            supy.steps.filters.value("%sSum%s%s"%(_jet[0], _et, _jet[1]), min = params["thresholds"][0]),
             ] + htUpper + [
             steps.jet.jetPtSelector(_jet, params["thresholds"][2], 0),
             steps.jet.jetPtSelector(_jet, params["thresholds"][2], 1),
             steps.jet.jetEtaSelector(_jet,2.5,0),
             
             #mht/ht cut
-            steps.Filter.value("%sMhtOverHt%s"%_jet, min = 0.4),
-            steps.other.histogrammer("%sIndices%s"%_jet, 20, -0.5, 19.5,
-                                     title=";number of %s%s passing ID#semicolon p_{T}#semicolon #eta cuts;events / bin"%_jet, funcString="lambda x:len(x)"),
+            supy.steps.filters.value("%sMhtOverHt%s"%_jet, min = 0.4),
+            supy.steps.histos.histogrammer("%sIndices%s"%_jet, 20, -0.5, 19.5,
+                                           title=";number of %s%s passing ID#semicolon p_{T}#semicolon #eta cuts;events / bin"%_jet, funcString="lambda x:len(x)"),
             
             #some histograms
             #steps.other.histogrammer("%sDeltaPhiStar%s%s"%(_jet[0], _jet[1], params["lowPtName"]), 20, 0.0, r.TMath.Pi(),
@@ -192,19 +191,18 @@ class muonLook(supy.analysis) :
             #steps.Filter.pt("%sDiMuon%s"%_muon, min = 150.0),
             #steps.other.histogrammer("%sIndices%s"%_jet, 20, -0.5, 19.5, title=";number of %s%s passing ID#semicolon p_{T}#semicolon #eta cuts;events / bin"%_jet, funcString="lambda x:len(x)"),
             
-            steps.other.histogrammer("%sMht%sOver%s" %(_jet[0], _jet[1]+params["highPtName"], _met+"Plus%s%s"%_muon), 100, 0.0, 3.0,
-                                     title = ";MHT %s%s / %s;events / bin"%(_jet[0], _jet[1], _met+"Plus%s%s"%_muon)),
-            steps.other.variableLessFilter(1.25,"%sMht%sOver%s" %(_jet[0], _jet[1]+params["highPtName"], _met+"Plus%s%s"%_muon)),
+            supy.steps.histos.histogrammer("%sMht%sOver%s" %(_jet[0], _jet[1]+params["highPtName"], _met+"Plus%s%s"%_muon), 100, 0.0, 3.0,
+                                            title = ";MHT %s%s / %s;events / bin"%(_jet[0], _jet[1], _met+"Plus%s%s"%_muon)),
+            supy.steps.filters.value("%sMht%sOver%s"%(_jet[0], _jet[1]+params["highPtName"], _met+"Plus%s%s"%_muon), max = 1.25),
             
             #alphaT cut
             steps.jet.alphaHistogrammer(cs = _jet, deltaPhiStarExtraName = params["lowPtName"], etRatherThanPt = _etRatherThanPt),
             #steps.jet.alphaMetHistogrammer(cs = _jet, deltaPhiStarExtraName = params["lowPtName"], etRatherThanPt = _etRatherThanPt, metName = _met),
-            #
-            steps.other.variableGreaterFilter(0.55,"%sAlphaT%s%s"%(_jet[0],"Et" if _etRatherThanPt else "Pt",_jet[1])),
-            ##]), #end cutSorter
-            #
-            #steps.other.histogrammer("vertexIndices", 20, -0.5, 19.5, title=";N vertices;events / bin", funcString="lambda x:len(x)"),
-            steps.other.histogrammer("%sIndices%s"%_jet, 20, -0.5, 19.5, title=";number of %s%s passing ID#semicolon p_{T}#semicolon #eta cuts;events / bin"%_jet, funcString="lambda x:len(x)"),
+
+            supy.steps.filters.value("%sAlphaT%s%s"%(_jet[0],"Et" if _etRatherThanPt else "Pt",_jet[1]), min = 0.55),
+
+            #supy.steps.histos.histogrammer("vertexIndices", 20, -0.5, 19.5, title=";N vertices;events / bin", funcString="lambda x:len(x)"),
+            supy.steps.histos.histogrammer("%sIndices%s"%_jet, 20, -0.5, 19.5, title=";number of %s%s passing ID#semicolon p_{T}#semicolon #eta cuts;events / bin"%_jet, funcString="lambda x:len(x)"),
             
             #out of stats
             #steps.jet.cleanJetHtMhtHistogrammer(_jet,_etRatherThanPt),
@@ -238,8 +236,8 @@ class muonLook(supy.analysis) :
             #                          metOtherAlgo  = params["objects"]["compMet"],
             #                          markusMode = False,
             #                          ),
-            steps.other.histogrammer("%sSumEt%s"%_jet, 40, 0, 1000, title = ";H_{T} (GeV) from %s%s E_{T}s;events / bin"%_jet),
-            ] + [steps.other.variableGreaterFilter(375.0+100*iBin, "%sSumEt%s"%_jet, suffix = "GeV") for iBin in range(1,6)]
+            supy.steps.histos.histogrammer("%sSumEt%s"%_jet, 40, 0, 1000, title = ";H_{T} (GeV) from %s%s E_{T}s;events / bin"%_jet),
+            ] + [supy.steps.filters.value("%sSumEt%s"%_jet, min = 375.0+100*iBin) for iBin in range(1,6)]
     
     def listOfSampleDictionaries(self) :
         return [samples.mc, samples.muon, samples.mumu]
@@ -257,18 +255,18 @@ class muonLook(supy.analysis) :
 
         def dataDoubleMu() :
             out = []
-            out += specify(names = "DoubleMu.Run2011A-05Aug2011-v1.AOD.job663",  )
-            out += specify(names = "DoubleMu.Run2011A-May10ReReco-v1.AOD.job662",)
-            #out += specify(names = "DoubleMu.Run2011A-PromptReco-v4.AOD.job664", )
-            out += specify(names = "DoubleMu.Run2011A-PromptReco-v6.AOD.job665", )
-            out += specify(names = "DoubleMu.Run2011B-PromptReco-v1.AOD.job666", )
+            out += specify(names = "DoubleMu.Run2011A-05Aug2011-v1.AOD.job663"  )
+            out += specify(names = "DoubleMu.Run2011A-May10ReReco-v1.AOD.job662")
+            out += specify(names = "DoubleMu.Run2011A-PromptReco-v4.AOD.job664" )
+            out += specify(names = "DoubleMu.Run2011A-PromptReco-v6.AOD.job665" )
+            out += specify(names = "DoubleMu.Run2011B-PromptReco-v1.AOD.job666" )
             
             return out
 
         def data() :
             return dataDoubleMu()
         
-        eL = 3000 # 1/pb
+        eL = 30000 # 1/pb
         #return data()
         return (data() +\
                 specify(names = "tt_tauola_mg_2mu_skim", effectiveLumi = eL) +\
@@ -290,17 +288,14 @@ class muonLook(supy.analysis) :
         org.mergeSamples(targetSpec = {"name":"s.m.",      "color":r.kGreen,  "lineWidth":lineWidth, "goptions":goptions},
                          sources = ["t#bar{t}", "DY->ll", "W + jets"], keepSources = True)
         
-        org.scale() if not self.parameters()["tanBeta"] else org.scale(100.0)
-            
-        #plot
-        pl = plotter.plotter(org,
-                             psFileName = self.psFileName(org.tag),
-                             samplesForRatios = ("2011 Data","DY->ll"),
-                             sampleLabelsForRatios = ("data","DY"),
-                             showStatBox = True,
-                             #doLog = False,
-                             linYAfter = ("value", "0.40<=xcak5JetMhtOverHtPat"),
-                             pegMinimum = 0.1,
-                             blackList = ["lumiHisto","xsHisto","nJobsHisto"],
-                             )
-        pl.plotAll()
+        org.scale()
+        supy.plotter(org,
+                     psFileName = self.psFileName(org.tag),
+                     samplesForRatios = ("2011 Data","DY->ll"),
+                     sampleLabelsForRatios = ("data","DY"),
+                     showStatBox = True,
+                     #doLog = False,
+                     linYAfter = ("value", "0.40<=xcak5JetMhtOverHtPat"),
+                     pegMinimum = 0.1,
+                     blackList = ["lumiHisto","xsHisto","nJobsHisto"],
+                     ).plotAll()
