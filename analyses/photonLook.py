@@ -60,6 +60,7 @@ class photonLook(supy.analysis) :
         _etRatherThanPt = params["etRatherThanPt"]
 
         return supy.calculables.zeroArgs(supy.calculables) +\
+               supy.calculables.zeroArgs(calculables) +\
                supy.calculables.fromCollections(calculables.jet,[obj["jet"]]) +\
                supy.calculables.fromCollections(calculables.muon,[obj["muon"]]) +\
                supy.calculables.fromCollections(calculables.electron,[obj["electron"]]) +\
