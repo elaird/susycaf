@@ -15,12 +15,12 @@ class example(supy.analysis) :
             supy.steps.printer.progressPrinter(),
             steps.trigger.techBitFilter([0],True).onlyData(),
             steps.trigger.physicsDeclaredFilter().onlyData(),
-            steps.other.vertexRequirementFilter(),
+            supy.steps.histos.multiplicity("vertexIndices"),
+            supy.steps.filters.multiplicity("vertexIndices", min = 1),
             steps.filters.monster(),
-            
-            steps.jet.jetPtSelector(jets,pt,0),#leading corrected jet
-            steps.jet.jetPtSelector(jets,pt,1),#next corrected jet
-            #steps.jet.jetPtVetoer( jets,pt,2),#next corrected jet
+
+            supy.steps.filters.pt("%sCorrectedP4%s"%jets, min = pt, indices = "%sIndices%s"%jets, index = 0),
+            supy.steps.filters.pt("%sCorrectedP4%s"%jets, min = pt, indices = "%sIndices%s"%jets, index = 1),
             supy.steps.filters.multiplicity("%sIndicesOther%s"%jets, max = 0),
             supy.steps.filters.multiplicity("%sIndices%s"%jets, min = 2),
             
@@ -37,6 +37,7 @@ class example(supy.analysis) :
         jets = pars["jets"]
         pt = pars["jetPtMin"]
         listOfCalculables = supy.calculables.zeroArgs(supy.calculables)
+        listOfCalculables = supy.calculables.zeroArgs(calculables)
         listOfCalculables += supy.calculables.fromCollections(calculables.jet,[jets])
         listOfCalculables += [
             calculables.jet.Indices( jets, ptMin = pt, etaMax = 3.0, flagName = "JetIDloose"),
@@ -44,6 +45,8 @@ class example(supy.analysis) :
             calculables.jet.DeltaPhiStar( jets ),
             calculables.jet.AlphaT        ( jets, pars["etRatherThanPt"]),
             calculables.jet.DeltaPseudoJet( jets, pars["etRatherThanPt"]),
+            calculables.vertex.ID(),
+            calculables.vertex.Indices(),
             ]
         return listOfCalculables
 
