@@ -1,7 +1,6 @@
 * jets factors and rewriting jets
-
-* continue clean-up of hadronicLook
 * consider threshold for adding muons to jets
+* clean up hadronicLook
 
 (ongoing)
 * profile
@@ -12,4 +11,3 @@
 (low priority)
 * named arguments everywhere
 * update example ntuples
-* fix extra tree functionality in skimmer
