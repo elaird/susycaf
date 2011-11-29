@@ -31,4 +31,4 @@ class mumuSkim(supy.analysis) :
 
     def conclude(self, pars) :
         org = self.organizer(pars)
-        utils.printSkimResults(org)
+        supy.utils.io.printSkimResults(org)
