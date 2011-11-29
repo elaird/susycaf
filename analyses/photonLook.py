@@ -138,9 +138,9 @@ class photonLook(supy.analysis) :
             outList += [
                 steps.photon.photonPtSelector(_photon, 100.0, 0),
                 steps.photon.photonEtaSelector(_photon, 1.45, 0),
-                steps.other.passFilter("vertexDistribution1"),
-                steps.other.histogrammer("vertexIndices", 20, -0.5, 19.5, title=";N vertices;events / bin", funcString="lambda x:len(x)"),                
-                steps.other.multiplicityFilter("%sIndices%s"%_jet, nMin = 1),
+                supy.steps.filters.label("vertexDistribution1"),
+                supy.steps.histos.histogrammer("vertexIndices", 20, -0.5, 19.5, title=";N vertices;events / bin", funcString="lambda x:len(x)"),
+                supy.steps.filters.multiplicity("%sIndices%s"%_jet, min = 1),
                 steps.photon.singlePhotonHistogrammer(_photon, _jet),
                 ]
 
@@ -531,9 +531,9 @@ class photonLook(supy.analysis) :
             
         self.makeStandardPlots(org)
         #self.makeIndividualPlots(org)
-        #self.makePurityPlots(org, tag)
-        #self.makeEfficiencyPlots(org, tag)
-        #self.makeNVertexWeights(org, tag)
+        #self.makePurityPlots(org)
+        #self.makeEfficiencyPlots(org)
+        #self.makeNVertexWeights(org)
         #self.makeMultiModePlots(34.7255)
 
     def makeStandardPlots(self, org) :
@@ -548,33 +548,32 @@ class photonLook(supy.analysis) :
                                    ("2010 Data","sm_2010")])
 
         #plot all
-        pl = plotter.plotter(org,
-                             psFileName = self.psFileName(org.tag),
-                             sampleLabelsForRatios = ("data","s.m."),
-                             samplesForRatios = next(iter(samplesForRatios), ("","")),
-                             blackList = ["lumiHisto","xsHisto","nJobsHisto",
-                                          "deltaRGenReco",
-                                          "photonMothergenPt", "photonMotherrecoPt", "photonMothermht",
-                                          "quarkMothergenPt",  "quarkMotherrecoPt",  "quarkMothermht",
-                                          "otherMothergenPt",  "otherMotherrecoPt",  "otherMothermht",
-                                          "nGenPhotonsStatus1Photon","photonEtaStatus1Photon","photonPtStatus1Photon",
-                                          "photonPhiVsEtaStatus1Photon", "photonIsoStatus1Photon",
-                                          "nJetsStatus1Photon", "jetHtStatus1Photon",
-                                          "nJetsPlusnPhotonsStatus1Photon", "jetHtPlusPhotonHtStatus1Photon",
-                                          ],
-                             doLog = False,
-                             printRatios = True,
-                             #latexYieldTable = True,
-                             rowColors = [r.kBlack, r.kViolet+4],
-                             #whiteList = ["xcak5JetIndicesPat",
-                             #             #"photonPat1Pt",
-                             #             #"photonPat1mhtVsPhotonPt",
-                             #             "xcak5JetAlphaTFewBinsPat",
-                             #             "xcak5JetAlphaTRoughPat",
-                             #             "xcak5JetAlphaTWithPhoton1PtRatherThanMhtPat",
-                             #             ],
-                             )
-        pl.plotAll()
+        pl = supy.plotter(org,
+                          psFileName = self.psFileName(org.tag),
+                          sampleLabelsForRatios = ("data","s.m."),
+                          samplesForRatios = next(iter(samplesForRatios), ("","")),
+                          blackList = ["lumiHisto","xsHisto","nJobsHisto",
+                                       "deltaRGenReco",
+                                       "photonMothergenPt", "photonMotherrecoPt", "photonMothermht",
+                                       "quarkMothergenPt",  "quarkMotherrecoPt",  "quarkMothermht",
+                                       "otherMothergenPt",  "otherMotherrecoPt",  "otherMothermht",
+                                       "nGenPhotonsStatus1Photon","photonEtaStatus1Photon","photonPtStatus1Photon",
+                                       "photonPhiVsEtaStatus1Photon", "photonIsoStatus1Photon",
+                                       "nJetsStatus1Photon", "jetHtStatus1Photon",
+                                       "nJetsPlusnPhotonsStatus1Photon", "jetHtPlusPhotonHtStatus1Photon",
+                                       ],
+                          doLog = False,
+                          printRatios = True,
+                          #latexYieldTable = True,
+                          rowColors = [r.kBlack, r.kViolet+4],
+                          #whiteList = ["xcak5JetIndicesPat",
+                          #             #"photonPat1Pt",
+                          #             #"photonPat1mhtVsPhotonPt",
+                          #             "xcak5JetAlphaTFewBinsPat",
+                          #             "xcak5JetAlphaTRoughPat",
+                          #             "xcak5JetAlphaTWithPhoton1PtRatherThanMhtPat",
+                          #             ],
+                          ).plotAll()
             
     def makeIndividualPlots(self, org) :
         #plot all
@@ -660,7 +659,7 @@ class photonLook(supy.analysis) :
                            tdrStyle = True,
                            )
 
-    def makeNVertexWeights(self, org, tag, chopToOne = False) :
+    def makeNVertexWeights(self, org, chopToOne = False) :
         def sampleIndex(org, name) :
             for iSample,sample in enumerate(org.samples) :
                 if sample["name"]==name : return iSample
@@ -668,9 +667,9 @@ class photonLook(supy.analysis) :
 
         def numerAndDenom(org, var) :
             d = {}
-            for selection in org.selections :
-                if selection.name != "passFilter" : continue
-                if selection.title!="vertexDistribution1" : continue
+            for selection in org.steps :
+                if selection.name != "histogrammer" : continue
+                if selection.title!="(lambda x:len(x))(vertexIndices)" : continue
                 if var in selection :
                     sample = "2011 Data";      d["numer"] = selection[var][sampleIndex(org, sample)].Clone("%s_%s_clone"%(var, sample.replace(" ","_")))
                     sample = "standard_model"; d["denom"] = selection[var][sampleIndex(org, sample)].Clone("%s_%s_clone"%(var, sample.replace(" ","_")))
@@ -687,7 +686,7 @@ class photonLook(supy.analysis) :
         canvas.SetRightMargin(0.2)
         canvas.SetTickx()
         canvas.SetTicky()
-        psFileName = "%s.ps"%tag
+        psFileName = "%s.ps"%org.tag
         canvas.Print(psFileName+"[","Lanscape")
         for variable in ["vertexIndices"] :
             histos = numerAndDenom(org, variable)
@@ -721,7 +720,7 @@ class photonLook(supy.analysis) :
         os.system("ps2pdf "+psFileName)
         os.remove(psFileName)
 
-    def makeEfficiencyPlots(self, org, tag) :
+    def makeEfficiencyPlots(self, org) :
         def sampleIndex(org, name) :
             for iSample,sample in enumerate(org.samples) :
                 if sample["name"]==name : return iSample
@@ -745,7 +744,7 @@ class photonLook(supy.analysis) :
         canvas.SetRightMargin(0.2)
         canvas.SetTickx()
         canvas.SetTicky()
-        psFileName = "%s.ps"%tag
+        psFileName = "%s.ps"%org.tag
         canvas.Print(psFileName+"[","Lanscape")
         for variable in ["photonPt","photonEta","photonIso",
                          "nJets","jetHt","nJetsPlusnPhotons","jetHtPlusPhotonHt","getMinDeltaRPhotonOtherStatus3Photon"] :
@@ -770,7 +769,7 @@ class photonLook(supy.analysis) :
         os.system("ps2pdf "+psFileName)
         os.remove(psFileName)
 
-    def makePurityPlots(self, org, tag) :
+    def makePurityPlots(self, org) :
         def sampleIndex(org, name) :
             for iSample,sample in enumerate(org.samples) :
                 if sample["name"]==name : return iSample
@@ -820,7 +819,7 @@ class photonLook(supy.analysis) :
                     keep.append(result)
 
                 legend.Draw()
-                eps = "%s_%s_%s.eps"%(tag,variable,selection.title)
+                eps = "%s_%s_%s.eps"%(org.tag,variable,selection.title)
                 pdf = eps.replace(".eps",".pdf")
                 canvas.Print(eps)
                 os.system("epstopdf "+eps)
