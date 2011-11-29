@@ -136,7 +136,7 @@ class photonLook(supy.analysis) :
 
         if params["vertexMode"] :
             outList += [
-                steps.photon.photonPtSelector(_photon, 100.0, 0),
+                steps.photon.photonPtSelector(_photon, 150.0, 0),
                 steps.photon.photonEtaSelector(_photon, 1.45, 0),
                 supy.steps.filters.label("vertexDistribution1"),
                 supy.steps.histos.histogrammer("vertexIndices", 20, -0.5, 19.5, title=";N vertices;events / bin", funcString="lambda x:len(x)"),
@@ -176,7 +176,7 @@ class photonLook(supy.analysis) :
                 #steps.gen.photonEfficiencyPlots(label = "Status1Photon", ptCut = params["thresholds"]["genPhotonPtMin"],
                 #                                etaCut = 1.4, isoCut = 5.0, deltaRCut = 1.1, jets = _jet, photons = _photon),
 
-                supy.steps.filters.pt("%sP4%s"%_photon, min = 100.0, indices = "%sIndices%s"%_photon, index = 0),
+                supy.steps.filters.pt("%sP4%s"%_photon, min = 150.0, indices = "%sIndices%s"%_photon, index = 0),
                 supy.steps.filters.absEta("%sP4%s"%_photon, min = params["subdet"][0], max = params["subdet"][1], indices = "%sIndices%s"%_photon, index = 0),
                 steps.filters.DeltaRGreaterSelector(jets = _jet, particles = _photon, minDeltaR = 1.0, particleIndex = 0),
                 
