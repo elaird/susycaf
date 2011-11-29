@@ -1,3 +1,6 @@
+This project is a satellite of <supy> for SusyCAF format TTrees.
+See <github.com/elaird/supy>.
+
 -----------
 | License |
 -----------
@@ -6,50 +9,22 @@ GPLv3 (http://www.gnu.org/licenses/gpl.html)
 ---------------
 | Quick Start |
 ---------------
-1) Set up pyROOT:
-- use a CMSSW area: cd /somewhere/CMSSW_4_2_8/src && cmsenv
-- or see note (A)
-
-2) Clone the repository:
-git clone git://github.com/elaird/supy.git
-#  or, if you have forked it,
-git clone git://github.com/your_username/supy.git
-cd supy
-
-3) Run the example (the example input files are located on AFS):
-./supy analyses/example.py --loop 1
-
----------------------
-| Brief Description |
----------------------
-To be written.
+If you have access to CERN AFS, you can try the example.
+<set up pyROOT>                               #1) eg. with a CMSSW area: cd /<somepath>/CMSSW_4_2_8/src && cmsenv
+git clone git://github.com/<user>/susycaf.git #2) clone repo: <user> can be betchart or a forking user
+cd susycaf
+git submodule update --init                   #3) checkout supy dependence
+export PYTHONPATH=$PYTHONPATH:`pwd`           #4a) add directory containing supy to your python path
+export PATH=$PATH:`pwd`/supy/run	      #4b) optionally add to your path
+supy analyses/example.py --loop 1             #5) Run the example (the example input files are located on AFS):
 
 ----------------
 | Dependencies |
 ----------------
-ROOT (>=5.27.06) and python (2.x, x>=6) are required; CMSSW is not.  These
-are useful pages for setting up and learning pyROOT:
-http://root.cern.ch/drupal/content/how-use-use-python-pyroot-interpreter
-http://wlav.web.cern.ch/wlav/pyroot/
-
-- If afs is mounted on your machine, you could use something like
-this: https://github.com/elaird/ra1stats/blob/master/env.sh
-
------------
-| Gotchas |
------------
-- TTrees with multiple leaves per branch are not yet supported.
-
-- pyROOT does not support leaves whose names collide with the names of
-  TChain member functions
-
-- Creating a Lorentz vector every event is slow.  As a workaround, use
-  core.utils.LorentzV (see calculables.Jet.SumP4 for an example).
-
-- Iterating through a std::map<string, bool> is slow.  Consider using
-  a cache (see steps.Trigger.Counts for an example).
+ROOT (>=5.27.06) and python (2.x, x>=6) are required; CMSSW is not.
+See <github.com/elaird/supy>
 
 --------
 | Bugs |
 --------
-Please report problems at https://github.com/elaird/supy/issues
+Please report problems at https://github.com/betchart/susycaf/issues
