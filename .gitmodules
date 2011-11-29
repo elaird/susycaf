@@ -1,0 +1,3 @@
+[submodule "supy"]
+	path = supy
+	url = git@github.com:elaird/supy.git

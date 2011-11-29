@@ -2,6 +2,7 @@ import ROOT as r
 from supy import wrappedChain,utils,calculables
 #####################################
 class ID(wrappedChain.calculable) :
+    #https://twiki.cern.ch/twiki/bin/viewauth/CMS/Collisions2010Recipes#Good_Vertex_selection
     def __init__(self, minNdof = 5.0, maxAbsZ = 24.0, maxD0 = 2.0 ) :
         self.fixes = ("vertex","")
         for item in ["minNdof","maxAbsZ","maxD0"] : setattr(self,item,eval(item))

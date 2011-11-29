@@ -1,11 +1,9 @@
 #!/usr/bin/env python
 
-import os,copy
-from core import analysis,plotter,utils,organizer
-import steps,calculables,samples
-import ROOT as r
+import os,copy,ROOT as r
+import supy,steps,calculables,samples
 
-class photonLook(analysis.analysis) :
+class photonLook(supy.analysis) :
     def parameters(self) :
         objects = self.vary()
         fields =                                             [ "jet",             "met",            "muon",        "electron",        "photon",       "rechit", "muonsInJets"]
@@ -61,12 +59,13 @@ class photonLook(analysis.analysis) :
         obj = params["objects"]
         _etRatherThanPt = params["etRatherThanPt"]
 
-        return calculables.zeroArgs() +\
-               calculables.fromCollections(calculables.Jet,[obj["jet"]]) +\
-               calculables.fromCollections(calculables.Muon,[obj["muon"]]) +\
-               calculables.fromCollections(calculables.Electron,[obj["electron"]]) +\
-               calculables.fromCollections(calculables.Photon,[obj["photon"]]) +\
-               [ calculables.XClean.xcJet( obj["jet"],
+        return supy.calculables.zeroArgs(supy.calculables) +\
+               supy.calculables.zeroArgs(calculables) +\
+               supy.calculables.fromCollections(calculables.jet,[obj["jet"]]) +\
+               supy.calculables.fromCollections(calculables.muon,[obj["muon"]]) +\
+               supy.calculables.fromCollections(calculables.electron,[obj["electron"]]) +\
+               supy.calculables.fromCollections(calculables.photon,[obj["photon"]]) +\
+               [ calculables.xclean.xcJet( obj["jet"],
                                            gamma = obj["photon"],
                                            gammaDR = 0.5,
                                            muon = obj["muon"],
@@ -74,41 +73,41 @@ class photonLook(analysis.analysis) :
                                            correctForMuons = not obj["muonsInJets"],
                                            electron = obj["electron"], electronDR = 0.5
                                            ),
-                 calculables.Jet.Indices( obj["jet"], ptMin = params["thresholds"][3], etaMax = 3.0, flagName = params["jetId"]),
-                 calculables.Jet.Indices( obj["jet"], ptMin = params["lowPtThreshold"], etaMax = 3.0, flagName = params["jetId"], extraName = params["lowPtName"]),
-                 calculables.Jet.Indices( obj["jet"], ptMin = params["highPtThreshold"], etaMax = 3.0, flagName = params["jetId"], extraName = params["highPtName"]),
-                 calculables.Muon.Indices( obj["muon"], ptMin = 10, combinedRelIsoMax = 0.15),
-                 calculables.Electron.Indices( obj["electron"], ptMin = 10, simpleEleID = "95", useCombinedIso = True),
-                 calculables.Photon.Indices(obj["photon"], ptMin = 25, flagName = params["photonId"]),
+                 calculables.jet.Indices( obj["jet"], ptMin = params["thresholds"][3], etaMax = 3.0, flagName = params["jetId"]),
+                 calculables.jet.Indices( obj["jet"], ptMin = params["lowPtThreshold"], etaMax = 3.0, flagName = params["jetId"], extraName = params["lowPtName"]),
+                 calculables.jet.Indices( obj["jet"], ptMin = params["highPtThreshold"], etaMax = 3.0, flagName = params["jetId"], extraName = params["highPtName"]),
+                 calculables.muon.Indices( obj["muon"], ptMin = 10, combinedRelIsoMax = 0.15),
+                 calculables.electron.Indices( obj["electron"], ptMin = 10, simpleEleID = "95", useCombinedIso = True),
+                 calculables.photon.Indices(obj["photon"], ptMin = 25, flagName = params["photonId"]),
 
-                 calculables.Gen.genIndices( pdgs = [22], label = "Status3Photon", status = [3]),
-                 calculables.Gen.genMinDeltaRPhotonOther( label = "Status3Photon"),
+                 calculables.gen.genIndices( pdgs = [22], label = "Status3Photon", status = [3]),
+                 calculables.gen.genMinDeltaRPhotonOther( label = "Status3Photon"),
+                 
+                 calculables.gen.genIndices( pdgs = [22], label = "Status1Photon", status = [1]),
+                 calculables.gen.genIsolations(label = "Status1Photon", coneSize = 0.4),
+                 calculables.gen.genPhotonCategory(label = "Status1Photon"),
 
-                 calculables.Gen.genIndices( pdgs = [22], label = "Status1Photon", status = [1]),
-                 calculables.Gen.genIsolations(label = "Status1Photon", coneSize = 0.4),
-                 calculables.Gen.genPhotonCategory(label = "Status1Photon"),
-
-                 calculables.XClean.IndicesUnmatched(collection = obj["photon"], xcjets = obj["jet"], DR = 0.5),
-                 calculables.XClean.IndicesUnmatched(collection = obj["electron"], xcjets = obj["jet"], DR = 0.5)
+                 calculables.xclean.IndicesUnmatched(collection = obj["photon"], xcjets = obj["jet"], DR = 0.5),
+                 calculables.xclean.IndicesUnmatched(collection = obj["electron"], xcjets = obj["jet"], DR = 0.5)
                  ] \
-                 + [ calculables.Jet.SumP4(obj["jet"]),
-                     calculables.Jet.SumP4(obj["jet"], extraName = params["lowPtName"]),
-                     calculables.Jet.SumP4(obj["jet"], extraName = params["highPtName"]),
-                     calculables.Jet.DeltaPhiStar(obj["jet"], extraName = ""),
-                     calculables.Jet.DeltaPhiStar(obj["jet"], extraName = params["lowPtName"]),
-                     calculables.Jet.DeltaPseudoJet(obj["jet"], _etRatherThanPt),
-                     calculables.Jet.AlphaTWithPhoton1PtRatherThanMht(obj["jet"], photons = obj["photon"], etRatherThanPt = _etRatherThanPt),
-                     calculables.Jet.AlphaT(obj["jet"], _etRatherThanPt),
-                     calculables.Jet.AlphaTMet(obj["jet"], _etRatherThanPt, obj["met"]),
-                     calculables.Jet.MhtOverMet((obj["jet"][0], obj["jet"][1]+params["highPtName"]), met = obj["met"]),
-                     calculables.Jet.MhtOverMet((obj["jet"][0], obj["jet"][1]+params["highPtName"]), met = "%sPlus%s%s"%(obj["met"], obj["photon"][0], obj["photon"][1])),
-                     calculables.Other.metPlusParticles(met = obj["met"], particles = obj["photon"]),
-                     calculables.Other.minDeltaRToJet(obj["photon"], obj["jet"]),
-                     calculables.Other.SumP4(obj["photon"]),
-                     calculables.Vertex.ID(),
-                     calculables.Vertex.Indices(),
-                     calculables.Jet.deadEcalDR(obj["jet"], extraName = params["lowPtName"], minNXtals = 10),
-                     calculables.Other.lowestUnPrescaledTrigger(params["triggerList"]),
+                 + [ calculables.jet.SumP4(obj["jet"]),
+                     calculables.jet.SumP4(obj["jet"], extraName = params["lowPtName"]),
+                     calculables.jet.SumP4(obj["jet"], extraName = params["highPtName"]),
+                     calculables.jet.DeltaPhiStar(obj["jet"], extraName = ""),
+                     calculables.jet.DeltaPhiStar(obj["jet"], extraName = params["lowPtName"]),
+                     calculables.jet.DeltaPseudoJet(obj["jet"], _etRatherThanPt),
+                     calculables.jet.AlphaTWithPhoton1PtRatherThanMht(obj["jet"], photons = obj["photon"], etRatherThanPt = _etRatherThanPt),
+                     calculables.jet.AlphaT(obj["jet"], _etRatherThanPt),
+                     calculables.jet.AlphaTMet(obj["jet"], _etRatherThanPt, obj["met"]),
+                     calculables.jet.MhtOverMet((obj["jet"][0], obj["jet"][1]+params["highPtName"]), met = obj["met"]),
+                     calculables.jet.MhtOverMet((obj["jet"][0], obj["jet"][1]+params["highPtName"]), met = "%sPlus%s%s"%(obj["met"], obj["photon"][0], obj["photon"][1])),
+                     calculables.other.metPlusParticles(met = obj["met"], particles = obj["photon"]),
+                     calculables.other.minDeltaRToJet(obj["photon"], obj["jet"]),
+                     calculables.other.SumP4(obj["photon"]),
+                     calculables.vertex.ID(),
+                     calculables.vertex.Indices(),
+                     calculables.jet.deadEcalDR(obj["jet"], extraName = params["lowPtName"], minNXtals = 10),
+                     calculables.other.lowestUnPrescaledTrigger(params["triggerList"]),
                      ]
 
     def listOfSteps(self,params) :
@@ -120,33 +119,35 @@ class photonLook(analysis.analysis) :
         _etRatherThanPt = params["etRatherThanPt"]
         _et = "Et" if _etRatherThanPt else "Pt"
         
-        htUpper = [steps.Other.variableLessFilter(params["thresholds"][1],"%sSum%s%s"%(_jet[0], _et, _jet[1]), "GeV")] if params["thresholds"][1]!=None else []
+        htUpper = [supy.steps.filters.value("%sSum%s%s"%(_jet[0], _et, _jet[1]), min = params["thresholds"][1])] if params["thresholds"][1]!=None else []
         
         #event and trigger
         outList = [
-            steps.Print.progressPrinter(),
-            steps.Other.histogrammer("genpthat", 200, 0, 1000, title = ";#hat{p_{T}} (GeV);events / bin"),
-            steps.Trigger.l1Filter("L1Tech_BPTX_plus_AND_minus.v0"),
-            steps.Trigger.physicsDeclaredFilter(),
-            steps.Other.monsterEventFilter(),
-            steps.Other.hbheNoiseFilter(),
-            steps.Trigger.hltPrescaleHistogrammer(params["triggerList"]),            
-            steps.Trigger.lowestUnPrescaledTriggerHistogrammer(),
-            steps.Trigger.lowestUnPrescaledTriggerFilter(),
+            steps.printer.progressPrinter(),
+            supy.steps.histos.value("genpthat", 200, 0, 1000, xtitle = "#hat{p_{T}} (GeV)").onlySim(),
+            steps.trigger.l1Filter("L1Tech_BPTX_plus_AND_minus.v0").onlyData(),
+            steps.trigger.physicsDeclaredFilter().onlyData(),
+            steps.filters.monster(),
+            steps.filters.hbheNoise().onlyData(),
+            steps.trigger.hltPrescaleHistogrammer(params["triggerList"]),            
+            steps.trigger.lowestUnPrescaledTriggerHistogrammer(),
+            steps.trigger.lowestUnPrescaledTriggerFilter(),
             ]
 
         if params["vertexMode"] :
             outList += [
-                steps.Photon.photonPtSelector(_photon, 100.0, 0),
-                steps.Photon.photonEtaSelector(_photon, 1.45, 0),
-                steps.Other.passFilter("vertexDistribution1"),
-                steps.Other.histogrammer("vertexIndices", 20, -0.5, 19.5, title=";N vertices;events / bin", funcString="lambda x:len(x)"),                
-                steps.Other.multiplicityFilter("%sIndices%s"%_jet, nMin = 1),
-                steps.Photon.singlePhotonHistogrammer(_photon, _jet),
+                steps.photon.photonPtSelector(_photon, 150.0, 0),
+                steps.photon.photonEtaSelector(_photon, 1.45, 0),
+                supy.steps.filters.label("vertexDistribution1"),
+                supy.steps.histos.histogrammer("vertexIndices", 20, -0.5, 19.5, title=";N vertices;events / bin", funcString="lambda x:len(x)"),
+                supy.steps.filters.multiplicity("%sIndices%s"%_jet, min = 1),
+                steps.photon.singlePhotonHistogrammer(_photon, _jet),
                 ]
 
         #require vertex
-        outList += steps.Other.multiplicityPlotFilter("vertexIndices", nMin = 1, xlabel = "N vertices")
+        outList += [supy.steps.filters.multiplicity("vertexIndices", min = 1),
+                    supy.steps.histos.multiplicity("vertexIndices", max = 20),
+                    ]
 
         if params["vertexMode"] :
             return outList
@@ -154,33 +155,32 @@ class photonLook(analysis.analysis) :
         #HT bin and leading jets
         outList += [
             ##when using full scaling
-            #steps.Jet.htBinFilter(_jet, min = params["htBin"], max = params["htBin"]),
-            #steps.Jet.jetSelector(_jet, params["referenceThresholds"][0], 0),
-            #steps.Jet.jetSelector(_jet, params["referenceThresholds"][0], 1),
-            #steps.Jet.jetEtaSelector(_jet, 2.5, 0),
+            #steps.jet.htBinFilter(_jet, min = params["htBin"], max = params["htBin"]),
+            #steps.jet.jetSelector(_jet, params["referenceThresholds"][0], 0),
+            #steps.jet.jetSelector(_jet, params["referenceThresholds"][0], 1),
+            #steps.jet.jetEtaSelector(_jet, 2.5, 0),
 
             #otherwise
-            steps.Jet.jetPtSelector(_jet, params["thresholds"][2], 0),
-            steps.Jet.jetPtSelector(_jet, params["thresholds"][2], 1),
-            steps.Jet.jetEtaSelector(_jet,2.5,0),
-            steps.Other.histogrammer("%sSum%s%s"%(_jet[0], _et, _jet[1]), 50, 0, 2500,
-                                     title = ";H_{T} (GeV) from %s%s %ss;events / bin"%(_jet[0], _jet[1], _et)),
-            steps.Other.variableGreaterFilter(params["thresholds"][0],"%sSum%s%s"%(_jet[0], _et, _jet[1]), "GeV"),
+            steps.jet.jetPtSelector(_jet, params["thresholds"][2], 0),
+            steps.jet.jetPtSelector(_jet, params["thresholds"][2], 1),
+            steps.jet.jetEtaSelector(_jet,2.5,0),
+            supy.steps.histos.value("%sSum%s%s"%(_jet[0], _et, _jet[1]), 50, 0, 2500, xtitle = "H_{T} (GeV) from %s%s %ss"%(_jet[0], _jet[1], _et)),
+            supy.steps.filters.value(var = "%sSum%s%s"%(_jet[0], _et, _jet[1]), min = params["thresholds"][0]),
             ]
         outList += htUpper
 
         #one photon (zero in zMode)
         if not params["zMode"] :
             outList+=[
-                #steps.Other.passFilter("photonEfficiencyPlots1"),
-                #steps.Gen.photonEfficiencyPlots(label = "Status1Photon", ptCut = params["thresholds"]["genPhotonPtMin"],
+                #supy.steps.filters.label("photonEfficiencyPlots1"),
+                #steps.gen.photonEfficiencyPlots(label = "Status1Photon", ptCut = params["thresholds"]["genPhotonPtMin"],
                 #                                etaCut = 1.4, isoCut = 5.0, deltaRCut = 1.1, jets = _jet, photons = _photon),
 
-                steps.Filter.pt("%sP4%s"%_photon, min = 100.0, indices = "%sIndices%s"%_photon, index = 0),
-                steps.Filter.absEta("%sP4%s"%_photon, min = params["subdet"][0], max = params["subdet"][1], indices = "%sIndices%s"%_photon, index = 0),
-                steps.Filter.DeltaRGreaterSelector(jets = _jet, particles = _photon, minDeltaR = 1.0, particleIndex = 0),
+                supy.steps.filters.pt("%sP4%s"%_photon, min = 150.0, indices = "%sIndices%s"%_photon, index = 0),
+                supy.steps.filters.absEta("%sP4%s"%_photon, min = params["subdet"][0], max = params["subdet"][1], indices = "%sIndices%s"%_photon, index = 0),
+                steps.filters.DeltaRGreaterSelector(jets = _jet, particles = _photon, minDeltaR = 1.0, particleIndex = 0),
                 
-                steps.Other.multiplicityFilter("%sIndices%s"%_photon, nMin = 1, nMax = 1),
+                supy.steps.filters.multiplicity("%sIndices%s"%_photon, min = 1, max = 1),
 
                 #steps.Other.passFilter("photonEfficiencyPlots2"),
                 #steps.Gen.photonEfficiencyPlots(label = "Status1Photon", ptCut = params["thresholds"]["genPhotonPtMin"],
@@ -188,21 +188,21 @@ class photonLook(analysis.analysis) :
                 ]
         else :
             outList+=[
-                steps.Other.multiplicityFilter("%sIndices%s"%_photon, nMax = 0),
+                supy.steps.filters.multiplicity("%sIndices%s"%_photon, max = 0),
                 ]
         
         #steps.Other.histogrammer("%sSumEt%s"%_jet,50,0,1500, title = ";H_{T} (GeV) from %s%s E_{T}s;events / bin"%_jet),
 
         outList += [
             #bad-jet, electron, muon, vetoes
-            steps.Other.multiplicityFilter("%sIndicesOther%s"%_jet, nMax = 0),
-            steps.Other.multiplicityFilter("%sIndices%s"%_electron, nMax = 0),
-            steps.Other.multiplicityFilter("%sIndices%s"%_muon, nMax = 0),
-            steps.Other.multiplicityFilter("%sIndicesOther%s"%_muon, nMax = 0),
-            steps.Other.multiplicityFilter("%sIndicesUnmatched%s"%_electron, nMax = 0),
-            steps.Other.multiplicityFilter("%sIndicesUnmatched%s"%_photon,   nMax = 0),
-            steps.Jet.uniquelyMatchedNonisoMuons(_jet),
-            steps.Other.multiplicityFilter("%sIndices%s"%_jet, nMin=params["nJetsMinMax"][0], nMax=params["nJetsMinMax"][1]),
+            supy.steps.filters.multiplicity("%sIndicesOther%s"%_jet, max = 0),
+            supy.steps.filters.multiplicity("%sIndices%s"%_electron, max = 0),
+            supy.steps.filters.multiplicity("%sIndices%s"%_muon, max = 0),
+            supy.steps.filters.multiplicity("%sIndicesOther%s"%_muon, max = 0),
+            supy.steps.filters.multiplicity("%sIndicesUnmatched%s"%_electron, max = 0),
+            supy.steps.filters.multiplicity("%sIndicesUnmatched%s"%_photon, max = 0),
+            steps.jet.uniquelyMatchedNonisoMuons(_jet),
+            supy.steps.filters.multiplicity("%sIndices%s"%_jet, min = params["nJetsMinMax"][0], max = params["nJetsMinMax"][1]),
             ]
 
         ##play with photon pT
@@ -224,60 +224,59 @@ class photonLook(analysis.analysis) :
         
         outList+=[
             #many plots
-            steps.Other.histogrammer("vertexIndices", 20, -0.5, 19.5, title=";N vertices;events / bin", funcString="lambda x:len(x)"),
-            steps.Other.histogrammer("%sIndices%s"%_jet,10,-0.5,9.5, title=";number of %s%s passing ID#semicolon p_{T}#semicolon #eta cuts;events / bin"%_jet,
-                               funcString="lambda x:len(x)"),
-            steps.Other.passFilter("singlePhotonPlots1"),
-            steps.Photon.singlePhotonHistogrammer(_photon, _jet),
-            steps.Other.passFilter("purityPlots1"),
-            steps.Gen.photonPurityPlots("Status1Photon", _jet, _photon),
+            supy.steps.histos.multiplicity("vertexIndices", max = 20),
+            supy.steps.histos.multiplicity("%sIndices%s"%_jet, max = 10),
+            supy.steps.filters.label("singlePhotonPlots1"),
+            steps.photon.singlePhotonHistogrammer(_photon, _jet),
+            supy.steps.filters.label("purityPlots1"),
+            steps.gen.photonPurityPlots("Status1Photon", _jet, _photon),
             
-            steps.Other.passFilter("jetSumPlots"),
-            steps.Jet.cleanJetHtMhtHistogrammer(_jet,_etRatherThanPt),
-            steps.Other.histogrammer(_met,100,0.0,500.0,title=";"+_met+" (GeV);events / bin", funcString = "lambda x: x.pt()"),
-            steps.Other.histogrammer("metP4PF",100,0.0,500.0,title=";metP4PF (GeV);events / bin", funcString = "lambda x: x.pt()"),
-            steps.Other.passFilter("kinematicPlots"),
-            steps.Jet.alphaHistogrammer(_jet, deltaPhiStarExtraName = "", etRatherThanPt = _etRatherThanPt),
-            steps.Other.histogrammer("%sAlphaTWithPhoton1PtRatherThanMht%s"%_jet, 4, 0.0, 4*0.55, title = ";#alpha_{T} using photon p_{T} rather than MHT;events / bin"),
-            steps.Other.histogrammer(("%sAlphaTEt%s"%_jet, "%sAlphaTWithPhoton1PtRatherThanMht%s"%_jet),
-                               (25, 25), (0.50, 0.50), (1.0, 1.0), title = ";#alpha_{T};#alpha_{T} using photon p_{T} rather than MHT;events / bin"),
+            supy.steps.filters.label("jetSumPlots"),
+            steps.jet.cleanJetHtMhtHistogrammer(_jet,_etRatherThanPt),
+            supy.steps.histos.pt(_met, 100, 0.0, 500.0, xtitle=_met+" (GeV)"),
+            supy.steps.histos.pt("metP4PF", 100, 0.0, 500.0, xtitle="metP4PF (GeV)"),
+            supy.steps.filters.label("kinematicPlots"),
+            steps.jet.alphaHistogrammer(_jet, deltaPhiStarExtraName = "", etRatherThanPt = _etRatherThanPt),
+            supy.steps.histos.value("%sAlphaTWithPhoton1PtRatherThanMht%s"%_jet, 4, 0.0, 4*0.55, xtitle = "#alpha_{T} using photon p_{T} rather than MHT"),
+            supy.steps.histos.histogrammer(("%sAlphaTEt%s"%_jet, "%sAlphaTWithPhoton1PtRatherThanMht%s"%_jet),
+                                           (25, 25), (0.50, 0.50), (1.0, 1.0), title = ";#alpha_{T};#alpha_{T} using photon p_{T} rather than MHT;events / bin"),
             
-            steps.Jet.photon1PtOverHtHistogrammer(jets = _jet, photons = _photon, etRatherThanPt = _etRatherThanPt),
+            steps.jet.photon1PtOverHtHistogrammer(jets = _jet, photons = _photon, etRatherThanPt = _etRatherThanPt),
             
-            steps.Filter.value("%sMhtOverHt%s"%_jet, min = 0.4),
+            supy.steps.filters.value("%sMhtOverHt%s"%_jet, min = 0.4),
             
-            steps.Jet.alphaHistogrammer(_jet, deltaPhiStarExtraName = "", etRatherThanPt = _etRatherThanPt),            
+            steps.jet.alphaHistogrammer(_jet, deltaPhiStarExtraName = "", etRatherThanPt = _etRatherThanPt),            
             #steps.Other.histogrammer("%sAlphaTEt%s"%_jet, 4, 0.0, 0.55*4, title=";#alpha_{T};events / bin"),
-            steps.Other.histogrammer("%sIndices%s"%_jet,10,-0.5,9.5, title=";number of %s%s passing ID#semicolon p_{T}#semicolon #eta cuts;events / bin"%_jet,
-                               funcString="lambda x:len(x)"),
-            steps.Other.passFilter("singlePhotonPlots2"),
-            steps.Photon.singlePhotonHistogrammer(_photon, _jet),
+            supy.steps.histos.histogrammer("%sIndices%s"%_jet,10,-0.5,9.5, title=";number of %s%s passing ID#semicolon p_{T}#semicolon #eta cuts;events / bin"%_jet,
+                                           funcString="lambda x:len(x)"),
+            supy.steps.filters.label("singlePhotonPlots2"),
+            steps.photon.singlePhotonHistogrammer(_photon, _jet),
             
-            steps.Other.variableGreaterFilter(0.55,"%sAlphaTEt%s"%_jet),
-            steps.Trigger.lowestUnPrescaledTriggerHistogrammer(),
+            supy.steps.filters.value("%sAlphaTEt%s"%_jet, min = 0.55),
+            steps.trigger.lowestUnPrescaledTriggerHistogrammer(),
             
-            steps.Jet.photon1PtOverHtHistogrammer(jets = _jet, photons = _photon, etRatherThanPt = _etRatherThanPt),            
-            steps.Other.histogrammer("%sIndices%s"%_jet,10,-0.5,9.5, title=";number of %s%s passing ID#semicolon p_{T}#semicolon #eta cuts;events / bin"%_jet,
-                               funcString="lambda x:len(x)"),
-            steps.Other.passFilter("singlePhotonPlots3"),
-            steps.Photon.singlePhotonHistogrammer(_photon, _jet),
+            steps.jet.photon1PtOverHtHistogrammer(jets = _jet, photons = _photon, etRatherThanPt = _etRatherThanPt),            
+            supy.steps.histos.histogrammer("%sIndices%s"%_jet,10,-0.5,9.5, title=";number of %s%s passing ID#semicolon p_{T}#semicolon #eta cuts;events / bin"%_jet,
+                                           funcString="lambda x:len(x)"),
+            supy.steps.filters.label("singlePhotonPlots3"),
+            steps.photon.singlePhotonHistogrammer(_photon, _jet),
             
-            steps.Other.passFilter("purityPlots2"),
-            steps.Gen.photonPurityPlots("Status1Photon", _jet, _photon),
-            steps.Jet.cleanJetHtMhtHistogrammer(_jet,_etRatherThanPt),
+            supy.steps.filters.label("purityPlots2"),
+            steps.gen.photonPurityPlots("Status1Photon", _jet, _photon),
+            steps.jet.cleanJetHtMhtHistogrammer(_jet,_etRatherThanPt),
             
-            steps.Other.histogrammer("%sMht%sOver%s" %(_jet[0], _jet[1]+params["highPtName"], _met if params["zMode"] else _met+"Plus%s%s"%_photon), 100, 0.0, 3.0,
-                                     title = ";MHT %s%s / %s;events / bin"%(_jet[0], _jet[1], _met if params["zMode"] else _met+"Plus%s%s"%_photon)),
-            steps.Other.variableLessFilter(1.25,"%sMht%sOver%s" %(_jet[0], _jet[1]+params["highPtName"], _met if params["zMode"] else _met+"Plus%s%s"%_photon)),
-            steps.Other.deadEcalFilter(jets = _jet, extraName = params["lowPtName"], dR = 0.3, dPhiStarCut = 0.5),
+            supy.steps.histos.histogrammer("%sMht%sOver%s" %(_jet[0], _jet[1]+params["highPtName"], _met if params["zMode"] else _met+"Plus%s%s"%_photon), 100, 0.0, 3.0,
+                                           title = ";MHT %s%s / %s;events / bin"%(_jet[0], _jet[1], _met if params["zMode"] else _met+"Plus%s%s"%_photon)),
+            supy.steps.filters.value("%sMht%sOver%s" %(_jet[0], _jet[1]+params["highPtName"], _met if params["zMode"] else _met+"Plus%s%s"%_photon), max = 1.25),
+            steps.other.deadEcalFilter(jets = _jet, extraName = params["lowPtName"], dR = 0.3, dPhiStarCut = 0.5),
 
-            steps.Other.histogrammer("%sIndices%s"%_jet,10,-0.5,9.5, title=";number of %s%s passing ID#semicolon p_{T}#semicolon #eta cuts;events / bin"%_jet,
-                               funcString="lambda x:len(x)"),
+            supy.steps.histos.histogrammer("%sIndices%s"%_jet,10,-0.5,9.5, title=";number of %s%s passing ID#semicolon p_{T}#semicolon #eta cuts;events / bin"%_jet,
+                                           funcString="lambda x:len(x)"),
 
-            steps.Histos.pt("%sCorrectedP4%s"%_jet, 20, 0.0, 5*params["thresholds"][2], indices = "%sIndices%s"%_jet, index = 0, xtitle = "jet 1 p_{T} (GeV)"),
-            steps.Histos.pt("%sCorrectedP4%s"%_jet, 20, 0.0, 4*params["thresholds"][2], indices = "%sIndices%s"%_jet, index = 1, xtitle = "jet 2 p_{T} (GeV)"),
-            steps.Histos.pt("%sCorrectedP4%s"%_jet, 20, 0.0, 2*params["thresholds"][2], indices = "%sIndices%s"%_jet, index = 2, xtitle = "jet 3 p_{T} (GeV)"),
-            steps.Histos.eta("%sCorrectedP4%s"%_jet, 6, -3.0, 3.0, indices = "%sIndices%s"%_jet, index = 2, xtitle = "jet 3"),
+            supy.steps.histos.pt("%sCorrectedP4%s"%_jet, 20, 0.0, 5*params["thresholds"][2], indices = "%sIndices%s"%_jet, index = 0, xtitle = "jet 1 p_{T} (GeV)"),
+            supy.steps.histos.pt("%sCorrectedP4%s"%_jet, 20, 0.0, 4*params["thresholds"][2], indices = "%sIndices%s"%_jet, index = 1, xtitle = "jet 2 p_{T} (GeV)"),
+            supy.steps.histos.pt("%sCorrectedP4%s"%_jet, 20, 0.0, 2*params["thresholds"][2], indices = "%sIndices%s"%_jet, index = 2, xtitle = "jet 3 p_{T} (GeV)"),
+            supy.steps.histos.eta("%sCorrectedP4%s"%_jet, 6, -3.0, 3.0, indices = "%sIndices%s"%_jet, index = 2, xtitle = "jet 3"),
 
             #steps.Other.skimmer(),
             
@@ -306,12 +305,12 @@ class photonLook(analysis.analysis) :
             #                          mhtOverMetName = "%sMht%sOver%s"%(_jet[0], _jet[1]+params["highPtName"], _met if params["zMode"] else _met+"Plus%s%s"%_photon),
             #                          ),
 
-            steps.Other.histogrammer("%sSumEt%s"%_jet, 40, 0, 1000, title = ";H_{T} (GeV) from %s%s E_{T}s;events / bin"%_jet),
-            ] + [steps.Other.variableGreaterFilter(375.0+100*iBin, "%sSumEt%s"%_jet, suffix = "GeV") for iBin in range(1,6)]
+            supy.steps.histos.histogrammer("%sSumEt%s"%_jet, 40, 0, 1000, title = ";H_{T} (GeV) from %s%s E_{T}s;events / bin"%_jet),
+            ] + [supy.steps.filters.value("%sSumEt%s"%_jet, min = 375.0+100*iBin) for iBin in range(1,6)]
         return outList
 
     def listOfSampleDictionaries(self) :
-        return [samples.MC.mc, samples.JetMET.jetmet, samples.Photon.photon]
+        return [samples.mc, samples.photon]
 
     def qcdMgNames2010(self) :
         return [#"v12_qcd_mg_ht_50_100_noIsoReqSkim",
@@ -357,7 +356,7 @@ class photonLook(analysis.analysis) :
         return ["g_jets_py6_pt_%s_%s_noIsoReqSkim"%(a,b) for a,b in zip(l[:-1], l[1:])]
 
     def listOfSamples(self,params) :
-        from samples import specify
+        from supy.samples import specify
 
         #2010
         data_2010_nov4 = specify(names = ["Nov4_MJ_noIsoReqSkim","Nov4_J_noIsoReqSkim",
@@ -409,7 +408,7 @@ class photonLook(analysis.analysis) :
         
         eL = 20000.0
 
-        phw = calculables.Photon.photonWeight(var = "vertexIndices")
+        phw = calculables.photon.photonWeight(var = "vertexIndices")
         
         qcd_mg          = specify(effectiveLumi = eL, color = r.kBlue, names = self.qcdMgNames(era = "summer11"))
         g_jets_mg       = specify(effectiveLumi = eL, color = r.kGreen, names = self.gJetsMgNames(era = "summer11"))
@@ -532,9 +531,9 @@ class photonLook(analysis.analysis) :
             
         self.makeStandardPlots(org)
         #self.makeIndividualPlots(org)
-        #self.makePurityPlots(org, tag)
-        #self.makeEfficiencyPlots(org, tag)
-        #self.makeNVertexWeights(org, tag)
+        #self.makePurityPlots(org)
+        #self.makeEfficiencyPlots(org)
+        #self.makeNVertexWeights(org)
         #self.makeMultiModePlots(34.7255)
 
     def makeStandardPlots(self, org) :
@@ -549,33 +548,32 @@ class photonLook(analysis.analysis) :
                                    ("2010 Data","sm_2010")])
 
         #plot all
-        pl = plotter.plotter(org,
-                             psFileName = self.psFileName(org.tag),
-                             sampleLabelsForRatios = ("data","s.m."),
-                             samplesForRatios = next(iter(samplesForRatios), ("","")),
-                             blackList = ["lumiHisto","xsHisto","nJobsHisto",
-                                          "deltaRGenReco",
-                                          "photonMothergenPt", "photonMotherrecoPt", "photonMothermht",
-                                          "quarkMothergenPt",  "quarkMotherrecoPt",  "quarkMothermht",
-                                          "otherMothergenPt",  "otherMotherrecoPt",  "otherMothermht",
-                                          "nGenPhotonsStatus1Photon","photonEtaStatus1Photon","photonPtStatus1Photon",
-                                          "photonPhiVsEtaStatus1Photon", "photonIsoStatus1Photon",
-                                          "nJetsStatus1Photon", "jetHtStatus1Photon",
-                                          "nJetsPlusnPhotonsStatus1Photon", "jetHtPlusPhotonHtStatus1Photon",
-                                          ],
-                             doLog = False,
-                             printRatios = True,
-                             #latexYieldTable = True,
-                             rowColors = [r.kBlack, r.kViolet+4],
-                             #whiteList = ["xcak5JetIndicesPat",
-                             #             #"photonPat1Pt",
-                             #             #"photonPat1mhtVsPhotonPt",
-                             #             "xcak5JetAlphaTFewBinsPat",
-                             #             "xcak5JetAlphaTRoughPat",
-                             #             "xcak5JetAlphaTWithPhoton1PtRatherThanMhtPat",
-                             #             ],
-                             )
-        pl.plotAll()
+        pl = supy.plotter(org,
+                          psFileName = self.psFileName(org.tag),
+                          sampleLabelsForRatios = ("data","s.m."),
+                          samplesForRatios = next(iter(samplesForRatios), ("","")),
+                          blackList = ["lumiHisto","xsHisto","nJobsHisto",
+                                       "deltaRGenReco",
+                                       "photonMothergenPt", "photonMotherrecoPt", "photonMothermht",
+                                       "quarkMothergenPt",  "quarkMotherrecoPt",  "quarkMothermht",
+                                       "otherMothergenPt",  "otherMotherrecoPt",  "otherMothermht",
+                                       "nGenPhotonsStatus1Photon","photonEtaStatus1Photon","photonPtStatus1Photon",
+                                       "photonPhiVsEtaStatus1Photon", "photonIsoStatus1Photon",
+                                       "nJetsStatus1Photon", "jetHtStatus1Photon",
+                                       "nJetsPlusnPhotonsStatus1Photon", "jetHtPlusPhotonHtStatus1Photon",
+                                       ],
+                          doLog = False,
+                          printRatios = True,
+                          #latexYieldTable = True,
+                          rowColors = [r.kBlack, r.kViolet+4],
+                          #whiteList = ["xcak5JetIndicesPat",
+                          #             #"photonPat1Pt",
+                          #             #"photonPat1mhtVsPhotonPt",
+                          #             "xcak5JetAlphaTFewBinsPat",
+                          #             "xcak5JetAlphaTRoughPat",
+                          #             "xcak5JetAlphaTWithPhoton1PtRatherThanMhtPat",
+                          #             ],
+                          ).plotAll()
             
     def makeIndividualPlots(self, org) :
         #plot all
@@ -661,7 +659,7 @@ class photonLook(analysis.analysis) :
                            tdrStyle = True,
                            )
 
-    def makeNVertexWeights(self, org, tag, chopToOne = False) :
+    def makeNVertexWeights(self, org, chopToOne = False) :
         def sampleIndex(org, name) :
             for iSample,sample in enumerate(org.samples) :
                 if sample["name"]==name : return iSample
@@ -669,9 +667,9 @@ class photonLook(analysis.analysis) :
 
         def numerAndDenom(org, var) :
             d = {}
-            for selection in org.selections :
-                if selection.name != "passFilter" : continue
-                if selection.title!="vertexDistribution1" : continue
+            for selection in org.steps :
+                if selection.name != "histogrammer" : continue
+                if selection.title!="(lambda x:len(x))(vertexIndices)" : continue
                 if var in selection :
                     sample = "2011 Data";      d["numer"] = selection[var][sampleIndex(org, sample)].Clone("%s_%s_clone"%(var, sample.replace(" ","_")))
                     sample = "standard_model"; d["denom"] = selection[var][sampleIndex(org, sample)].Clone("%s_%s_clone"%(var, sample.replace(" ","_")))
@@ -688,7 +686,7 @@ class photonLook(analysis.analysis) :
         canvas.SetRightMargin(0.2)
         canvas.SetTickx()
         canvas.SetTicky()
-        psFileName = "%s.ps"%tag
+        psFileName = "%s.ps"%org.tag
         canvas.Print(psFileName+"[","Lanscape")
         for variable in ["vertexIndices"] :
             histos = numerAndDenom(org, variable)
@@ -722,7 +720,7 @@ class photonLook(analysis.analysis) :
         os.system("ps2pdf "+psFileName)
         os.remove(psFileName)
 
-    def makeEfficiencyPlots(self, org, tag) :
+    def makeEfficiencyPlots(self, org) :
         def sampleIndex(org, name) :
             for iSample,sample in enumerate(org.samples) :
                 if sample["name"]==name : return iSample
@@ -746,7 +744,7 @@ class photonLook(analysis.analysis) :
         canvas.SetRightMargin(0.2)
         canvas.SetTickx()
         canvas.SetTicky()
-        psFileName = "%s.ps"%tag
+        psFileName = "%s.ps"%org.tag
         canvas.Print(psFileName+"[","Lanscape")
         for variable in ["photonPt","photonEta","photonIso",
                          "nJets","jetHt","nJetsPlusnPhotons","jetHtPlusPhotonHt","getMinDeltaRPhotonOtherStatus3Photon"] :
@@ -771,7 +769,7 @@ class photonLook(analysis.analysis) :
         os.system("ps2pdf "+psFileName)
         os.remove(psFileName)
 
-    def makePurityPlots(self, org, tag) :
+    def makePurityPlots(self, org) :
         def sampleIndex(org, name) :
             for iSample,sample in enumerate(org.samples) :
                 if sample["name"]==name : return iSample
@@ -821,7 +819,7 @@ class photonLook(analysis.analysis) :
                     keep.append(result)
 
                 legend.Draw()
-                eps = "%s_%s_%s.eps"%(tag,variable,selection.title)
+                eps = "%s_%s_%s.eps"%(org.tag,variable,selection.title)
                 pdf = eps.replace(".eps",".pdf")
                 canvas.Print(eps)
                 os.system("epstopdf "+eps)

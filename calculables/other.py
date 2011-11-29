@@ -1,5 +1,5 @@
 from supy import wrappedChain,utils,configuration
-import math
+import math,ROOT as r
 try:
     import numpy as np
 except:
