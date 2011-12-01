@@ -32,7 +32,7 @@ class mumuLook(supy.analysis) :
                                                 ("325_scaled", (325.0, 375.0,  86.7, 43.3)),#3
                                                 ("275_scaled", (275.0, 325.0,  73.3, 36.7)),#4
                                                 ("225_scaled", (225.0, 275.0,  60.0, 30.0)),#5
-                                                ][2:3] )),
+                                                ][2:] )),
 
                  "triggerList":tuple(["HLT_DoubleMu3_v%d" %i for i in [3,4,5,7,9,10,13,14]]+
                                      ["HLT_DoubleMu5_v%d" %i for i in [1,4,5]]+
@@ -289,6 +289,7 @@ class mumuLook(supy.analysis) :
                      samplesForRatios = ("2011 Data","s.m."),
                      sampleLabelsForRatios = ("data","s.m."),
                      showStatBox = True,
+                     printRatios = True,
                      #doLog = False,
                      linYAfter = ("value", "0.40<=xcak5JetMhtOverHtPat"),
                      pegMinimum = 0.1,
