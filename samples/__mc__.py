@@ -98,6 +98,8 @@ mc.add("z_nunu",  '%s/henning//ICF/automated/2011_04_15_10_55_57/")'%srm, xs = 4
 
 
 ## MG Summer '11 samples (CMSSW_4_2_5 / V15-03-14 / L1FastJetL2L3)
+mc.add("dyll_jets_mg_summer11", '%s/mstoye//ICF/automated/2011_08_06_17_06_28/")'%srm, xs = {"LO":2475.0, "NNLO":3048}["NNLO"])
+
 # Z->nunu (HT binned)
 zNunuLoc = "/dburton//ICF/automated/2011_10_10_13_33_29/"
 tag = "7TeV-madgraph.Summer11-PU_S4_START42_V11-v1.AODSIM"
@@ -112,7 +114,7 @@ mc.add("znunu_jets_mg_ht_100_200_summer11_skim", '%s"%s/znunu_jets_mg_ht_100_200
 mc.add("znunu_jets_mg_ht_200_inf_summer11_skim", '%s"%s/znunu_jets_mg_ht_200_inf_*_skim.root")'%(l, dir), xs = 5.364460e-01 *  32.9*mgKFactor)
 
 # W->lnu (HT binned)
-wFactor = 31314./24640
+wFactor = 31314./27770.0
 mc.add("w_jets_mg_tauola_ht_300_inf_summer11", '%s/gouskos//ICF/automated/2011_08_19_18_17_37/")'%srm, xs = {"LO":48.49, "guessNLO":48.49*wFactor}["guessNLO"])
 
 # TT
