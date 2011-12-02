@@ -32,7 +32,7 @@ class mumuLook(supy.analysis) :
                                                 ("325_scaled", (325.0, 375.0,  86.7, 43.3)),#3
                                                 ("275_scaled", (275.0, 325.0,  73.3, 36.7)),#4
                                                 ("225_scaled", (225.0, 275.0,  60.0, 30.0)),#5
-                                                ][2:] )),
+                                                ][2:3] )),
 
                  "triggerList":tuple(["HLT_DoubleMu3_v%d" %i for i in [3,4,5,7,9,10,13,14]]+
                                      ["HLT_DoubleMu5_v%d" %i for i in [1,4,5]]+
@@ -125,9 +125,9 @@ class mumuLook(supy.analysis) :
             steps.filters.monster(),
             steps.filters.hbheNoise().onlyData(),
             supy.steps.histos.histogrammer("genpthat",200,0,1000,title=";#hat{p_{T}} (GeV);events / bin").onlySim(),
-            steps.trigger.hltPrescaleHistogrammer(params["triggerList"]),
+            steps.trigger.hltPrescaleHistogrammer(params["triggerList"]).onlyData(),
 
-            supy.steps.filters.pt ("%sP4%s"%_muon, min = 32.0,            indices = "%sIndices%s"%_muon, index = 0),
+            supy.steps.filters.pt ("%sP4%s"%_muon, min = 20.0,            indices = "%sIndices%s"%_muon, index = 0),
             supy.steps.filters.eta("%sP4%s"%_muon, min = -2.1, max = 2.1, indices = "%sIndices%s"%_muon, index = 0),
             supy.steps.filters.pt ("%sP4%s"%_muon, min = 10.0,            indices = "%sIndices%s"%_muon, index = 1),
             supy.steps.filters.eta("%sP4%s"%_muon, min = -2.1, max = 2.1, indices = "%sIndices%s"%_muon, index = 1),
@@ -263,14 +263,13 @@ class mumuLook(supy.analysis) :
 
         def data() :
             return dataDoubleMu()
-        
-        eL = 30000 # 1/pb
-        #return data()
-        return (data() +\
-                specify(names = "tt_tauola_mg_2mu_skim", effectiveLumi = eL) +\
-                specify(names = "dyll_jets_mg_2mu_skim", effectiveLumi = eL) +\
-                specify(names = "w_jets_mg_2mu_skim",    effectiveLumi = eL)
-                )
+
+        phw = calculables.photon.photonWeight(var = "vertexIndices")
+        out = []
+        out += data()
+        out += specify(names = "dyll_jets_mg_summer11_mumuSkim", weights = phw)
+        out += specify(names = "tt_jets_mg_tauola_summer11_mumuSkim", weights = phw)
+        return out
     
     def conclude(self, conf) :
         org = self.organizer(conf)
