@@ -253,11 +253,11 @@ class mumuLook(supy.analysis) :
 
         def dataDoubleMu() :
             out = []
-            out += specify(names = "DoubleMu.Run2011A-05Aug2011-v1.AOD.job663_skim"  )
-            out += specify(names = "DoubleMu.Run2011A-May10ReReco-v1.AOD.job662_skim")
-            out += specify(names = "DoubleMu.Run2011A-PromptReco-v4.AOD.job664_skim" )
-            out += specify(names = "DoubleMu.Run2011A-PromptReco-v6.AOD.job665_skim" )
-            out += specify(names = "DoubleMu.Run2011B-PromptReco-v1.AOD.job666_skim" )
+            out += specify(names = "DoubleMu.Run2011A-05Aug2011-v1.AOD.job663_mumuHtskim"  )
+            out += specify(names = "DoubleMu.Run2011A-May10ReReco-v1.AOD.job662_mumuHtskim")
+            out += specify(names = "DoubleMu.Run2011A-PromptReco-v4.AOD.job664_mumuHtskim" )
+            out += specify(names = "DoubleMu.Run2011A-PromptReco-v6.AOD.job665_mumuHtskim" )
+            out += specify(names = "DoubleMu.Run2011B-PromptReco-v1.AOD.job666_mumuHtskim" )
             
             return out
 
@@ -267,8 +267,8 @@ class mumuLook(supy.analysis) :
         phw = calculables.photon.photonWeight(var = "vertexIndices")
         out = []
         out += data()
-        out += specify(names = "dyll_jets_mg_summer11_mumuSkim", weights = phw)
-        out += specify(names = "tt_jets_mg_tauola_summer11_mumuSkim", weights = phw)
+        out += specify(names = "dyll_jets_mg_summer11_mumuHtSkim", weights = phw)
+        out += specify(names = "tt_jets_mg_tauola_summer11_mumuHtSkim", weights = phw)
         return out
     
     def conclude(self, conf) :
