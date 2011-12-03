@@ -1,14 +1,9 @@
-import supy
-import steps,samples
+import supy,steps,samples
 
 class eventSkim(supy.analysis) :
     def listOfSteps(self,_) :
         return [ steps.printer.progressPrinter(2,300),
-                 steps.filters.runLsEvent("/home/hep/elaird1/84_darrens_event/list.txt"),
-                 #steps.filters.runLsEvent("/home/hep/elaird1/75_rob_sync/v1/robs_events/ht300.txt"),
-                 #steps.filters.runLsEvent("/home/hep/elaird1/58_wpol_events/v2/38_misRun_event_ls.txt"),
-                 #steps.filters.runLsEvent("/home/hep/elaird1/58_wpol_events/v2/39_Run_event_ls.txt"),
-                 #steps.filters.runLsEvent("/home/hep/elaird1/58_wpol_events/v2/39_misRun_event_ls.txt"),
+                 steps.filters.runLsEvent("/home/hep/elaird1/oneEvent.txt"),
                  supy.steps.other.skimmer(),
                  ]
 
@@ -16,7 +11,14 @@ class eventSkim(supy.analysis) :
         return supy.calculables.zeroArgs(supy.calculables)
 
     def listOfSamples(self,_) :
-        return supy.samples.specify(names = ["qcd_mg_ht_100_250", "qcd_mg_ht_250_500", "qcd_mg_ht_500_1000", "qcd_mg_ht_1000_inf"] )
+        from supy.samples import specify
+        out = []
+        out += specify(names = "DoubleMu.Run2011A-05Aug2011-v1.AOD.job663_skim"  )
+        out += specify(names = "DoubleMu.Run2011A-May10ReReco-v1.AOD.job662_skim")
+        out += specify(names = "DoubleMu.Run2011A-PromptReco-v4.AOD.job664_skim" )
+        out += specify(names = "DoubleMu.Run2011A-PromptReco-v6.AOD.job665_skim" )
+        out += specify(names = "DoubleMu.Run2011B-PromptReco-v1.AOD.job666_skim" )
+        return out
 
     def listOfSampleDictionaries(self) :
-        return [samples.jetmet,samples.mc]
+        return [samples.jetmet, samples.mumu, samples.mc]

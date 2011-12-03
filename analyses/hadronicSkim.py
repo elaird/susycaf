@@ -1,4 +1,4 @@
-import supy, calculables,steps,samples
+import supy,calculables,steps,samples
 
 def nameList(t, name)  : return list(set([obj[name] for obj in dict(t).values()]))
 
@@ -33,7 +33,7 @@ class hadronicSkim(supy.analysis) :
         return outList+supy.calculables.fromCollections(calculables.jet, [obj["jet"]])
     
     def listOfCalculables(self, params) :
-        outList = supy.calculables.zeroArgs()
+        outList = supy.calculables.zeroArgs(supy.calculables)
 
         for muon in nameList(params["recoAlgos"],"muon") :
             outList += supy.calculables.fromCollections(calculables.muon, [muon])
@@ -47,13 +47,20 @@ class hadronicSkim(supy.analysis) :
     def listOfSamples(self, params) :
         from supy.samples import specify
         out = []
-        out += specify(names = "znunu_jets_mg_ht_50_100")
-        out += specify(names = "znunu_jets_mg_ht_100_200")
-        out += specify(names = "znunu_jets_mg_ht_200_inf")
+
+        out += specify(names = "dyll_jets_mg_summer11_mumuSkim")
+        out += specify(names = "tt_jets_mg_tauola_summer11_mumuSkim")
+
+        out += specify(names = "DoubleMu.Run2011A-05Aug2011-v1.AOD.job663_skim"  )
+        out += specify(names = "DoubleMu.Run2011A-May10ReReco-v1.AOD.job662_skim")
+        out += specify(names = "DoubleMu.Run2011A-PromptReco-v4.AOD.job664_skim" )
+        out += specify(names = "DoubleMu.Run2011A-PromptReco-v6.AOD.job665_skim" )
+        out += specify(names = "DoubleMu.Run2011B-PromptReco-v1.AOD.job666_skim" )
+        
         return out
 
     def listOfSampleDictionaries(self) :
-        return [samples.mc]
+        return [samples.mc, samples.mumu]
 
     def conclude(self, config) :
-        utils.printSkimResults(self.organizer(config))
+        supy.utils.io.printSkimResults(self.organizer(config))
