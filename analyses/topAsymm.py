@@ -5,15 +5,34 @@ class topAsymm(supy.analysis) :
     ########################################################################################
 
     @staticmethod
-    def mutriggers() : # FIXME
-        ptv = { 12:(1,2,3,4,5),
-                15:(2,3,4,5,6),
-                20:(1,2,3,4,5),
-                24:(1,2,3,4,5),
-                30:(1,2,3,4,5),
-                40:(1,2,3),
+    def mutriggers(self) :             # L1 prescaling evidence
+        ptv = { 12   :(1,2,3,4,5),     # 7,8,11,12
+                15   :(2,3,4,5,6,8,9), # 12,13
+                20   :(1,2,3,4,5,7,8),
+                24   :(1,2,3,4,5,7,8,11,12),
+                24.21:(1,),
+                30   :(1,2,3,4,5,7,8,11,12),
+                30.21:(1,),
+                40   :(1,2,3,5,6,9,10),
+                40.21:(1,4,5),
                 }
-        return sum([[("HLT_Mu%d_v%d"%(pt,v),pt+1) for v in vs] for pt,vs in sorted(ptv.iteritems())],[])
+        return sum([[("HLT_Mu%d%s_v%d"%(int(pt),"_eta2p1" if type(pt)!=int else "",v),int(pt)+1) for v in vs] for pt,vs in sorted(ptv.iteritems())],[])
+
+    @staticmethod
+    def unreliableTriggers(self) :
+        '''Evidence of L1 prescaling at these ostensible prescale values'''
+        return { "HLT_Mu15_v9":(25,65),
+                 "HLT_Mu20_v8":(30,),
+                 "HLT_Mu24_v8":(20,25),
+                 "HLT_Mu24_v11":(35,),
+                 "HLT_Mu24_v12":(35,),
+                 "HLT_Mu30_v8":(4,10),
+                 "HLT_Mu30_v11":(4,20),
+                 "HLT_Mu30_v12":(8,20),
+                 "HLT_Mu40_v6":(4,),
+                 "HLT_Mu40_v9":(10,),
+                 "HLT_Mu40_v10":(10,)
+                 }
 
     def parameters(self) :
 
