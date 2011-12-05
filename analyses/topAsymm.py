@@ -39,14 +39,12 @@ class topAsymm(supy.analysis) :
         objects = self.vary()
         fields =                           [ "jet",               "met",           "sumP4",    "sumPt",       "muon",         "electron",         "photon",         "muonsInJets"]
         objects["pf"]   = dict(zip(fields, [("xcak5JetPF","Pat"), "metP4PF",       "pfSumP4",  "metSumEtPF",  ("muon","PF"),  ("electron","PF"),  ("photon","Pat"),  True]))
-        #objects["calo"] = dict(zip(fields, [("xcak5Jet","Pat"),  "metP4AK5TypeII", "xcSumP4", "xcSumPt",     ("muon","Pat"), ("electron","Pat"), ("photon","Pat"),  False]))
 
         leptons = self.vary()
         fieldsLepton    =                            ["name","ptMin", "etaMax",              "isoVar", "triggers"]
-        leptons["muon"]     = dict(zip(fieldsLepton, ["muon",     20,     2.1, "CombinedRelativeIso",   mutriggers()]))
+        leptons["muon"]     = dict(zip(fieldsLepton, ["muon",     20,        9, "CombinedRelativeIso",   mutriggers()]))
         #leptons["electron"] = dict(zip(fieldsLepton, ["electron", 30,       9,         "IsoCombined", ("FIX","ME")]))
         
-        bVar = "NTrkHiEff" # "TrkCountingHighEffBJetTags"
         bCut = {"normal"   : {"index":1, "min":2.0},
                 "inverted" : {"index":1, "max":2.0}}
         lIso = {"normal":  {"N":1, "indices":"Indices"},
@@ -55,8 +53,7 @@ class topAsymm(supy.analysis) :
         return { "objects": objects,
                  "lepton" : leptons,
                  "nJets" :  {"min":4,"max":None},
-                 "nJets2" : {"min":4,"max":None},
-                 "bVar" : bVar,
+                 "bVar" : "NTrkHiEff", # "TrkCountingHighEffBJetTags"
                  "selection" : self.vary({"top" : {"bCut":bCut["normal"],  "lIso":lIso["normal"]},
                                           #"Wlv" : {"bCut":bCut["inverted"],"lIso":lIso["normal"]},
                                           "QCD" : {"bCut":bCut["normal"],  "lIso":lIso["inverted"]}
@@ -175,30 +172,22 @@ class topAsymm(supy.analysis) :
     def dataCleanupSteps(pars) :
         obj = pars['objects']
         return ([
-            steps.filters.hbheNoise(),
-            steps.trigger.physicsDeclaredFilter(),
-            steps.filters.monster(),
-            steps.trigger.l1Filter("L1Tech_BPTX_plus_AND_minus.v0"),
-            steps.trigger.hltPrescaleHistogrammer(zip(*pars['lepton']['triggers'])[0]),
-            steps.trigger.lowestUnPrescaledTriggerHistogrammer(),
-            supy.steps.histos.multiplicity("vertexIndices", max=15),
-            supy.steps.histos.value("%sPtSorted%s"%obj['muon'], 2,-0.5,1.5),
-            supy.steps.filters.multiplicity("vertexIndices",min=1),
             ])
 
     @staticmethod
     def xcleanSteps(pars) :
         obj = pars['objects']
-        return ([
-            supy.steps.filters.multiplicity(s, max = 0) for s in ["%sIndices%s"%obj["photon"],
-                                                                  "%sIndicesUnmatched%s"%obj["photon"],
-                                                                  "%sIndices%s"%(obj["electron" if pars["lepton"]["name"]=="muon" else "muon"]),
-                                                                  "%sIndicesUnmatched%s"%obj["electron"],
-                                                                  "%sIndicesOther%s"%obj["muon"],
+        return (
+            [ssteps.filters.multiplicity(s, max = 0) for s in ["%sIndices%s"%obj["photon"],
+                                                                   "%sIndicesUnmatched%s"%obj["photon"],
+                                                                   "%sIndices%s"%(obj["electron" if pars["lepton"]["name"]=="muon" else "muon"]),
+                                                                   "%sIndicesUnmatched%s"%obj["electron"],
+                                                                   "%sIndicesOther%s"%obj["muon"],
                                                                   ]]+[
             steps.jet.forwardFailedJetVeto( obj["jet"], ptAbove = 50, etaAbove = 3.5),
             steps.jet.uniquelyMatchedNonisoMuons(obj["jet"]),
-            ])
+            ]
+            )
 
     @staticmethod
     def selectionSteps(pars, withPlots = True) :
@@ -211,34 +200,35 @@ class topAsymm(supy.analysis) :
 
         topTag = pars['tag'].replace("Wlv","top").replace("QCD","top")
         selections = (
-            [supy.steps.histos.multiplicity("%sIndices%s"%obj["jet"]),
-             supy.steps.filters.multiplicity("%sIndices%s"%obj["jet"], **pars["nJets"]),
-             
-             supy.steps.histos.pt("mixedSumP4",100,0,300),
-             supy.steps.filters.pt("mixedSumP4",min=20),
-             
-             self.lepIso(1,pars),
-             supy.steps.filters.multiplicity("%sIndices%s"%lepton, max = 1), # drell-yann rejection
-             self.lepIso(0,pars),
-
-             supy.steps.filters.value(("%s"+pars["lepton"]["isoVar"]+"%s")%lepton, max = 1.0, indices = lIsoIndices, index = 0),
-             supy.steps.filters.multiplicity("%sIndices%s"%lepton, min=pars["selection"]["lIso"]["N"],max=pars["selection"]["lIso"]["N"]),
-             supy.steps.filters.pt("%sP4%s"%lepton, min = lPtMin, indices = lIsoIndices, index = 0),
-             supy.steps.filters.absEta("%sP4%s"%lepton, max = lEtaMax, indices = lIsoIndices, index = 0),
-             
-             ]+[supy.steps.histos.value(bVar, 60,0,15, indices = "%sIndicesBtagged%s"%obj["jet"], index = i) for i in range(3)]+[
+            [
+            ssteps.histos.multiplicity("%sIndices%s"%obj["jet"]),
+            ssteps.filters.multiplicity("%sIndices%s"%obj["jet"], **pars["nJets"]),
+            
+            ssteps.histos.pt("mixedSumP4",100,0,300),
+            ssteps.filters.pt("mixedSumP4",min=20),
+            
+            self.lepIso(1,pars),
+            ssteps.filters.multiplicity("%sIndices%s"%lepton, max = 1), # drell-yann rejection
+            self.lepIso(0,pars),
+            
+            ssteps.filters.value(("%s"+pars["lepton"]["isoVar"]+"%s")%lepton, max = 1.0, indices = lIsoIndices, index = 0),
+            ssteps.filters.multiplicity("%sIndices%s"%lepton, min=pars["selection"]["lIso"]["N"],max=pars["selection"]["lIso"]["N"]),
+            ssteps.filters.pt("%sP4%s"%lepton, min = lPtMin, indices = lIsoIndices, index = 0),
+            ssteps.filters.absEta("%sP4%s"%lepton, max = lEtaMax, indices = lIsoIndices, index = 0),
+            
+            ]+[ssteps.histos.value(bVar, 60,0,15, indices = "%sIndicesBtagged%s"%obj["jet"], index = i) for i in range(3)]+[
             calculables.jet.ProbabilityGivenBQN(obj["jet"], pars['bVar'], binning=(64,-1,15), samples = pars['topBsamples'], tag = topTag),
-            supy.steps.histos.value("TopRatherThanWProbability", 100,0,1),
-            #supy.steps.filters.value("TopRatherThanWProbability", min = 0.2),
-            supy.steps.filters.value(bVar, indices = "%sIndicesBtagged%s"%obj["jet"], index = 1, min = 0.0),
-            supy.steps.filters.value(bVar, indices = "%sIndicesBtagged%s"%obj["jet"], **pars["selection"]["bCut"]),
+            ssteps.histos.value("TopRatherThanWProbability", 100,0,1),
+            #ssteps.filters.value("TopRatherThanWProbability", min = 0.2),
+            ssteps.filters.value(bVar, indices = "%sIndicesBtagged%s"%obj["jet"], index = 1, min = 0.0),
+            ssteps.filters.value(bVar, indices = "%sIndicesBtagged%s"%obj["jet"], **pars["selection"]["bCut"]),
             ])
         return [s for s in selections if withPlots or s.isSelector or issubclass(type(s),supy.calculables.secondary)]
 
     @staticmethod
     def lepIso(index,pars) :
         lepton = pars["objects"][pars["lepton"]["name"]]
-        return supy.steps.histos.value(("%s"+pars["lepton"]["isoVar"]+"%s")%lepton, 55,0,1.1, indices = "%sIndicesAnyIsoIsoOrder%s"%lepton, index=index)
+        return ssteps.histos.value(("%s"+pars["lepton"]["isoVar"]+"%s")%lepton, 55,0,1.1, indices = "%sIndicesAnyIsoIsoOrder%s"%lepton, index=index)
 
     def listOfSteps(self, pars) :
         obj = pars["objects"]
@@ -247,28 +237,71 @@ class topAsymm(supy.analysis) :
         lEtaMax = pars["lepton"]["etaMax"]
         bVar = ("%s"+pars["bVar"]+"%s")%calculables.jet.xcStrip(obj["jet"])
 
+        ssteps = supy.steps
+
         return ([
-            supy.steps.printer.progressPrinter(),
-            supy.steps.histos.histogrammer("genpthat",200,0,1000,title=";#hat{p_{T}} (GeV);events / bin"),
-            ] + self.dataCleanupSteps(pars) + [
-            calculables.trigger.TriggerWeight(samples = ['SingleMu.Run2011A-PR-v4.FJ.Burt.tw','SingleMu.Run2011A-May10-v1.FJ.Burt.tw'],
-                                              triggers = zip(*pars['lepton']['triggers'])[0], thresholds = zip(*pars['lepton']['triggers'])[1]),
-            supy.calculables.other.Ratio("nVertex", binning = (15,-0.5,14.5), thisSample = pars['baseSample'],
-                                         target = ("SingleMu",[]), groups = [('qcd_mg',[]),('qcd_py6',[]),('w_jets_fj_mg',[]),
-                                                                        ('tt_tauola_fj',['tt_tauola_fj%s.tw.nvr'%s for s in ['','.wNonQQbar','.wTopAsymP00']])]),
-            ] + self.xcleanSteps(pars) + [
-            supy.steps.histos.value("%sTriggeringPt%s"%lepton, 200,0,200),
-            supy.steps.filters.value("%sTriggeringPt%s"%lepton, min = lPtMin),
-            supy.steps.histos.value(obj["sumPt"],50,0,1500),
-            supy.steps.histos.value("rho",100,0,40),
-            ] + self.selectionSteps(pars, withPlots = True) + [
-            #supy.steps.filters.label('before top reco').invert(),#####################################
-            supy.steps.filters.multiplicity("TopReconstruction",min=1),
-            supy.steps.filters.label("selection complete"),
-            supy.steps.histos.value("%sM3%s"%obj['jet'], 20,0,800),
-            supy.steps.histos.value("KarlsruheDiscriminant", 28, -320, 800 ),
-            supy.steps.histos.value("TopRatherThanWProbability",100,0,1),
-            supy.steps.histos.value("fitTopRadiativeCoherence", 100,-1,1),
+            ,                                                               ssteps.printer.progressPrinter()
+            ,                                                               ssteps.histos.histogrammer("genpthat",200,0,1000,title=";#hat{p_{T}} (GeV);events / bin"),
+            steps.filters.hbheNoise(),
+            steps.trigger.physicsDeclaredFilter(),
+            steps.filters.monster(),
+            steps.trigger.l1Filter("L1Tech_BPTX_plus_AND_minus.v0")
+            ,                                                               steps.trigger.hltPrescaleHistogrammer(zip(*pars['lepton']['triggers'])[0])
+            ,                                                               steps.trigger.lowestUnPrescaledTriggerHistogrammer()
+            ,                                                               ssteps.histos.multiplicity("vertexIndices", max=15),
+            ssteps.histos.value("%sPtSorted%s"%obj['muon'], 2,-0.5,1.5),
+            ssteps.filters.multiplicity("vertexIndices",min=1)
+
+
+            ,                   calculables.trigger.TriggerWeight(samples = [ss.weightedName for ss in self.listOfSamples(pars) if 'SingleMu' in ss.name],
+                                                                  triggers = zip(*pars['triggers'])[0], thresholds = zip(*pars['triggers'])[1],
+                                                                  unreliable = self.unreliableTriggers())
+
+
+            ,                   supy.calculables.other.Ratio("nVertex", binning = (15,-0.5,14.5), thisSample = pars['baseSample'],
+                                                             target = ("SingleMu",[]), groups = [('qcd_mg',[]),('qcd_py6',[]),('w_jets_fj_mg',[]),
+                                                                                                 ('tt_tauola_fj',['tt_tauola_fj%s.tw.nvr'%s for s in ['',
+                                                                                                                                                      '.wNonQQbar',
+                                                                                                                                                      '.wTopAsymP00']])]),
+            ]+[
+            ssteps.filters.multiplicity(s, max = 0) for s in ["%sIndices%s"%obj["photon"],
+                                                                  "%sIndicesUnmatched%s"%obj["photon"],
+                                                                  "%sIndices%s"%(obj["electron" if pars["lepton"]["name"]=="muon" else "muon"]),
+                                                                  "%sIndicesUnmatched%s"%obj["electron"],
+                                                                  "%sIndicesOther%s"%obj["muon"],
+                                                                  ]
+            ]+[
+            steps.jet.forwardFailedJetVeto( obj["jet"], ptAbove = 50, etaAbove = 3.5),
+            steps.jet.uniquelyMatchedNonisoMuons(obj["jet"])
+            ,                                                               ssteps.histos.value("%sTriggeringPt%s"%lepton, 200,0,200),
+            ssteps.filters.value("%sTriggeringPt%s"%lepton, min = lPtMin)
+            ,                                                               ssteps.histos.value(obj["sumPt"],50,0,1500)
+            ,                                                               ssteps.histos.value("rho",100,0,40)
+            ,                                                               ssteps.histos.multiplicity("%sIndices%s"%obj["jet"]),
+            ssteps.filters.multiplicity("%sIndices%s"%obj["jet"], **pars["nJets"])
+            ,                                                               ssteps.histos.pt("mixedSumP4",100,0,300),
+            ssteps.filters.pt("mixedSumP4",min=20)
+            ,                                                               self.lepIso(1,pars),
+            ssteps.filters.multiplicity("%sIndices%s"%lepton, max = 1) # drell-yann rejection
+            ,                                                               self.lepIso(0,pars),
+            ssteps.filters.value(("%s"+pars["lepton"]["isoVar"]+"%s")%lepton, max = 1.0, indices = lIsoIndices, index = 0),
+            ssteps.filters.multiplicity("%sIndices%s"%lepton, min=pars["selection"]["lIso"]["N"],max=pars["selection"]["lIso"]["N"]),
+            ssteps.filters.pt("%sP4%s"%lepton, min = lPtMin, indices = lIsoIndices, index = 0),
+            ssteps.filters.absEta("%sP4%s"%lepton, max = lEtaMax, indices = lIsoIndices, index = 0),
+            ]+[                                                             ssteps.histos.value(bVar, 60,0,15, indices = "%sIndicesBtagged%s"%obj["jet"], index = i) for i in range(3)] +[
+            ,           calculables.jet.ProbabilityGivenBQN(obj["jet"], pars['bVar'], binning=(64,-1,15), samples = pars['topBsamples'], tag = topTag)
+            ,                                                               ssteps.histos.value("TopRatherThanWProbability", 100,0,1),
+            ssteps.filters.value(bVar, indices = "%sIndicesBtagged%s"%obj["jet"], index = 1, min = 0.0),
+            ssteps.filters.value(bVar, indices = "%sIndicesBtagged%s"%obj["jet"], **pars["selection"]["bCut"]),
+            ]+[
+            #ssteps.filters.label('before top reco').invert(),
+            ssteps.filters.multiplicity("TopReconstruction",min=1),
+            ssteps.filters.label("selection complete"),
+            ,                                                               ssteps.histos.value("%sM3%s"%obj['jet'], 20,0,800),
+            ,                                                               ssteps.histos.value("KarlsruheDiscriminant", 28, -320, 800 ),
+            ,                                                               ssteps.histos.value("TopRatherThanWProbability",100,0,1),
+            ,                                                               ssteps.histos.value("fitTopRadiativeCoherence", 100,-1,1),
+
             #supy.calculables.other.Discriminant( fixes = ("","TopQqQg"),
             #                                left = {"pre":"qq", "tag":"top_muon_pf", "samples":['tt_tauola_fj.wNonQQbar.tw.nvr']},
             #                                right = {"pre":"qg", "tag":"top_muon_pf", "samples":['tt_tauola_fj.wTopAsymP00.tw.nvr']},
@@ -279,7 +312,7 @@ class topAsymm(supy.analysis) :
             #                                         },
             #                                correlations = True,
             #                                bins = 14),
-            #supy.steps.filters.label('before discriminants').invert(),#####################################
+            #ssteps.filters.label('before discriminants').invert(),#####################################
             supy.calculables.other.Discriminant( fixes = ("","TopW"),
                                                  left = {"pre":"w_jets_fj_mg", "tag":"top_muon_pf", "samples":[]},
                                                  right = {"pre":"tt_tauola_fj", "tag":"top_muon_pf", "samples": ['tt_tauola_fj.%s.tw.nvr'%s for s in ['wNonQQbar','wTopAsymP00']]},
@@ -316,9 +349,9 @@ class topAsymm(supy.analysis) :
                                                           "fitTopCosHelicityThetaL": (20,-1,1),
                                                           }),
             calculables.gen.qDirProbPlus('fitTopSumP4Eta', 10, 'top_muon_pf', 'tt_tauola_fj.wTopAsymP00.tw.nvr', path = self.globalStem),
-            #supy.steps.filters.label('before signal distributions').invert(),#####################################
-            supy.steps.histos.multiplicity("%sIndices%s"%obj["jet"]),
-            supy.steps.histos.value("TriDiscriminant",50,-1,1),
+            #ssteps.filters.label('before signal distributions').invert(),#####################################
+            ssteps.histos.multiplicity("%sIndices%s"%obj["jet"]),
+            ssteps.histos.value("TriDiscriminant",50,-1,1),
             steps.top.Asymmetry(('fitTop',''), bins = 640),
             steps.top.Spin(('fitTop','')),
 
