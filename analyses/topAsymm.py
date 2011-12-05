@@ -75,8 +75,12 @@ class topAsymm(supy.analysis) :
         from supy.samples import specify
 
         def data( ) :
-            return specify( names = ["SingleMu.Run2011A-PR-v4.FJ.Burt","SingleMu.Run2011A-May10-v1.FJ.Burt"], weights = 'tw' )
-
+            return ( supy.samples.specify( names = ['SingleMu.2011B-PR1.1b',
+                                                    'SingleMu.2011B-PR1.1a',
+                                                    'SingleMu.2011A-Oct.1',
+                                                    'SingleMu.2011A-Aug.1',
+                                                    'SingleMu.2011A-PR4.1',
+                                                    'SingleMu.2011A-May.1'], weights = 'tw') +
         def qcd_py6_mu(eL = None) :
             q6 = [0,5,15,20,30,50,80,120,150,None]
             iCut = q6.index(15)
