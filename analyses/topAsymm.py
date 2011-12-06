@@ -34,7 +34,7 @@ class topAsymm(supy.analysis) :
                  "nJets" :  {"min":4,"max":None},
                  "bVar" : "NTrkHiEff", # "TrkCountingHighEffBJetTags"
                  "objects": self.vary([ ( objects['label'][index], dict((key,val[index]) for key,val in objects.iteritems())) for index in range(2) if objects['label'][index] in ['pf']]),
-                 "lepton" : self.vary([ ( objects['label'][index], dict((key,val[index]) for key,val in leptons.iteritems())) for index in range(2) if leptons['label'][index] in ['muon']]),
+                 "lepton" : self.vary([ ( leptons['label'][index], dict((key,val[index]) for key,val in leptons.iteritems())) for index in range(2) if leptons['label'][index] in ['muon']]),
                  "selection" : self.vary({"top" : {"bCut":bCut["normal"],  "lIso":lIso["normal"]},
                                           "QCD" : {"bCut":bCut["normal"],  "lIso":lIso["inverted"]}
                                           #"Wlv" : {"bCut":bCut["inverted"],"lIso":lIso["normal"]},
