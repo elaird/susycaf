@@ -130,7 +130,7 @@ class topAsymm(supy.analysis) :
                                              ]], [])
                     )[: 0 if "QCD" in pars['tag'] else 2 if 'Wlv' in pars['tag'] else None]
         
-        return  ( self.data(pars) + qcd_py6_mu() + ewk() + ttbar_py() )
+        return  ( self.data(pars) + qcd_py6_mu(100) + ewk() + ttbar_py() )
 
 
     ########################################################################################
@@ -220,9 +220,7 @@ class topAsymm(supy.analysis) :
              , ssteps.filters.label('reweighting')
              , self.ratio(pars)
              , self.triggerWeight(pars, [ss.weightedName for ss in self.data(pars)])
-             , steps.trigger.hltPrescaleHistogrammer(zip(*pars['lepton']['triggers'])[0])
              , steps.trigger.lowestUnPrescaledTriggerHistogrammer()
-             , ssteps.histos.value("%sPtSorted%s"%obj['muon'], 2,-0.5,1.5)
              
              ####################################
              , ssteps.filters.label('cross-cleaning'),
@@ -235,7 +233,8 @@ class topAsymm(supy.analysis) :
              
              ####################################
              , ssteps.filters.label('selection'),
-             ssteps.filters.value( lIso, min=0.25, indices = "%sIndicesAnyIsoIsoOrder%s"%lepton, index = 1),
+             ssteps.filters.OR( [ssteps.filters.multiplicity( max=1, var = '%sIndicesAnyIsoIsoOrder%s'%lepton),
+                                 ssteps.filters.value( lIso, min=0.25, indices = "%sIndicesAnyIsoIsoOrder%s"%lepton, index = 1)]),
              ssteps.filters.multiplicity( max=0, var = "%sIndices%s"%obj['photon']),
              ssteps.filters.multiplicity( max=0, var = "%sIndices%s"%obj['electron'])
 
@@ -252,7 +251,7 @@ class topAsymm(supy.analysis) :
              ssteps.filters.pt("mixedSumP4",min=20)
 
              , ssteps.histos.value( lIso, 55,0,1.1, indices = "%sIndicesAnyIsoIsoOrder%s"%lepton, index=0),
-             ssteps.filters.value( lIso, max = 1.0, indices = lIsoIndices, index = 0),
+             ssteps.filters.value( lIso, max = 1.0, indices = "%sIndicesAnyIsoIsoOrder%s"%lepton, index = 0),
              ssteps.filters.multiplicity("%sIndices%s"%lepton, min=pars["selection"]["lIso"]["N"],max=pars["selection"]["lIso"]["N"]),
              ssteps.filters.pt("%sP4%s"%lepton, min = lPtMin, indices = lIsoIndices, index = 0),
              ssteps.filters.absEta("%sP4%s"%lepton, max = lEtaMax, indices = lIsoIndices, index = 0)
@@ -270,22 +269,22 @@ class topAsymm(supy.analysis) :
              
              ####################################
              , ssteps.filters.label("selection complete")
-             , ssteps.histos.value("%sM3%s"%obj['jet'], 20,0,800)
              , ssteps.histos.value("KarlsruheDiscriminant", 28, -320, 800 )
-             , ssteps.histos.value("TopRatherThanWProbability",100,0,1)
+             , ssteps.histos.value("TriDiscriminant",50,-1,1)
+
+             , ssteps.histos.multiplicity("%sIndices%s"%obj["jet"])
+             , ssteps.histos.value("%sM3%s"%obj['jet'], 20,0,800)
              , ssteps.histos.value("fitTopRadiativeCoherence", 100,-1,1)
              
              ####################################
-             , ssteps.filters.label('discriminants').invert()
-             , self.discriminantQQgg(pars)
-             , self.discriminantTopW(pars)
-             , self.discriminantTopQCD(pars)
-             , self.discriminantWQCD(pars)
+             , ssteps.filters.label('discriminants')
+             , ssteps.filters.label('qq:gg'),   self.discriminantQQgg(pars)
+             , ssteps.filters.label('top:W'),   self.discriminantTopW(pars)
+             , ssteps.filters.label('top:QCD'), self.discriminantTopQCD(pars)
+             , ssteps.filters.label('W:QCD'),   self.discriminantWQCD(pars)
              , calculables.gen.qDirProbPlus('fitTopSumP4Eta', 10, 'top_muon_pf', 'tt_tauola_fj.wTopAsymP00.tw.nvr', path = self.globalStem)
              
-             #ssteps.filters.label('before signal distributions').invert(),#####################################
-             , ssteps.histos.multiplicity("%sIndices%s"%obj["jet"])
-             , ssteps.histos.value("TriDiscriminant",50,-1,1)
+             , ssteps.filters.label('signal distributions')
              , steps.top.Asymmetry(('fitTop',''), bins = 640)
              , steps.top.Spin(('fitTop',''))
              
@@ -320,7 +319,7 @@ class topAsymm(supy.analysis) :
     
     @staticmethod
     def ratio(pars) : 
-        return supy.calculables.other.Ratio("nVertex", binning = (15,-0.5,14.5), thisSample = pars['baseSample'],
+        return supy.calculables.other.Ratio("nVertex", binning = (20,-0.5,19.5), thisSample = pars['baseSample'],
                                             target = ("SingleMu",[]), groups = [('qcd_mg',[]),('qcd_py6',[]),('w_jets_fj_mg',[]),
                                                                                 ('tt_tauola_fj',['tt_tauola_fj%s.tw.nvr'%s for s in ['',
                                                                                                                                      '.wNonQQbar',
@@ -381,7 +380,7 @@ class topAsymm(supy.analysis) :
     
     ########################################################################################
     def concludeAll(self) :
-        self.rowcolors = [r.kBlack, r.kGray+3, r.kGray+2, r.kGray+1, r.kViolet+4]
+        self.rowcolors = [r.kBlack, r.kGray+3, r.kGray+2, r.kGray+1, r.kGray]
         super(topAsymm,self).concludeAll()
         #self.meldWpartitions()
         #self.meldQCDpartitions()
@@ -400,7 +399,7 @@ class topAsymm(supy.analysis) :
         org.mergeSamples(targetSpec = {"name":"t#bar{t}.q#bar{q}.N30", "color":r.kRed}, sources = ["tt_tauola_fj.wTopAsymN30.tw.nvr","tt_tauola_fj.wNonQQbar.tw.nvr"][:1])
         org.mergeSamples(targetSpec = {"name":"t#bar{t}.q#bar{q}.P30", "color":r.kGreen}, sources = ["tt_tauola_fj.wTopAsymP30.tw.nvr","tt_tauola_fj.wNonQQbar.tw.nvr"][:1])
         org.mergeSamples(targetSpec = {"name":"standard_model", "color":r.kGreen+2}, sources = ["qcd_py6","t#bar{t}","w_jets_fj_mg.tw.nvr"], keepSources = True)
-        #for ss in filter(lambda ss: 'tt_tauola' in ss['name'],org.samples) : org.drop(ss['name'])
+        for ss in filter(lambda ss: 'tt_tauola' in ss['name'],org.samples) : org.drop(ss['name'])
 
         orgpdf = copy.deepcopy(org)
         orgpdf.scale( toPdf = True )
@@ -507,11 +506,11 @@ class topAsymm(supy.analysis) :
                     templates[templateSamples.index(ss['name'])] = contents
                 else : pass
         
-            from core.fractions import componentSolver,drawComponentSolver
+            from supy.utils.fractions import componentSolver,drawComponentSolver
             cs = componentSolver(observed, templates, 1e4)
             csCanvas = drawComponentSolver(cs)
             name = "measuredFractions_%s"%dist
-            utils.tCanvasPrintPdf(csCanvas[0], "%s/%s"%(self.globalStem,name))
+            supy.utils.tCanvasPrintPdf(csCanvas[0], "%s/%s"%(self.globalStem,name))
             with open(self.globalStem+"/%s.txt"%name,"w") as file :
                 print >> file, cs
                 print >> file, cs.components
@@ -537,14 +536,14 @@ class topAsymm(supy.analysis) :
                 if not any("Discriminant" in item for item in step.nameTitle) : continue
                 print >> file
                 print >> file
-                print >> file, utils.hyphens
+                print >> file, supy.utils.hyphens
                 print >> file, step.name, step.title
-                print >> file, utils.hyphens
+                print >> file, supy.utils.hyphens
                 print >> file
                 for hname,hists in step.iteritems() :
                     if issubclass(type(next(iter(filter(None,hists)))),r.TH2) : continue
                     aHists = [[hists[i].GetBinContent(j) for j in range(0,hists[i].GetNbinsX()+2)] for i in iSamples]
-                    print >> file, hname.rjust(40), ''.join([(("%.3f"%round(utils.dilution(A,B),3))).rjust(10) for A,B in itertools.combinations(aHists,2)])
+                    print >> file, hname.rjust(40), ''.join([(("%.3f"%round(supy.utils.dilution(A,B),3))).rjust(10) for A,B in itertools.combinations(aHists,2)])
         print "Output file: %s"%fileName
 
     def PEcurves(self) :
@@ -556,11 +555,11 @@ class topAsymm(supy.analysis) :
         for spec in specs :
             dists = dict(zip([ss['name'] for ss in self.orgMelded.samples ],
                              self.orgMelded.steps[next(self.orgMelded.indicesOfStepsWithKey(spec['var']))][spec['var']] ) )
-            contours = utils.optimizationContours( [dists['top.t#bar{t}']],
-                                                   [dists[s] for s in ['QCD.Data 2011','top.w_jets']],
-                                                   **spec
-                                                   )
-            utils.tCanvasPrintPdf(contours[0], "%s/PE_%s"%(self.globalStem,spec['var']))
+            contours = supy.utils.optimizationContours( [dists['top.t#bar{t}']],
+                                                        [dists[s] for s in ['QCD.Data 2011','top.w_jets']],
+                                                        **spec
+                                                        )
+            supy.utils.tCanvasPrintPdf(contours[0], "%s/PE_%s"%(self.globalStem,spec['var']))
             if spec['left']^spec['right'] : pes[spec['var']] = contours[1]
         c = r.TCanvas()
         leg = r.TLegend(0.5,0.8,1.0,1.0)
@@ -575,7 +574,7 @@ class topAsymm(supy.analysis) :
             g.Draw('' if i else 'AL')
         leg.Draw()
         c.Update()
-        utils.tCanvasPrintPdf(c, "%s/purity_v_efficiency"%self.globalStem)
+        supy.utils.tCanvasPrintPdf(c, "%s/purity_v_efficiency"%self.globalStem)
         return
 
     def measureQQbarComponent(self) :
@@ -584,14 +583,14 @@ class topAsymm(supy.analysis) :
                          self.orgMelded.steps[next(self.orgMelded.indicesOfStepsWithKey(dist))][dist] ) )
         def contents(name) : return np.array([dists[name].GetBinContent(i) for i in range(dists[name].GetNbinsX()+2)])
 
-        from core.fractions import componentSolver, drawComponentSolver
+        from supy.utils.fractions import componentSolver, drawComponentSolver
         cs = componentSolver(observed = contents('top.Data 2011'),
                              components = [ contents('top.tt_tauola_fj.wTopAsymP00.tw.nvr'), contents('top.tt_tauola_fj.wNonQQbar.tw.nvr')],
                              ensembleSize = 1e4,
                              base = contents('top.w_jets') + contents('QCD.Data 2011')
                              )
         csCanvas = drawComponentSolver(cs)
-        utils.tCanvasPrintPdf(csCanvas[0], "%s/measuredQQFractions"%self.globalStem)
+        supy.utils.tCanvasPrintPdf(csCanvas[0], "%s/measuredQQFractions"%self.globalStem)
         with open(self.globalStem+"/measuredQQFractions.txt","w") as file :  print >> file, cs
 
 
@@ -600,7 +599,7 @@ class topAsymm(supy.analysis) :
         topQQs = [s['name'] for s in self.orgMelded.samples if 'wTopAsym' in s['name']]
         asymm = [eval(name.replace("top.tt_tauola_fj.wTopAsym","").replace(".tw.nvr","").replace("P",".").replace("N","-.")) for name in topQQs]
         distTup = self.orgMelded.steps[iStep][dist]
-        edges = utils.edgesRebinned( distTup[ self.orgMelded.indexOfSampleWithName("S.M.") ], targetUncRel = 0.015, offset = 2 )
+        edges = supy.utils.edgesRebinned( distTup[ self.orgMelded.indexOfSampleWithName("S.M.") ], targetUncRel = 0.015, offset = 2 )
 
         def nparray(name, scaleToN = None) :
             hist_orig = distTup[ self.orgMelded.indexOfSampleWithName(name) ]
@@ -630,8 +629,8 @@ class topAsymm(supy.analysis) :
                  'ttbarSignedDeltaY'
                 ]
         args = sum([[(iStep, dist, qqFrac) for iStep in list(self.orgMelded.indicesOfStepsWithKey(dist))[:None] for qqFrac in qqFracs] for dist in dists],[])
-        utils.operateOnListUsingQueue(6, utils.qWorker(self.pickleEnsemble), args)
-        ensembles = dict([(arg,utils.readPickle(self.ensembleFileName(*arg))) for arg in args])
+        supy.utils.operateOnListUsingQueue(6, supy.utils.qWorker(self.pickleEnsemble), args)
+        ensembles = dict([(arg,supy.utils.readPickle(self.ensembleFileName(*arg))) for arg in args])
 
         for iStep in sorted(set([iStep for iStep,dist,qqFrac in ensembles])) :
             canvas = r.TCanvas()
@@ -648,13 +647,13 @@ class topAsymm(supy.analysis) :
                 graphs[dist].SetTitle("Sensitivity @ step %d;fraction of t#bar{t} from q#bar{q};expected uncertainty on R"%iStep)
                 legend.AddEntry(graphs[dist],dist,'l')
             legend.Draw()
-            utils.tCanvasPrintPdf(canvas, '%s/sensitivity_%d'%(self.globalStem,iStep))
+            supy.utils.tCanvasPrintPdf(canvas, '%s/sensitivity_%d'%(self.globalStem,iStep))
                 
     def pickleEnsemble(self, iStep, dist, qqFrac ) :
-        utils.mkdir(self.globalStem+'/ensembles')
+        supy.utils.mkdir(self.globalStem+'/ensembles')
         templates,observed = self.templates(iStep, dist, qqFrac)
         ensemble = supy.utils.templateFit.templateEnsembles(2e3, *zip(*templates) )
-        utils.writePickle(self.ensembleFileName(iStep,dist,qqFrac), ensemble)
+        supy.utils.writePickle(self.ensembleFileName(iStep,dist,qqFrac), ensemble)
 
         name = self.ensembleFileName(iStep,dist,qqFrac,'')
         canvas = r.TCanvas()
@@ -668,7 +667,7 @@ class topAsymm(supy.analysis) :
             tf = supy.utils.templateFit.templateFitter(pseudo,ensemble.pars,ensemble.templates, 1e3)
             stuff = supy.utils.templateFit.drawTemplateFitter(tf,canvas, trueVal = par)
             canvas.Print(name+".ps")
-            for item in sum([i if type(i) is list else [i] for i in stuff[1:]],[]) : utils.delete(item)
+            for item in sum([i if type(i) is list else [i] for i in stuff[1:]],[]) : supy.utils.delete(item)
 
         canvas.Print(name+'.ps]')
         os.system('ps2pdf %s.ps %s.pdf'%(name,name))
@@ -680,11 +679,11 @@ class topAsymm(supy.analysis) :
 
         outName = self.globalStem + '/templateFit_%s_%d'%(dist,qqFrac*100)
         #TF = templateFit.templateFitter(observed, *zip(*templates) )
-        #print utils.roundString(TF.value, TF.error , noSci=True)
+        #print supy.utils.roundString(TF.value, TF.error , noSci=True)
         
         #stuff = templateFit.drawTemplateFitter(TF, canvas)
         #canvas.Print(outName+'.ps')
-        #for item in sum([i if type(i) is list else [i] for i in stuff[1:]],[]) : utils.delete(item)
+        #for item in sum([i if type(i) is list else [i] for i in stuff[1:]],[]) : supy.utils.delete(item)
         
         #canvas.Print(outName+'.ps]')
         #os.system('ps2pdf %s.ps %s.pdf'%(outName,outName))
