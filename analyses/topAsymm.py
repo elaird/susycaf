@@ -18,7 +18,7 @@ class topAsymm(supy.analysis) :
             }
 
         leptons = {
-            'label'    : [               'muon',      'electron'],
+            'name'     : [               'muon',      'electron'],
             'ptMin'    : [                20.0 ,           30.0 ],
             'etaMax'   : [                 2.1 ,            9.0 ],
             'iso'      : ['CombinedRelativeIso',   'IsoCombined'],
@@ -30,11 +30,13 @@ class topAsymm(supy.analysis) :
         lIso = {"normal":  {"N":1, "indices":"Indices"},
                 "inverted":{"N":0, "indices":"IndicesNonIso"}}
 
-        return { "discriminant2DPlots": True,
+        return { "vary" : ['selection','lepton','objects'],
+                 "discriminant2DPlots": True,
                  "nJets" :  {"min":4,"max":None},
+                 "unreliable": self.unreliableTriggers(),
                  "bVar" : "NTrkHiEff", # "TrkCountingHighEffBJetTags"
                  "objects": self.vary([ ( objects['label'][index], dict((key,val[index]) for key,val in objects.iteritems())) for index in range(2) if objects['label'][index] in ['pf']]),
-                 "lepton" : self.vary([ ( leptons['label'][index], dict((key,val[index]) for key,val in leptons.iteritems())) for index in range(2) if leptons['label'][index] in ['muon']]),
+                 "lepton" : self.vary([ ( leptons['name'][index], dict((key,val[index]) for key,val in leptons.iteritems())) for index in range(2) if leptons['name'][index] in ['muon']]),
                  "selection" : self.vary({"top" : {"bCut":bCut["normal"],  "lIso":lIso["normal"]},
                                           "QCD" : {"bCut":bCut["normal"],  "lIso":lIso["inverted"]}
                                           #"Wlv" : {"bCut":bCut["inverted"],"lIso":lIso["normal"]},
@@ -78,47 +80,46 @@ class topAsymm(supy.analysis) :
 
     def listOfSampleDictionaries(self) : return [samples.mc, samples.muon]
 
+    def data(self,pars) :
+        return supy.samples.specify( names = ['SingleMu.2011B-PR1.1b',
+                                              'SingleMu.2011B-PR1.1a',
+                                              'SingleMu.2011A-Oct.1',
+                                              'SingleMu.2011A-Aug.1',
+                                              'SingleMu.2011A-PR4.1',
+                                              'SingleMu.2011A-May.1'], weights = 'tw' )
     def listOfSamples(self,pars) :
-        from supy.samples import specify
 
-        def data() :
-            return specify( names = ['SingleMu.2011B-PR1.1b',
-                                     'SingleMu.2011B-PR1.1a',
-                                     'SingleMu.2011A-Oct.1',
-                                     'SingleMu.2011A-Aug.1',
-                                     'SingleMu.2011A-PR4.1',
-                                     'SingleMu.2011A-May.1'], weights = 'tw' )
         def qcd_py6_mu(eL = None) :
-            return specify( names = ["qcd_py6fjmu_pt_15_20",
-                                     "qcd_py6fjmu_pt_20_30",
-                                     "qcd_py6fjmu_pt_30_50",
-                                     "qcd_py6fjmu_pt_50_80",
-                                     "qcd_py6fjmu_pt_80_120",
-                                     "qcd_py6fjmu_pt_120_150",
-                                     "qcd_py6fjmu_pt_150"],  weights = ['tw','nvr'], effectiveLumi = eL )     if 'Wlv' not in pars['tag'] else []
+            return supy.samples.specify( names = ["qcd_py6fjmu_pt_15_20",
+                                                  "qcd_py6fjmu_pt_20_30",
+                                                  "qcd_py6fjmu_pt_30_50",
+                                                  "qcd_py6fjmu_pt_50_80",
+                                                  "qcd_py6fjmu_pt_80_120",
+                                                  "qcd_py6fjmu_pt_120_150",
+                                                  "qcd_py6fjmu_pt_150"],  weights = ['tw','nvr'], effectiveLumi = eL )     if 'Wlv' not in pars['tag'] else []
         def qcd_mg(eL = None) :
-            return specify( names = ["qcd_mg_ht_50_100",
-                                     "qcd_mg_ht_100_250",
-                                     "qcd_mg_ht_250_500",
-                                     "qcd_mg_ht_500_1000",
-                                     "qcd_mg_ht_1000_inf"],  weights = ['tw','nvr'], effectiveLumi = eL )     if 'Wlv' not in pars['tag'] else []
+            return supy.samples.specify( names = ["qcd_mg_ht_50_100",
+                                                  "qcd_mg_ht_100_250",
+                                                  "qcd_mg_ht_250_500",
+                                                  "qcd_mg_ht_500_1000",
+                                                  "qcd_mg_ht_1000_inf"],  weights = ['tw','nvr'], effectiveLumi = eL )     if 'Wlv' not in pars['tag'] else []
         def ewk(eL = None) :
-            return specify( names = "w_jets_fj_mg", effectiveLumi = eL, color = 28, weights = ['tw','nvr'] ) if "QCD" not in pars['tag'] else []
+            return supy.samples.specify( names = "w_jets_fj_mg", effectiveLumi = eL, color = 28, weights = ['tw','nvr'] ) if "QCD" not in pars['tag'] else []
 
         def ttbar_mg(eL = None) :
-            return (specify( names = "tt_tauola_mg", effectiveLumi = eL, color = r.kBlue, weights = ['wNonQQbar','tw','nvr']) +
-                    sum([specify( names = "tt_tauola_mg", effectiveLumi = eL, 
-                                  color = color, weights = [calculables.top.wTopAsym( asym, R_sm = -0.05), 'nvr' ])
+            return (supy.samples.specify( names = "tt_tauola_mg", effectiveLumi = eL, color = r.kBlue, weights = ['wNonQQbar','tw','nvr']) +
+                    sum([supy.samples.specify( names = "tt_tauola_mg", effectiveLumi = eL, 
+                                               color = color, weights = [calculables.top.wTopAsym( asym, R_sm = -0.05), 'nvr' ])
                          for asym,color in [(0.0,r.kOrange),
                                             (-0.3,r.kGreen),
                                             (0.3,r.kRed)
                                             ]], [])
                     )[: 0 if "QCD" in pars['tag'] else 2 if 'Wlv' in pars['tag'] else None]
-
+        
         def ttbar_py(eL = None) :
-            return (specify(names = "tt_tauola_fj", effectiveLumi = eL, color = r.kBlue, weights = ["wNonQQbar",'tw','nvr']) +
-                    sum( [specify( names = "tt_tauola_fj", effectiveLumi = eL, 
-                                   color = color, weights = [ calculables.top.wTopAsym(asym), 'tw','nvr' ] )
+            return (supy.samples.specify(names = "tt_tauola_fj", effectiveLumi = eL, color = r.kBlue, weights = ["wNonQQbar",'tw','nvr']) +
+                    sum( [supy.samples.specify( names = "tt_tauola_fj", effectiveLumi = eL, 
+                                                color = color, weights = [ calculables.top.wTopAsym(asym), 'tw','nvr' ] )
                           for asym,color in [(0.0,r.kOrange),
                                              (-0.3,r.kGreen),(0.3,r.kRed),
                                              #(-0.6,r.kYellow),(0.6,r.kYellow),
@@ -128,8 +129,8 @@ class topAsymm(supy.analysis) :
                                              #(-0.1,r.kYellow),(0.1,r.kYellow),
                                              ]], [])
                     )[: 0 if "QCD" in pars['tag'] else 2 if 'Wlv' in pars['tag'] else None]
-
-        return  ( data() + qcd_py6_mu() + ewk() + ttbar_py() )
+        
+        return  ( self.data(pars) + qcd_py6_mu() + ewk() + ttbar_py() )
 
 
     ########################################################################################
@@ -169,7 +170,7 @@ class topAsymm(supy.analysis) :
             calculables.top.TopReconstruction(lepton,obj["jet"],"mixedSumP4"),
             
             calculables.other.PtSorted(obj['muon']),
-            calculables.muon.IndicesAnyIsoIsoOrder(obj[pars["lepton"]["name"]], pars["lepton"]["isoVar"]),
+            calculables.muon.IndicesAnyIsoIsoOrder(obj[pars["lepton"]["name"]], pars["lepton"]["iso"]),
 
             calculables.other.Mt(lepton,"mixedSumP4", allowNonIso=True, isSumP4=True),
             calculables.other.Covariance(('met','PF')),
@@ -200,9 +201,9 @@ class topAsymm(supy.analysis) :
         lepton = obj[pars["lepton"]["name"]]
         lPtMin = pars["lepton"]["ptMin"]
         lEtaMax = pars["lepton"]["etaMax"]
-        lIso = ('%s'+pars['lepton']['isoVar']+'%s') % lepton
+        lIso = ('%s'+pars['lepton']['iso']+'%s') % lepton
         lIsoIndices = ("%s"+pars["selection"]["lIso"]["indices"]+"%s")%lepton
-
+        topTag = pars['tag'].replace("Wlv","top").replace("QCD","top")
         bVar = ("%s"+pars["bVar"]+"%s")%calculables.jet.xcStrip(obj["jet"])
         
         ssteps = supy.steps
@@ -213,7 +214,7 @@ class topAsymm(supy.analysis) :
              
              ####################################
              , ssteps.filters.label('data cleanup'),
-             steeps.filters.hbheNoise().onlyData(),
+             steps.filters.hbheNoise().onlyData(),
              steps.trigger.physicsDeclaredFilter().onlyData(),
              steps.trigger.l1Filter("L1Tech_BPTX_plus_AND_minus.v0").onlyData(),
              steps.filters.monster(),
@@ -223,7 +224,7 @@ class topAsymm(supy.analysis) :
 
              , ssteps.filters.label('reweighting')
              , self.ratio(pars)
-             , self.triggerWeight(pars)
+             , self.triggerWeight(pars, [ss.name for ss in self.data(pars)])
              , steps.trigger.hltPrescaleHistogrammer(zip(*pars['lepton']['triggers'])[0])
              , steps.trigger.lowestUnPrescaledTriggerHistogrammer()
              , ssteps.histos.value("%sPtSorted%s"%obj['muon'], 2,-0.5,1.5)
@@ -240,8 +241,8 @@ class topAsymm(supy.analysis) :
              ####################################
              , ssteps.filters.label('selection'),
              ssteps.filters.value( lIso, min=0.25, indices = "%sIndicesAnyIsoIsoOrder%s"%lepton, index = 1),
-             ssteps.filters.multiplicity( max=0, var = "%Indices%s"%obj['photon']),
-             ssteps.filters.multiplicity( max=0, var = "%Indices%s"%obj['electron'])
+             ssteps.filters.multiplicity( max=0, var = "%sIndices%s"%obj['photon']),
+             ssteps.filters.multiplicity( max=0, var = "%sIndices%s"%obj['electron'])
 
              , ssteps.histos.value("%sTriggeringPt%s"%lepton, 200,0,200),
              ssteps.filters.value("%sTriggeringPt%s"%lepton, min = lPtMin)
@@ -317,10 +318,11 @@ class topAsymm(supy.analysis) :
         return 
 
     @staticmethod
-    def triggerWeight(pars) : 
-        return calculables.trigger.TriggerWeight( samples = [ss.weightedName for ss in self.listOfSamples(pars) if 'SingleMu' in ss.name],
-                                                  triggers = zip(*pars['triggers'])[0], thresholds = zip(*pars['triggers'])[1],
-                                                  unreliable = self.unreliableTriggers())
+    def triggerWeight(pars,samples) : 
+        return calculables.trigger.TriggerWeight( samples,
+                                                  unreliable = pars['unreliable'],
+                                                  **dict(zip(['triggers','thresholds'], pars['lepton']['triggers'])))
+    
     @staticmethod
     def ratio(pars) : 
         return supy.calculables.other.Ratio("nVertex", binning = (15,-0.5,14.5), thisSample = pars['baseSample'],
@@ -329,26 +331,26 @@ class topAsymm(supy.analysis) :
                                                                                                                                      '.wNonQQbar',
                                                                                                                                      '.wTopAsymP00']])])
     @staticmethod
-    def discriminateQQgg(pars) :
+    def discriminantQQgg(pars) :
         return supy.calculables.other.Discriminant( fixes = ("","TopQqQg"),
                                                     left = {"pre":"qq", "tag":"top_muon_pf", "samples":['tt_tauola_fj.wNonQQbar.tw.nvr']},
                                                     right = {"pre":"qg", "tag":"top_muon_pf", "samples":['tt_tauola_fj.wTopAsymP00.tw.nvr']},
                                                     dists = {"fitTopPtOverSumPt" : (20,0,1),
                                                              "fitTopCosThetaDaggerTT" : (40,-1,1),
                                                              "fitTopSumP4AbsEta" : (21,0,7),
-                                                             "%sIndices%s.size"%obj["jet"] : (10,-0.5,9.5)
+                                                             "%sIndices%s.size"%pars['objects']["jet"] : (10,-0.5,9.5)
                                                              },
                                                     correlations = pars['discriminant2DPlots'],
                                                     bins = 14)
     @staticmethod
-    def discriminateTopW(pars) :
+    def discriminantTopW(pars) :
         return supy.calculables.other.Discriminant( fixes = ("","TopW"),
                                                     left = {"pre":"w_jets_fj_mg", "tag":"top_muon_pf", "samples":[]},
                                                     right = {"pre":"tt_tauola_fj", "tag":"top_muon_pf", "samples": ['tt_tauola_fj.%s.tw.nvr'%s for s in ['wNonQQbar','wTopAsymP00']]},
                                                     correlations = pars['discriminant2DPlots'],
-                                                    dists = {"%sKt%s"%obj["jet"] : (25,0,150),
-                                                             "%sB0pt%s"%obj["jet"] : (30,0,300),
-                                                             "%s3absEta%s"%obj["jet"] : (20,0,4),
+                                                    dists = {"%sKt%s"%pars['objects']["jet"] : (25,0,150),
+                                                             "%sB0pt%s"%pars['objects']["jet"] : (30,0,300),
+                                                             "%s3absEta%s"%pars['objects']["jet"] : (20,0,4),
                                                              "fitTopHadChi2"     : (20,0,100),
                                                              "mixedSumP4.pt"     : (30,0,180),
                                                              #"fitTopLeptonPt"    : (30,0,180),  # not so powerful?
@@ -356,29 +358,29 @@ class topAsymm(supy.analysis) :
                                                              "TopRatherThanWProbability" : (20,0,1),
                                                              })
     @staticmethod
-    def discriminateTopQCD(pars) :
+    def discriminantTopQCD(pars) :
         return supy.calculables.other.Discriminant( fixes = ("","TopQCD"),
                                                     left = {"pre":"SingleMu", "tag":"QCD_muon_pf", "samples":[]},
                                                     right = {"pre":"tt_tauola_fj", "tag":"top_muon_pf", "samples": ['tt_tauola_fj.%s.tw.nvr'%s for s in ['wNonQQbar','wTopAsymP00']]},
                                                     correlations = pars['discriminant2DPlots'],
-                                                    dists = {"%sKt%s"%obj["jet"] : (25,0,150),
-                                                             "%sB0pt%s"%obj["jet"] : (30,0,300),
-                                                             "%s3absEta%s"%obj["jet"] : (20,0,4),
-                                                             "%sMt%s"%obj['muon']+"mixedSumP4" : (30,0,180),
-                                                             "%sDeltaPhiB01%s"%obj["jet"] : (20,0,math.pi),
+                                                    dists = {"%sKt%s"%pars['objects']["jet"] : (25,0,150),
+                                                             "%sB0pt%s"%pars['objects']["jet"] : (30,0,300),
+                                                             "%s3absEta%s"%pars['objects']["jet"] : (20,0,4),
+                                                             "%sMt%s"%pars['objects']['muon']+"mixedSumP4" : (30,0,180),
+                                                             "%sDeltaPhiB01%s"%pars['objects']["jet"] : (20,0,math.pi),
                                                              #"mixedSumP4.pt"     : (30,0,180),
                                                              #"fitTopLeptonPt"    : (30,0,180),
                                                              #"fitTopDeltaPhiLNu" : (20,0,math.pi),
                                                              })
     @staticmethod
-    def discriminateWQCD(pars) :
+    def discriminantWQCD(pars) :
         return supy.calculables.other.Discriminant( fixes = ("","WQCD"),
                                                     left = {"pre":"w_jets_fj_mg", "tag":"top_muon_pf", "samples":[]},
                                                     right = {"pre":"SingleMu", "tag":"QCD_muon_pf", "samples":[]},
                                                     correlations = pars['discriminant2DPlots'],
-                                                    dists = {"%sB0pt%s"%obj["jet"] : (30,0,300),
-                                                             "%sMt%s"%obj['muon']+"mixedSumP4" : (30,0,180),
-                                                             "%sDeltaPhiB01%s"%obj["jet"] : (20,0,math.pi),
+                                                    dists = {"%sB0pt%s"%pars['objects']["jet"] : (30,0,300),
+                                                             "%sMt%s"%pars['objects']['muon']+"mixedSumP4" : (30,0,180),
+                                                             "%sDeltaPhiB01%s"%pars['objects']["jet"] : (20,0,math.pi),
                                                              "fitTopCosHelicityThetaL": (20,-1,1),
                                                              })
     
