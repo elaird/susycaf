@@ -86,7 +86,7 @@ class topAsymm(supy.analysis) :
                                               'SingleMu.2011A-Oct.1',
                                               'SingleMu.2011A-Aug.1',
                                               'SingleMu.2011A-PR4.1',
-                                              'SingleMu.2011A-May.1'], weights = 'tw' )
+                                              'SingleMu.2011A-May.1'][3:4], weights = 'tw')
     def listOfSamples(self,pars) :
 
         def qcd_py6_mu(eL = None) :
@@ -139,20 +139,17 @@ class topAsymm(supy.analysis) :
         lepton = obj[pars["lepton"]["name"]]
         calcs  = supy.calculables.zeroArgs(supy.calculables)
         calcs += supy.calculables.zeroArgs(calculables)
-        calcs += supy.calculables.fromCollections(calculables.jet, [obj["jet"]])
-        calcs += supy.calculables.fromCollections(calculables.photon, [obj["photon"]])
-        calcs += supy.calculables.fromCollections(calculables.electron, [obj["electron"]])
-        calcs += supy.calculables.fromCollections(calculables.muon, [obj["muon"]])
+        for item in ['jet','photon','electron','muon'] :
+            calcs += supy.calculables.fromCollections( getattr(calculables, item), [obj[item]])
         calcs += [
             calculables.jet.IndicesBtagged(obj["jet"],pars["bVar"]),
-            calculables.jet.Indices(      obj["jet"],      ptMin = 20, etaMax = 3.5, flagName = "JetIDloose"),
-            calculables.photon.Indices(   obj["photon"],   ptMin = 25, flagName = "photonIDLooseFromTwikiPat"),
-            calculables.electron.Indices( obj["electron"], ptMin = 10, simpleEleID = "80", useCombinedIso = True),
-            calculables.muon.Indices(     obj["muon"],     ptMin = 10, combinedRelIsoMax = 0.15),
+            calculables.jet.Indices(       obj["jet"],      ptMin = 20, etaMax = 3.5, flagName = "JetIDloose"),
+            calculables.photon.Indices(    obj["photon"],   ptMin = 25, flagName = "photonIDLooseFromTwikiPat"),
+            calculables.electron.Indices(  obj["electron"], ptMin = 10, simpleEleID = "80", useCombinedIso = True),
+            calculables.muon.Indices(      obj["muon"],     ptMin = 10, combinedRelIsoMax = 0.15),
             calculables.muon.IndicesTriggering(obj["muon"]),
+            calculables.muon.IndicesAnyIsoIsoOrder(obj[pars["lepton"]["name"]], pars["lepton"]["iso"]),
 
-            calculables.xclean.SumP4(obj["jet"], obj["photon"], obj["electron"], obj["muon"]),
-            calculables.xclean.SumPt(obj["jet"], obj["photon"], obj["electron"], obj["muon"]),
             calculables.xclean.IndicesUnmatched(collection = obj["photon"], xcjets = obj["jet"], DR = 0.5),
             calculables.xclean.IndicesUnmatched(collection = obj["electron"], xcjets = obj["jet"], DR = 0.5),
             calculables.xclean.xcJet(obj["jet"], applyResidualCorrectionsToData = False,
@@ -162,31 +159,29 @@ class topAsymm(supy.analysis) :
 
             calculables.vertex.ID(),
             calculables.vertex.Indices(),
-            calculables.other.lowestUnPrescaledTrigger(zip(*pars["lepton"]["triggers"])[0]),
 
             calculables.top.mixedSumP4(transverse = obj["met"], longitudinal = obj["sumP4"]),
             calculables.top.SemileptonicTopIndex(lepton),
             calculables.top.fitTopLeptonCharge(lepton),
             calculables.top.TopReconstruction(lepton,obj["jet"],"mixedSumP4"),
-            
-            calculables.other.PtSorted(obj['muon']),
-            calculables.muon.IndicesAnyIsoIsoOrder(obj[pars["lepton"]["name"]], pars["lepton"]["iso"]),
 
-            calculables.other.Mt(lepton,"mixedSumP4", allowNonIso=True, isSumP4=True),
-            calculables.other.Covariance(('met','PF')),
-
-            supy.calculables.other.pt("mixedSumP4"),
-            calculables.jet.pt( obj['jet'], index = 0, Btagged = True ),          ## generalize?
-            calculables.jet.absEta( obj['jet'], index = 3, Btagged = False),
-            supy.calculables.size("%sIndices%s"%pars['objects']['jet']),
-            
             calculables.top.TopComboQQBBLikelihood(pars['objects']['jet'], pars['bVar']),
             calculables.top.OtherJetsLikelihood(pars['objects']['jet'], pars['bVar']),
             calculables.top.TopRatherThanWProbability(priorTop=0.5),
             calculables.top.RadiativeCoherence(('fitTop',''),pars['objects']['jet']),
 
+            calculables.other.Mt(lepton,"mixedSumP4", allowNonIso=True, isSumP4=True),
+            calculables.other.Covariance(('met','PF')),
+            calculables.other.PtSorted(obj['muon']),
+            calculables.other.lowestUnPrescaledTrigger(zip(*pars["lepton"]["triggers"])[0]),
+
             calculables.other.TriDiscriminant(LR = "DiscriminantWQCD", LC = "DiscriminantTopW", RC = "DiscriminantTopQCD"),
             calculables.other.KarlsruheDiscriminant(pars['objects']['jet'], pars['objects']['met']),
+
+            calculables.jet.pt( obj['jet'], index = 0, Btagged = True ),
+            calculables.jet.absEta( obj['jet'], index = 3, Btagged = False),
+            supy.calculables.other.size("%sIndices%s"%pars['objects']['jet']),
+            supy.calculables.other.pt("mixedSumP4"),
             
             supy.calculables.other.abbreviation( "TrkCountingHighEffBJetTags", "NTrkHiEff", fixes = calculables.jet.xcStrip(obj['jet']) ),
             supy.calculables.other.abbreviation( "nVertexRatio", "nvr" ),
@@ -210,7 +205,7 @@ class topAsymm(supy.analysis) :
         
         return (
             [ssteps.printer.progressPrinter()
-             , ssteps.histos.histogrammer("genpthat",200,0,1000,title=";#hat{p_{T}} (GeV);events / bin")
+             , ssteps.histos.histogrammer("genpthat",200,0,1000,title=";#hat{p_{T}} (GeV);events / bin").onlySim()
              
              ####################################
              , ssteps.filters.label('data cleanup'),
@@ -224,7 +219,7 @@ class topAsymm(supy.analysis) :
 
              , ssteps.filters.label('reweighting')
              , self.ratio(pars)
-             , self.triggerWeight(pars, [ss.name for ss in self.data(pars)])
+             , self.triggerWeight(pars, [ss.weightedName for ss in self.data(pars)])
              , steps.trigger.hltPrescaleHistogrammer(zip(*pars['lepton']['triggers'])[0])
              , steps.trigger.lowestUnPrescaledTriggerHistogrammer()
              , ssteps.histos.value("%sPtSorted%s"%obj['muon'], 2,-0.5,1.5)
@@ -281,7 +276,7 @@ class topAsymm(supy.analysis) :
              , ssteps.histos.value("fitTopRadiativeCoherence", 100,-1,1)
              
              ####################################
-             , ssteps.filters.label('discriminants')
+             , ssteps.filters.label('discriminants').invert()
              , self.discriminantQQgg(pars)
              , self.discriminantTopW(pars)
              , self.discriminantTopQCD(pars)
@@ -318,10 +313,10 @@ class topAsymm(supy.analysis) :
         return 
 
     @staticmethod
-    def triggerWeight(pars,samples) : 
+    def triggerWeight(pars,samples) :
         return calculables.trigger.TriggerWeight( samples,
                                                   unreliable = pars['unreliable'],
-                                                  **dict(zip(['triggers','thresholds'], pars['lepton']['triggers'])))
+                                                  **dict(zip(['triggers','thresholds'], zip(*pars['lepton']['triggers']))))
     
     @staticmethod
     def ratio(pars) : 
@@ -420,18 +415,18 @@ class topAsymm(supy.analysis) :
                   "rowColors" : self.rowcolors,
                   }
         
-        plotter.plotter(org, psFileName = self.psFileName(org.tag+"_log"),  doLog = True, pegMinimum = 0.01, **kwargs ).plotAll()
-        plotter.plotter(org, psFileName = self.psFileName(org.tag+"_nolog"), doLog = False, **kwargs ).plotAll()
+        supy.plotter(org, psFileName = self.psFileName(org.tag+"_log"),  doLog = True, pegMinimum = 0.01, **kwargs ).plotAll()
+        supy.plotter(org, psFileName = self.psFileName(org.tag+"_nolog"), doLog = False, **kwargs ).plotAll()
 
         kwargs["samplesForRatios"] = ("","")
         kwargs["dependence2D"] = True
-        plotter.plotter(orgpdf, psFileName = self.psFileName(org.tag+"_pdf"), doLog = False, **kwargs ).plotAll()
+        supy.plotter(orgpdf, psFileName = self.psFileName(org.tag+"_pdf"), doLog = False, **kwargs ).plotAll()
 
     def meldWpartitions(self) :
         samples = {"top_muon_pf" : ["w_"],
                    "Wlv_muon_pf" : ["w_","SingleMu"],
                    "QCD_muon_pf" : []}
-        organizers = [organizer.organizer(tag, [s for s in self.sampleSpecs(tag) if any(item in s['name'] for item in samples[tag])])
+        organizers = [supy.organizer(tag, [s for s in self.sampleSpecs(tag) if any(item in s['name'] for item in samples[tag])])
                       for tag in [p['tag'] for p in self.readyConfs]]
         if len(organizers)<2 : return
         for org in organizers :
@@ -439,19 +434,19 @@ class topAsymm(supy.analysis) :
             org.mergeSamples(targetSpec = {"name":"w_mg", "color":r.kRed if "Wlv" in org.tag else r.kBlue, "markerStyle": 22}, sources = ["w_jets_fj_mg.tw.nvr"])
             org.scale(toPdf=True)
 
-        melded = organizer.organizer.meld("wpartitions",filter(lambda o: o.samples, organizers))
-        pl = plotter.plotter(melded,
-                             psFileName = self.psFileName(melded.tag),
-                             doLog = False,
-                             blackList = ["lumiHisto","xsHisto","nJobsHisto"],
-                             rowColors = self.rowcolors,
-                             ).plotAll()
-
+        melded = supy.organizer.meld("wpartitions",filter(lambda o: o.samples, organizers))
+        pl = supy.plotter(melded,
+                          psFileName = self.psFileName(melded.tag),
+                          doLog = False,
+                          blackList = ["lumiHisto","xsHisto","nJobsHisto"],
+                          rowColors = self.rowcolors,
+                          ).plotAll()
+        
     def meldQCDpartitions(self) :
         samples = {"top_muon_pf" : ["qcd_py6fjmu"],
                    "Wlv_muon_pf" : [],
                    "QCD_muon_pf" : ["qcd_py6fjmu","SingleMu"]}
-        organizers = [organizer.organizer(tag, [s for s in self.sampleSpecs(tag) if any(item in s['name'] for item in samples[tag])])
+        organizers = [supy.organizer(tag, [s for s in self.sampleSpecs(tag) if any(item in s['name'] for item in samples[tag])])
                       for tag in [p['tag'] for p in self.readyConfs]]
         if len(organizers)<2 : return
         for org in organizers :
@@ -459,32 +454,32 @@ class topAsymm(supy.analysis) :
             org.mergeSamples(targetSpec = {"name":"qcd_py6mu", "color":r.kRed if "QCD" in org.tag else r.kBlue, "markerStyle": 22}, allWithPrefix="qcd_py6fjmu")
             org.scale(toPdf=True)
 
-        melded = organizer.organizer.meld("qcdPartitions",filter(lambda o: o.samples, organizers))
-        pl = plotter.plotter(melded,
-                             psFileName = self.psFileName(melded.tag),
-                             doLog = False,
-                             blackList = ["lumiHisto","xsHisto","nJobsHisto"],
-                             rowColors = self.rowcolors,
-                             ).plotAll()
-
+        melded = supy.organizer.meld("qcdPartitions",filter(lambda o: o.samples, organizers))
+        pl = supy.plotter(melded,
+                          psFileName = self.psFileName(melded.tag),
+                          doLog = False,
+                          blackList = ["lumiHisto","xsHisto","nJobsHisto"],
+                          rowColors = self.rowcolors,
+                          ).plotAll()
+        
     def plotMeldScale(self) :
         if not hasattr(self,"orgMelded") : print "run meldScale() before plotMeldScale()"; return
         melded = copy.deepcopy(self.orgMelded)
         for ss in filter(lambda ss: 'tt_tauola_fj' in ss['name'], melded.samples) : melded.drop(ss['name'])
-        pl = plotter.plotter(melded, psFileName = self.psFileName(melded.tag),
-                             doLog = False,
-                             blackList = ["lumiHisto","xsHisto","nJobsHisto"],
-                             rowColors = self.rowcolors,
-                             samplesForRatios = ("top.Data 2011","S.M."),
-                             sampleLabelsForRatios = ('data','s.m.')
-                             ).plotAll()
-
+        pl = supy.plotter(melded, psFileName = self.psFileName(melded.tag),
+                          doLog = False,
+                          blackList = ["lumiHisto","xsHisto","nJobsHisto"],
+                          rowColors = self.rowcolors,
+                          samplesForRatios = ("top.Data 2011","S.M."),
+                          sampleLabelsForRatios = ('data','s.m.')
+                          ).plotAll()
+        
     def meldScale(self) :
         meldSamples = {"top_muon_pf" : ["SingleMu","tt_tauola_fj","w_jets"],
                        #"Wlv_muon_pf" : ["w_jets"],
                        "QCD_muon_pf" : ["SingleMu"]}
         
-        organizers = [organizer.organizer(tag, [s for s in self.sampleSpecs(tag) if any(item in s['name'] for item in meldSamples[tag])])
+        organizers = [supy.organizer(tag, [s for s in self.sampleSpecs(tag) if any(item in s['name'] for item in meldSamples[tag])])
                       for tag in [p['tag'] for p in self.readyConfs if p["tag"] in meldSamples]]
         if len(organizers) < len(meldSamples) : return
         for org in organizers :
@@ -494,7 +489,7 @@ class topAsymm(supy.analysis) :
                                            "color":r.kBlue if "QCD_" in org.tag else r.kBlack,
                                            "markerStyle":(20 if "top" in org.tag else 1)}, allWithPrefix="SingleMu")
 
-        self.orgMelded = organizer.organizer.meld(organizers = organizers)
+        self.orgMelded = supy.organizer.meld(organizers = organizers)
 
         def measureFractions(dist) :
             before = next(self.orgMelded.indicesOfStep("label","selection complete"))
