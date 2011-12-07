@@ -269,8 +269,6 @@ class topAsymm(supy.analysis) :
              
              ####################################
              , ssteps.filters.label("selection complete")
-             , ssteps.histos.value("KarlsruheDiscriminant", 28, -320, 800 )
-             , ssteps.histos.value("TriDiscriminant",50,-1,1)
 
              , ssteps.histos.multiplicity("%sIndices%s"%obj["jet"])
              , ssteps.histos.value("%sM3%s"%obj['jet'], 20,0,800)
@@ -278,7 +276,9 @@ class topAsymm(supy.analysis) :
              
              ####################################
              , ssteps.filters.label('discriminants')
-             , ssteps.filters.label('qq:gg'),   self.discriminantQQgg(pars)
+             , ssteps.histos.value("KarlsruheDiscriminant", 28, -320, 800 )
+             , ssteps.histos.value("TriDiscriminant",50,-1,1)
+             #, ssteps.filters.label('qq:gg'),   self.discriminantQQgg(pars)
              , ssteps.filters.label('top:W'),   self.discriminantTopW(pars)
              , ssteps.filters.label('top:QCD'), self.discriminantTopQCD(pars)
              , ssteps.filters.label('W:QCD'),   self.discriminantWQCD(pars)
@@ -380,7 +380,7 @@ class topAsymm(supy.analysis) :
     
     ########################################################################################
     def concludeAll(self) :
-        self.rowcolors = [r.kBlack, r.kGray+3, r.kGray+2, r.kGray+1, r.kGray]
+        self.rowcolors = 2*[13] + 2*[45]
         super(topAsymm,self).concludeAll()
         #self.meldWpartitions()
         #self.meldQCDpartitions()
@@ -412,14 +412,17 @@ class topAsymm(supy.analysis) :
                   "sampleLabelsForRatios" : ("data","s.m."),
                   "detailedCalculables" : True,
                   "rowColors" : self.rowcolors,
+                  "rowCycle" : 100,
+                  "omit2D" : True,
                   }
         
-        supy.plotter(org, psFileName = self.psFileName(org.tag+"_log"),  doLog = True, pegMinimum = 0.01, **kwargs ).plotAll()
-        supy.plotter(org, psFileName = self.psFileName(org.tag+"_nolog"), doLog = False, **kwargs ).plotAll()
+        supy.plotter(org, pdfFileName = self.psFileName(org.tag+"_log"),  doLog = True, pegMinimum = 0.01, **kwargs ).plotAll()
+        supy.plotter(org, pdfFileName = self.psFileName(org.tag+"_nolog"), doLog = False, **kwargs ).plotAll()
 
-        kwargs["samplesForRatios"] = ("","")
-        kwargs["dependence2D"] = True
-        supy.plotter(orgpdf, psFileName = self.psFileName(org.tag+"_pdf"), doLog = False, **kwargs ).plotAll()
+        kwargs.update({"samplesForRatios":("",""),
+                       "omit2D" : False,
+                       "dependence2D" : True})
+        supy.plotter(orgpdf, pdfFileName = self.psFileName(org.tag+"_pdf"), doLog = False, **kwargs ).plotAll()
 
     def meldWpartitions(self) :
         samples = {"top_muon_pf" : ["w_"],
@@ -435,10 +438,12 @@ class topAsymm(supy.analysis) :
 
         melded = supy.organizer.meld("wpartitions",filter(lambda o: o.samples, organizers))
         pl = supy.plotter(melded,
-                          psFileName = self.psFileName(melded.tag),
+                          pdfFileName = self.psFileName(melded.tag),
                           doLog = False,
                           blackList = ["lumiHisto","xsHisto","nJobsHisto"],
                           rowColors = self.rowcolors,
+                          rowCycle = 100,
+                          omit2D = True,
                           ).plotAll()
         
     def meldQCDpartitions(self) :
@@ -455,22 +460,26 @@ class topAsymm(supy.analysis) :
 
         melded = supy.organizer.meld("qcdPartitions",filter(lambda o: o.samples, organizers))
         pl = supy.plotter(melded,
-                          psFileName = self.psFileName(melded.tag),
+                          pdfFileName = self.psFileName(melded.tag),
                           doLog = False,
                           blackList = ["lumiHisto","xsHisto","nJobsHisto"],
                           rowColors = self.rowcolors,
+                          rowCycle = 100,
+                          omit2D = True,
                           ).plotAll()
         
     def plotMeldScale(self) :
         if not hasattr(self,"orgMelded") : print "run meldScale() before plotMeldScale()"; return
         melded = copy.deepcopy(self.orgMelded)
         for ss in filter(lambda ss: 'tt_tauola_fj' in ss['name'], melded.samples) : melded.drop(ss['name'])
-        pl = supy.plotter(melded, psFileName = self.psFileName(melded.tag),
+        pl = supy.plotter(melded, pdfFileName = self.psFileName(melded.tag),
                           doLog = False,
                           blackList = ["lumiHisto","xsHisto","nJobsHisto"],
                           rowColors = self.rowcolors,
                           samplesForRatios = ("top.Data 2011","S.M."),
-                          sampleLabelsForRatios = ('data','s.m.')
+                          sampleLabelsForRatios = ('data','s.m.'),
+                          rowCycle = 100,
+                          omit2D = True,
                           ).plotAll()
         
     def meldScale(self) :
@@ -490,12 +499,13 @@ class topAsymm(supy.analysis) :
 
         self.orgMelded = supy.organizer.meld(organizers = organizers)
 
+        templateSamples = ['top.t#bar{t}','top.w_jets','QCD.Data 2011']
+
         def measureFractions(dist) :
             before = next(self.orgMelded.indicesOfStep("label","selection complete"))
             distTup = self.orgMelded.steps[next(iter(filter(lambda i: before<i, self.orgMelded.indicesOfStepsWithKey(dist))))][dist]
             #distTup = self.orgMelded.steps[next(self.orgMelded.indicesOfStepsWithKey(dist))][dist]
 
-            templateSamples = ['top.t#bar{t}','top.w_jets','QCD.Data 2011']
             templates = [None] * len(templateSamples)
             for ss,hist in zip(self.orgMelded.samples,distTup) :
                 contents = [hist.GetBinContent(i) for i in range(hist.GetNbinsX()+2)]
@@ -520,7 +530,7 @@ class topAsymm(supy.analysis) :
 
         fractions = dict(zip(templateSamples,cs.fractions))        
         for iSample,ss in enumerate(self.orgMelded.samples) :
-            if ss['name'] in fractions : self.orgMelded.scaleOneRaw(iSample, fractions[ss['name']] * nEventsObserved / distTup[iSample].Integral(0,distTup[iSample].GetNbinsX()+1))
+            if ss['name'] in fractions : self.orgMelded.scaleOneRaw(iSample, fractions[ss['name']] * sum(cs.observed) / distTup[iSample].Integral(0,distTup[iSample].GetNbinsX()+1))
         self.orgMelded.mergeSamples(targetSpec = {"name":"S.M.", "color":r.kGreen+2}, sources = ['top.w_jets','top.t#bar{t}','QCD.Data 2011'], keepSources = True, force = True)
 
     def dilutions(self) :
