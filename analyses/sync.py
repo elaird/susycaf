@@ -312,7 +312,7 @@ class sync(analysis.analysis) :
             
             #plot
             pl = plotter.plotter(org,
-                                 psFileName = self.psFileName(tag),
+                                 pdfFileName = self.pdfFileName(tag),
                                  #samplesForRatios = ("2010 Data","standard_model"),
                                  #sampleLabelsForRatios = ("data","s.m."),
                                  #whiteList = ["xcak5JetAlphaTPat","xcak5JetAlphaTZoomPat"],

@@ -99,7 +99,7 @@ class photonSelection(analysis.analysis) :
 
             #plot
             pl = plotter.plotter(org,
-                                 psFileName = self.psFileName(tag),
+                                 pdfFileName = self.pdfFileName(tag),
                                  samplesForRatios=("JetMET_skim","standard_model"),
                                  sampleLabelsForRatios=("ctr","fwd"),
                                  )

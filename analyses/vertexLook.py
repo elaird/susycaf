@@ -241,7 +241,7 @@ class vertexLook(analysis.analysis) :
             org.scale()
 
             pl = plotter.plotter(org,
-                                 psFileName = self.psFileName(tag),
+                                 pdfFileName = self.pdfFileName(tag),
                                  samplesForRatios=("2010 Data","qcd_py8"),
                                  sampleLabelsForRatios=("data","qcd"),
                                  )

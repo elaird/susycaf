@@ -51,7 +51,7 @@ class prescales(analysis.analysis) :
         for tag in self.sideBySideAnalysisTags() :
             org=organizer.organizer( self.sampleSpecs(tag) )
             pl = plotter.plotter(org,
-                                 psFileName = self.psFileName(tag),
+                                 pdfFileName = self.pdfFileName(tag),
                                  blackList = ["lumiHisto","xsHisto","nJobsHisto"]
                                  )
             pl.plotAll()

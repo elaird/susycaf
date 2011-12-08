@@ -83,10 +83,10 @@ class prescales2(supy.analysis) :
         args = {"blackList":["lumiHisto","xsHisto","nJobsHisto"] + black,
                 "detailedCalculables" : True }
 
-        supy.plotter(org, psFileName = self.psFileName(org.tag+"unmerged"), **args ).plotAll()
-        supy.plotter(org, psFileName = self.psFileName(org.tag+"unmerged_nolog"), doLog=False, **args ).plotAll()
+        supy.plotter(org, pdfFileName = self.pdfFileName(org.tag+"unmerged"), **args ).plotAll()
+        supy.plotter(org, pdfFileName = self.pdfFileName(org.tag+"unmerged_nolog"), doLog=False, **args ).plotAll()
         org.mergeSamples(targetSpec = {"name":"SingleMu","color":r.kRed}, allWithPrefix="SingleMu")
-        supy.plotter(org, psFileName = self.psFileName(org.tag), **args ).plotAll()
+        supy.plotter(org, pdfFileName = self.pdfFileName(org.tag), **args ).plotAll()
         self.printPrescales(org)
 
                 

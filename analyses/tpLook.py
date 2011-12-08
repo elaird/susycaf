@@ -194,6 +194,6 @@ class tpLook(analysis.analysis) :
         for tag in self.sideBySideAnalysisTags() :
             org=organizer.organizer( self.sampleSpecs(tag) )
             org.mergeSamples(targetSpec = {"name":"2010 Data", "color":r.kBlack, "markerStyle":20}, allWithPrefix = "Run2010" )
-            pl = plotter.plotter(org, psFileName = self.psFileName(tag))
+            pl = plotter.plotter(org, pdfFileName = self.pdfFileName(tag))
             pl.plotAll()
 

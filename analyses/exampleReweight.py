@@ -50,7 +50,7 @@ class exampleReweight(supy.analysis) :
         org.mergeSamples(targetSpec = {"name":"qcd_py6", "color":r.kRed}, allWithPrefix="qcd_py6")
         org.scale()
         supy.plotter( org,
-                      psFileName = self.psFileName(org.tag),
+                      pdfFileName = self.pdfFileName(org.tag),
                       blackList = ["lumiHisto","xsHisto","xsPostWeightsHisto","nJobsHisto","genpthat"],
                       detailedCalculables = True,
                       ).plotAll()

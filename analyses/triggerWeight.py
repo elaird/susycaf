@@ -113,5 +113,5 @@ class triggerWeight(supy.analysis) :
         kwargs = { "blackList":["lumiHisto","xsHisto","nJobsHisto","muonTriggerWeightPF"],
                    "samplesForRatios":("SingleMu","s.m.") if "s.m." in [ss['name'] for ss in org.samples] else ("","")}
 
-        supy.plotter(org, psFileName = self.psFileName(org.tag+'_log'),   doLog = True,  **kwargs).plotAll()
-        supy.plotter(org, psFileName = self.psFileName(org.tag+'_nolog'), doLog = False, **kwargs).plotAll()
+        supy.plotter(org, pdfFileName = self.pdfFileName(org.tag+'_log'),   doLog = True,  **kwargs).plotAll()
+        supy.plotter(org, pdfFileName = self.pdfFileName(org.tag+'_nolog'), doLog = False, **kwargs).plotAll()

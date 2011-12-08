@@ -216,7 +216,7 @@ class xcleanValidation(analysis.analysis) :
                             result = map(makeRate, selection[name],totals, [name]*len(totals))
 
             pl = plotter.plotter(org,
-                                 psFileName = self.psFileName(tag),
+                                 pdfFileName = self.pdfFileName(tag),
                                  samplesForRatios=("JetMET_skim","standard_model"),
                                  sampleLabelsForRatios=("data","s.m."),
                                  #compactOutput=True

@@ -50,6 +50,6 @@ class etaLook(analysis.analysis) :
         org.scale(100.0)
 
         pl = plotter.plotter(org,
-                             psFileName = self.psFileName(""),
+                             pdfFileName = self.pdfFileName(""),
                              )
         pl.plotAll()

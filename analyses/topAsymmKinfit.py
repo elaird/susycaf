@@ -63,7 +63,7 @@ class topAsymmKinfit(topAsymmShell.topAsymmShell) :
         org.scale(toPdf=True)
         
         supy.plotter(org,
-                     psFileName = self.psFileName(org.tag),
+                     pdfFileName = self.pdfFileName(org.tag),
                      doLog = False,
                      #noSci = True,
                      #pegMinimum = 0.1,

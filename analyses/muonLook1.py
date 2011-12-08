@@ -258,7 +258,7 @@ class muonLook1(analysis.analysis) :
             
             #plot
             pl = plotter.plotter(org,
-                                 psFileName = self.psFileName(tag),
+                                 pdfFileName = self.pdfFileName(tag),
                                  samplesForRatios = ("2011 Data","SM"),
                                  sampleLabelsForRatios = ("data","s.m."),
                                  showStatBox = True,

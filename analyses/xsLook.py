@@ -28,7 +28,7 @@ class xsLook(analysis.analysis) :
             
         ##plot
         #pl = plotter.plotter(org,
-        #                     psFileName = self.psFileName(),
+        #                     pdfFileName = self.pdfFileName(),
         #                     doLog = False,
         #                     #compactOutput = True,
         #                     #noSci = True,

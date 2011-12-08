@@ -29,5 +29,5 @@ class checkHandles(supy.analysis) :
 
     def conclude(self,pars) :
         org = self.organizer(pars)
-        supy.plotter(org, psFileName = self.psFileName( org.tag ), doLog = False,
+        supy.plotter(org, pdfFileName = self.pdfFileName( org.tag ), doLog = False,
                      blackList = ["lumiHisto","xsHisto","nJobsHisto"]).plotAll()

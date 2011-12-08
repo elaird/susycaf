@@ -284,7 +284,7 @@ class mumuLook(supy.analysis) :
         
         org.scale()
         supy.plotter(org,
-                     psFileName = self.psFileName(org.tag),
+                     pdfFileName = self.pdfFileName(org.tag),
                      samplesForRatios = ("2011 Data","s.m."),
                      sampleLabelsForRatios = ("data","s.m."),
                      showStatBox = True,
