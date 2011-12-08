@@ -257,7 +257,7 @@ class muonLook1(analysis.analysis) :
             org.scale() if not self.parameters()["tanBeta"] else org.scale(100.0)
             
             #plot
-            pl = plotter.plotter(org,
+            pl = supy.plotter(org,
                                  pdfFileName = self.pdfFileName(tag),
                                  samplesForRatios = ("2011 Data","SM"),
                                  sampleLabelsForRatios = ("data","s.m."),

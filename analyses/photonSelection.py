@@ -98,7 +98,7 @@ class photonSelection(analysis.analysis) :
             org.scale(100)
 
             #plot
-            pl = plotter.plotter(org,
+            pl = supy.plotter(org,
                                  pdfFileName = self.pdfFileName(tag),
                                  samplesForRatios=("JetMET_skim","standard_model"),
                                  sampleLabelsForRatios=("ctr","fwd"),

@@ -215,7 +215,7 @@ class xcleanValidation(analysis.analysis) :
                         if "VetoCounts" in name : 
                             result = map(makeRate, selection[name],totals, [name]*len(totals))
 
-            pl = plotter.plotter(org,
+            pl = supy.plotter(org,
                                  pdfFileName = self.pdfFileName(tag),
                                  samplesForRatios=("JetMET_skim","standard_model"),
                                  sampleLabelsForRatios=("data","s.m."),

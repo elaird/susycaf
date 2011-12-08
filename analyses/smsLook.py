@@ -107,7 +107,7 @@ class smsLook(analysis.analysis) :
         org = self.organizer(pars)
 
         #plot
-        pl = plotter.plotter(org,
+        pl = supy.plotter(org,
                              pdfFileName = self.pdfFileName(org.tag),
                              #samplesForRatios = ("2010 Data","standard_model"),
                              #sampleLabelsForRatios = ("data","s.m."),

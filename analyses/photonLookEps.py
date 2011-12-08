@@ -528,7 +528,7 @@ class photonLook(analysis.analysis) :
                                    ("2010 Data","sm_2010")])
 
         #plot all
-        pl = plotter.plotter(org,
+        pl = supy.plotter(org,
                              psFileName = self.psFileName(org.tag),
                              sampleLabelsForRatios = ("data","s.m."),
                              samplesForRatios = next(iter(samplesForRatios), ("","")),
@@ -558,7 +558,7 @@ class photonLook(analysis.analysis) :
             
     def makeIndividualPlots(self, org) :
         #plot all
-        pl = plotter.plotter(org,
+        pl = supy.plotter(org,
                              psFileName = self.psFileName(org.tag),
                              showStatBox = False,
                              doLog = False,

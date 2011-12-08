@@ -49,7 +49,7 @@ class etaLook(analysis.analysis) :
         org.mergeSamples(targetSpec = {"name":"qcd_py6","color":r.kBlue}, sources = ["qcd_py6_pt%d"%i for i in [15,30,80] ])
         org.scale(100.0)
 
-        pl = plotter.plotter(org,
+        pl = supy.plotter(org,
                              pdfFileName = self.pdfFileName(""),
                              )
         pl.plotAll()

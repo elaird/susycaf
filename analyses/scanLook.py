@@ -48,7 +48,7 @@ class scanLook(analysis.analysis) :
         #org.scale()
             
         ##plot
-        #pl = plotter.plotter(org,
+        #pl = supy.plotter(org,
         #                     psFileName = self.psFileName(),
         #                     doLog = False,
         #                     #compactOutput = True,

@@ -577,7 +577,7 @@ class photonLook(supy.analysis) :
             
     def makeIndividualPlots(self, org) :
         #plot all
-        pl = plotter.plotter(org,
+        pl = supy.plotter(org,
                              psFileName = self.psFileName(org.tag),
                              showStatBox = False,
                              doLog = False,

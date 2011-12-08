@@ -311,7 +311,7 @@ class sync(analysis.analysis) :
             org.scale()
             
             #plot
-            pl = plotter.plotter(org,
+            pl = supy.plotter(org,
                                  pdfFileName = self.pdfFileName(tag),
                                  #samplesForRatios = ("2010 Data","standard_model"),
                                  #sampleLabelsForRatios = ("data","s.m."),

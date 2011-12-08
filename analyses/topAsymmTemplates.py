@@ -64,7 +64,7 @@ class topAsymmTemplates(analysis) :
                                                                                                              "genTopMez"
                                                                                                              ]))
         from core import plotter
-        pl = plotter.plotter(org,
+        pl = supy.plotter(org,
                              pdfFileName = self.pdfFileName(org.tag),
                              doLog = False,
                              pegMinimum = 0.1,

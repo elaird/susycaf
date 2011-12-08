@@ -27,7 +27,7 @@ class xsLook(analysis.analysis) :
         #org.scale()
             
         ##plot
-        #pl = plotter.plotter(org,
+        #pl = supy.plotter(org,
         #                     pdfFileName = self.pdfFileName(),
         #                     doLog = False,
         #                     #compactOutput = True,
