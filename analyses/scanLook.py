@@ -49,7 +49,7 @@ class scanLook(analysis.analysis) :
             
         ##plot
         #pl = supy.plotter(org,
-        #                     psFileName = self.psFileName(),
+        #                     pdfFileName = self.pdfFileName(),
         #                     doLog = False,
         #                     #compactOutput = True,
         #                     #noSci = True,
