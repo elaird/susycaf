@@ -48,8 +48,8 @@ class scanLook(analysis.analysis) :
         #org.scale()
             
         ##plot
-        #pl = plotter.plotter(org,
-        #                     psFileName = self.psFileName(),
+        #pl = supy.plotter(org,
+        #                     pdfFileName = self.pdfFileName(),
         #                     doLog = False,
         #                     #compactOutput = True,
         #                     #noSci = True,

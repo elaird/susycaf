@@ -549,7 +549,7 @@ class photonLook(supy.analysis) :
 
         #plot all
         pl = supy.plotter(org,
-                          psFileName = self.psFileName(org.tag),
+                          pdfFileName = self.pdfFileName(org.tag),
                           sampleLabelsForRatios = ("data","s.m."),
                           samplesForRatios = next(iter(samplesForRatios), ("","")),
                           blackList = ["lumiHisto","xsHisto","nJobsHisto",
@@ -577,8 +577,8 @@ class photonLook(supy.analysis) :
             
     def makeIndividualPlots(self, org) :
         #plot all
-        pl = plotter.plotter(org,
-                             psFileName = self.psFileName(org.tag),
+        pl = supy.plotter(org,
+                             pdfFileName = self.pdfFileName(org.tag),
                              showStatBox = False,
                              doLog = False,
                              anMode = True,

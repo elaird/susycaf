@@ -50,8 +50,8 @@ class prescales(analysis.analysis) :
     def conclude(self) :
         for tag in self.sideBySideAnalysisTags() :
             org=organizer.organizer( self.sampleSpecs(tag) )
-            pl = plotter.plotter(org,
-                                 psFileName = self.psFileName(tag),
+            pl = supy.plotter(org,
+                                 pdfFileName = self.pdfFileName(tag),
                                  blackList = ["lumiHisto","xsHisto","nJobsHisto"]
                                  )
             pl.plotAll()

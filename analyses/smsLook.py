@@ -107,8 +107,8 @@ class smsLook(analysis.analysis) :
         org = self.organizer(pars)
 
         #plot
-        pl = plotter.plotter(org,
-                             psFileName = self.psFileName(org.tag),
+        pl = supy.plotter(org,
+                             pdfFileName = self.pdfFileName(org.tag),
                              #samplesForRatios = ("2010 Data","standard_model"),
                              #sampleLabelsForRatios = ("data","s.m."),
                              #whiteList = ["lowestUnPrescaledTrigger"],

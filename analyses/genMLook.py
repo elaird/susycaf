@@ -23,5 +23,5 @@ class genMLook(supy.analysis) :
         org.scale(100.0)
         
         supy.plotter( org,
-                      psFileName = self.psFileName(""),
+                      pdfFileName = self.pdfFileName(""),
                       ).plotAll()

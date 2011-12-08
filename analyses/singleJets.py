@@ -188,8 +188,8 @@ class singleJets(analysis.analysis) :
             for sample in smSources: org.drop(sample)                    
             org.scale()
 
-            pl = plotter.plotter(org,
-                                 psFileName = self.psFileName(tag),
+            pl = supy.plotter(org,
+                                 pdfFileName = self.pdfFileName(tag),
                                  samplesForRatios=("JetMET_skim", filter(lambda name: "sm_w_qcd" in name, [sample["name"] for sample in org.samples])),
                                  sampleLabelsForRatios=("data","s.m.")
                                  )

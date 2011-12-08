@@ -205,15 +205,15 @@ class topAsymm(supy.analysis) :
         
         return (
             [ssteps.printer.progressPrinter()
-             , ssteps.histos.histogrammer("genpthat",200,0,1000,title=";#hat{p_{T}} (GeV);events / bin").onlySim()
+             , ssteps.histos.value("genpthat",200,0,1000,xtitle="#hat{p_{T}} (GeV)").onlySim()
              
              ####################################
              , ssteps.filters.label('data cleanup'),
-             steps.filters.hbheNoise().onlyData(),
-             steps.trigger.physicsDeclaredFilter().onlyData(),
+             ssteps.filters.multiplicity("vertexIndices",min=1)
+             ssteps.filters.value('physicsDeclared',min=1).onlyData(),
+             ssteps.filters.value('hbheNoiseFilterResult',min=1).onlyData(),
              steps.trigger.l1Filter("L1Tech_BPTX_plus_AND_minus.v0").onlyData(),
              steps.filters.monster(),
-             ssteps.filters.multiplicity("vertexIndices",min=1)
 
              ####################################
 
