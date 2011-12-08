@@ -86,7 +86,7 @@ class topAsymm(supy.analysis) :
                                               'SingleMu.2011A-Oct.1',
                                               'SingleMu.2011A-Aug.1',
                                               'SingleMu.2011A-PR4.1',
-                                              'SingleMu.2011A-May.1'][3:4], weights = 'tw')
+                                              'SingleMu.2011A-May.1'], weights = 'tw')
     def listOfSamples(self,pars) :
 
         def qcd_py6_mu(eL = None) :
@@ -217,8 +217,12 @@ class topAsymm(supy.analysis) :
 
              ####################################
 
-             , ssteps.filters.label('reweighting')
+             , ssteps.filters.label('nvertex reweighting')
              , self.ratio(pars)
+             , ssteps.histos.value(obj["sumPt"],50,0,1500)
+             , ssteps.histos.value("rho",100,0,40)
+
+             , ssteps.filters.label('trigger reweighting')
              , self.triggerWeight(pars, [ss.weightedName for ss in self.data(pars)])
              , steps.trigger.lowestUnPrescaledTriggerHistogrammer()
              
@@ -233,16 +237,13 @@ class topAsymm(supy.analysis) :
              
              ####################################
              , ssteps.filters.label('selection'),
-             ssteps.filters.OR( [ssteps.filters.multiplicity( max=1, var = '%sIndicesAnyIsoIsoOrder%s'%lepton),
+             ssteps.filters.OR( [ssteps.filters.multiplicity( max=1, var = '%sIndicesAnyIso%s'%lepton),
                                  ssteps.filters.value( lIso, min=0.25, indices = "%sIndicesAnyIsoIsoOrder%s"%lepton, index = 1)]),
              ssteps.filters.multiplicity( max=0, var = "%sIndices%s"%obj['photon']),
              ssteps.filters.multiplicity( max=0, var = "%sIndices%s"%obj['electron'])
 
              , ssteps.histos.value("%sTriggeringPt%s"%lepton, 200,0,200),
              ssteps.filters.value("%sTriggeringPt%s"%lepton, min = lPtMin)
-
-             , ssteps.histos.value(obj["sumPt"],50,0,1500)
-             , ssteps.histos.value("rho",100,0,40)
 
              , ssteps.histos.multiplicity("%sIndices%s"%obj["jet"]),
              ssteps.filters.multiplicity("%sIndices%s"%obj["jet"], **pars["nJets"])
@@ -416,13 +417,13 @@ class topAsymm(supy.analysis) :
                   "omit2D" : True,
                   }
         
-        supy.plotter(org, pdfFileName = self.psFileName(org.tag+"_log"),  doLog = True, pegMinimum = 0.01, **kwargs ).plotAll()
-        supy.plotter(org, pdfFileName = self.psFileName(org.tag+"_nolog"), doLog = False, **kwargs ).plotAll()
+        supy.plotter(org, pdfFileName = self.pdfFileName(org.tag+"_log"),  doLog = True, pegMinimum = 0.01, **kwargs ).plotAll()
+        supy.plotter(org, pdfFileName = self.pdfFileName(org.tag+"_nolog"), doLog = False, **kwargs ).plotAll()
 
         kwargs.update({"samplesForRatios":("",""),
                        "omit2D" : False,
                        "dependence2D" : True})
-        supy.plotter(orgpdf, pdfFileName = self.psFileName(org.tag+"_pdf"), doLog = False, **kwargs ).plotAll()
+        supy.plotter(orgpdf, pdfFileName = self.pdfFileName(org.tag+"_pdf"), doLog = False, **kwargs ).plotAll()
 
     def meldWpartitions(self) :
         samples = {"top_muon_pf" : ["w_"],
@@ -438,7 +439,7 @@ class topAsymm(supy.analysis) :
 
         melded = supy.organizer.meld("wpartitions",filter(lambda o: o.samples, organizers))
         pl = supy.plotter(melded,
-                          pdfFileName = self.psFileName(melded.tag),
+                          pdfFileName = self.pdfFileName(melded.tag),
                           doLog = False,
                           blackList = ["lumiHisto","xsHisto","nJobsHisto"],
                           rowColors = self.rowcolors,
@@ -460,7 +461,7 @@ class topAsymm(supy.analysis) :
 
         melded = supy.organizer.meld("qcdPartitions",filter(lambda o: o.samples, organizers))
         pl = supy.plotter(melded,
-                          pdfFileName = self.psFileName(melded.tag),
+                          pdfFileName = self.pdfFileName(melded.tag),
                           doLog = False,
                           blackList = ["lumiHisto","xsHisto","nJobsHisto"],
                           rowColors = self.rowcolors,
@@ -472,7 +473,7 @@ class topAsymm(supy.analysis) :
         if not hasattr(self,"orgMelded") : print "run meldScale() before plotMeldScale()"; return
         melded = copy.deepcopy(self.orgMelded)
         for ss in filter(lambda ss: 'tt_tauola_fj' in ss['name'], melded.samples) : melded.drop(ss['name'])
-        pl = supy.plotter(melded, pdfFileName = self.psFileName(melded.tag),
+        pl = supy.plotter(melded, pdfFileName = self.pdfFileName(melded.tag),
                           doLog = False,
                           blackList = ["lumiHisto","xsHisto","nJobsHisto"],
                           rowColors = self.rowcolors,

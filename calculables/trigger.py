@@ -13,7 +13,7 @@ class TriggerWeight(calculables.secondary) :
         self.fixes = collection
         self.var = "%s%s%s"%(self.fixes[0],var,self.fixes[1])
         self.index = "%s%s%s"%(self.fixes[0],index,self.fixes[1])
-        self.binning = (100,0,200)
+        self.binning = (200,0,200)
         for item in ['triggers','thresholds','tag','samples','unreliable'] : setattr(self,item,eval(item))
 
     def onlySamples(self) : return self.samples
