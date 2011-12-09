@@ -9,4 +9,5 @@ for module in [
     "signalSkim",
     "wpol",
     "mumu",
+    "top",
     ] : exec("from __%s__ import %s"%(module,module))
