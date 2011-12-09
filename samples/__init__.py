@@ -11,4 +11,5 @@ for module in [
     "mumu",
     "top",
     "ewk",
+    "qcd"
     ] : exec("from __%s__ import %s"%(module,module))
