@@ -78,7 +78,7 @@ class topAsymm(supy.analysis) :
 
     ########################################################################################
 
-    def listOfSampleDictionaries(self) : return [samples.mc, samples.muon]
+    def listOfSampleDictionaries(self) : return [getattr(samples,item) for item in ['muon', 'top', 'ewk', 'qcd']]
 
     def data(self,pars) :
         return supy.samples.specify( names = ['SingleMu.2011B-PR1.1b',
@@ -104,7 +104,7 @@ class topAsymm(supy.analysis) :
                                                   "qcd_mg_ht_500_1000",
                                                   "qcd_mg_ht_1000_inf"],  weights = ['tw','nvr'], effectiveLumi = eL )     if 'Wlv' not in pars['tag'] else []
         def ewk(eL = None) :
-            return supy.samples.specify( names = "w_jets_fj_mg", effectiveLumi = eL, color = 28, weights = ['tw','nvr'] ) if "QCD" not in pars['tag'] else []
+            return supy.samples.specify( names = ["w_jets_fj_mg","dyj_ll_mg"], effectiveLumi = eL, color = 28, weights = ['tw','nvr'] ) if "QCD" not in pars['tag'] else []
 
         def ttbar_mg(eL = None) :
             return (supy.samples.specify( names = "tt_tauola_mg", effectiveLumi = eL, color = r.kBlue, weights = ['wNonQQbar','tw','nvr']) +
@@ -209,11 +209,11 @@ class topAsymm(supy.analysis) :
              
              ####################################
              , ssteps.filters.label('data cleanup'),
-             ssteps.filters.multiplicity("vertexIndices",min=1)
+             ssteps.filters.multiplicity("vertexIndices",min=1),
              ssteps.filters.value('physicsDeclared',min=1).onlyData(),
              ssteps.filters.value('hbheNoiseFilterResult',min=1).onlyData(),
              steps.trigger.l1Filter("L1Tech_BPTX_plus_AND_minus.v0").onlyData(),
-             steps.filters.monster(),
+             steps.filters.monster()
 
              ####################################
 
@@ -321,7 +321,7 @@ class topAsymm(supy.analysis) :
     @staticmethod
     def ratio(pars) : 
         return supy.calculables.other.Ratio("nVertex", binning = (20,-0.5,19.5), thisSample = pars['baseSample'],
-                                            target = ("SingleMu",[]), groups = [('qcd_mg',[]),('qcd_py6',[]),('w_jets_fj_mg',[]),
+                                            target = ("SingleMu",[]), groups = [('qcd_mg',[]),('qcd_py6',[]),('w_jets_fj_mg',[]),('dyj_ll_mg',[]),
                                                                                 ('tt_tauola_fj',['tt_tauola_fj%s.tw.nvr'%s for s in ['',
                                                                                                                                      '.wNonQQbar',
                                                                                                                                      '.wTopAsymP00']])])
@@ -484,7 +484,7 @@ class topAsymm(supy.analysis) :
                           ).plotAll()
         
     def meldScale(self) :
-        meldSamples = {"top_muon_pf" : ["SingleMu","tt_tauola_fj","w_jets"],
+        meldSamples = {"top_muon_pf" : ["SingleMu","tt_tauola_fj","w_jets","dyj_ll_mg"],
                        #"Wlv_muon_pf" : ["w_jets"],
                        "QCD_muon_pf" : ["SingleMu"]}
         
@@ -494,6 +494,7 @@ class topAsymm(supy.analysis) :
         for org in organizers :
             org.mergeSamples(targetSpec = {"name":"t#bar{t}", "color":r.kViolet}, sources=["tt_tauola_fj.wNonQQbar.tw.nvr","tt_tauola_fj.wTopAsymP00.tw.nvr"], keepSources = True)
             org.mergeSamples(targetSpec = {"name":"w_jets", "color":r.kRed}, allWithPrefix = "w_jets")
+            org.mergeSamples(targetSpec = {"name":"dy", "color":r.kGray}, allWithPrefix = "dyj_ll_mg")
             org.mergeSamples(targetSpec = {"name":"Data 2011",
                                            "color":r.kBlue if "QCD_" in org.tag else r.kBlack,
                                            "markerStyle":(20 if "top" in org.tag else 1)}, allWithPrefix="SingleMu")
