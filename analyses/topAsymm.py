@@ -139,7 +139,7 @@ class topAsymm(supy.analysis) :
                                              ]], [])
                     )[: 0 if "QCD" in pars['tag'] else 2 if 'Wlv' in pars['tag'] else None]
         
-        return  ( self.data(pars) + qcd_py6_mu(100) + ewk() + ttbar_py() + single_top() )
+        return  ( self.data(pars) + qcd_py6_mu() + ewk() + ttbar_py() + single_top() )
 
 
     ########################################################################################
@@ -331,7 +331,7 @@ class topAsymm(supy.analysis) :
     def ratio(cls,pars) : 
         return supy.calculables.other.Ratio("nVertex", binning = (20,-0.5,19.5), thisSample = pars['baseSample'],
                                             target = ("SingleMu",[]), groups = [('qcd_mg',[]),('qcd_py6',[]),('w_jets_fj_mg',[]),('dyj_ll_mg',[]),
-                                                                                ('single_top', cls.single_top()),
+                                                                                ('single_top', ['%s.tw.nvr'%s for s in cls.single_top()]),
                                                                                 ('tt_tauola_fj',['tt_tauola_fj%s.tw.nvr'%s for s in ['',
                                                                                                                                      '.wNonQQbar',
                                                                                                                                      '.wTopAsymP00']])])
