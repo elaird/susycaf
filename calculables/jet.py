@@ -837,7 +837,7 @@ class CovariantResolution2(wrappedChain.calculable) :
         self.value = utils.hackMap(self.matrix , self.source[self.CorrectedP4] , self.source[self.Resolution] )
 #####################################
 class ProbabilityGivenBQN(calculables.secondary) :
-    def __init__(self, collection = None, bvar = None, binning = (0,0,0), samples = ('',[]), tag = None,) :
+    def __init__(self, collection = None, bvar = None, binning = (0,0,0), samples = ('',[]), tag = '') :
         self.fixes = collection
         self.__name = ('%s'+bvar+self.__class__.__name__+'%s')%self.fixes
         self.bvar = ("%s"+bvar+"%s")%xcStrip(collection)
