@@ -341,8 +341,8 @@ class genTTbarIndices(wrappedChain.calculable) :
                             (self.value['wminusChild'] if not self.value['lminus'] else []))
         self.value['nu'] = next((i for i in (self.value['wplusChild']+self.value['wminusChild']) if abs(ids[i]) in [12,14]),None)
         self.value['semi'] = (self.value['lplus'] is None)^(self.value['lminus'] is None)
-        self.value['bhad'] = None if not self.value['semi'] else self.value['b'] if self.value['lminus']==None else self.value['bbar']
-        self.value['blep'] = None if not self.value['semi'] else self.value['bbar'] if self.value['lminus']==None else self.value['b']
+        self.value['blep'] = None if not self.value['semi'] else self.value['b'] if self.value['lminus']==None else self.value['bbar']
+        self.value['bhad'] = None if not self.value['semi'] else self.value['bbar'] if self.value['lminus']==None else self.value['b']
 ######################################
 class genTopSemiLeptonicWithinAcceptance(wrappedChain.calculable) :
     def __init__(self, jetPtMin = None, jetAbsEtaMax = None, lepPtMin = None, lepAbsEtaMax = None) :
@@ -403,8 +403,7 @@ class TopReconstruction(wrappedChain.calculable) :
         self.stash(["SemileptonicTopIndex","P4","Charge"],lepton)
         self.stash(["CorrectedP4","IndicesBtagged","Indices","Resolution","CovariantResolution2","ComboPQBDeltaRawMassWTop"],jets)
         self.SumP4 = SumP4
-        #theta = math.pi/6
-        theta = 0.05
+        theta = math.pi/6
         self.ellipseR = np.array([[math.cos(theta),-math.sin(theta)],[math.sin(theta), math.cos(theta)]])
 
     def update(self,_) :
@@ -424,7 +423,7 @@ class TopReconstruction(wrappedChain.calculable) :
         for iPQH in itertools.permutations(indices,3) :
             if iPQH[0]>iPQH[1] : continue
             if iPQH[2] not in bIndices : continue
-            if np.dot(*(2*[self.ellipseR.dot(comboDRawMass[iPQH]) / [30,160]])) > 1 : continue # elliptical window on raw masses
+            if np.dot(*(2*[self.ellipseR.dot(comboDRawMass[iPQH]) / [35,70]])) > 1 : continue # elliptical window on raw masses
 
             hadFit = utils.fitKinematic.leastsqHadronicTop(*zip(*((p4[i], resolution[i]) for i in iPQH)))
             sumP4 = self.source[self.SumP4] - hadFit.rawT + hadFit.fitT
