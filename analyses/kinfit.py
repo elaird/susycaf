@@ -8,7 +8,7 @@ class kinfit(supy.analysis) :
         objects = {
             'label'       :[               'pf' ,               'pat' ],
             'muonsInJets' :[               True ,               False ],
-            'jet'         :[('xcak5JetPF','Pat'),   ('xcak5Jet','Pat')],
+            'jet'         :[('ak5JetPF','Pat'),   ('xcak5Jet','Pat')],
             'muon'        :[       ('muon','PF'),       ('muon','Pat')],
             'electron'    :[   ('electron','PF'),   ('electron','Pat')],
             'photon'      :[    ('photon','Pat'),     ('photon','Pat')],
@@ -20,15 +20,18 @@ class kinfit(supy.analysis) :
         return { "bVar" : "NTrkHiEff", # "TrkCountingHighEffBJetTags"
                  "objects": dict((key,val[0]) for key,val in objects.items()),
                  "lepton" : {'name':'muon'},
-                 "topBsamples": "ttj_mg",
-                 "lumi" : 5e3
+                 "topBsamples": ("tt_tauola_fj",[]),
+                 #"topBsamples": ("ttj_mg",[]),
+                 #"lumi" : 2e3,
+                 "lumi" : 5e2,
+                 "nFilesMax" : self.vary({'test':1, 'full':200})
                  }
 
     ########################################################################################
 
     def listOfSampleDictionaries(self) : return [samples.top]
 
-    def listOfSamples(self,pars) :  return supy.samples.specify( names = "ttj_mg", effectiveLumi = pars['lumi'] , nFilesMax = 50)
+    def listOfSamples(self,pars) :  return supy.samples.specify( names = pars['topBsamples'][0], effectiveLumi = pars['lumi'] , nFilesMax = pars['nFilesMax'])
 
     ########################################################################################
     def listOfCalculables(self, pars) :
@@ -56,6 +59,10 @@ class kinfit(supy.analysis) :
             calculables.top.SemileptonicTopIndex(lepton),
             calculables.top.fitTopLeptonCharge(lepton),
             calculables.top.TopReconstruction(lepton,obj["jet"],"mixedSumP4"),
+            calculables.top.IndicesGenTopPQHL(obj["jet"]),
+            calculables.top.genTopRecoIndex(),
+            calculables.top.genTopSemiLeptonicWithinAcceptance(jetPtMin = 20, jetAbsEtaMax = 3.5, lepPtMin = 20, lepAbsEtaMax = 2.1),
+            #calculables.top.genTopSemiLeptonicAccepted(obj['jet']),
 
             calculables.top.TopComboQQBBLikelihood(pars['objects']['jet'], pars['bVar']),
             calculables.top.OtherJetsLikelihood(pars['objects']['jet'], pars['bVar']),
@@ -82,7 +89,9 @@ class kinfit(supy.analysis) :
         ssteps = supy.steps
         
         return (
-            [ssteps.printer.progressPrinter()
+            [ssteps.printer.progressPrinter(),
+             ssteps.filters.value("genTopSemiMu", min=1),
+             ssteps.filters.value("genTopSemiLeptonicWithinAcceptance", min=1)
              
              , ssteps.filters.label('selection'),
 
@@ -97,17 +106,26 @@ class kinfit(supy.analysis) :
              ssteps.filters.value(bVar, indices = "%sIndicesBtagged%s"%obj["jet"], index=1, min=2.0)
 
              , ssteps.filters.label('top reco'),
-             ssteps.filters.multiplicity("TopReconstruction",min=1)
+             ssteps.filters.multiplicity("TopReconstruction",min=1),
 
-             , ssteps.filters.label("fitTop kinFitLook"),
-             steps.top.kinFitLook("fitTopRecoIndex"),
+             ssteps.filters.minimum("%sIndicesGenTopPQHL%s"%obj['jet'], 0),
+             ssteps.filters.unique("%sIndicesGenTopPQHL%s"%obj['jet'])
+
+             #, steps.top.jetPrinter(obj['jet'])
+             
+             , ssteps.filters.label("fitTop kinFitLook")          , steps.top.kinFitLook("fitTopRecoIndex")
+             , ssteps.filters.label("combinatorial filtering")    , steps.top.combinatorialFiltering(obj['jet'])
+             , ssteps.filters.label("combinatorial frequency")    , steps.top.combinatorialFrequency(obj['jet'])
+             , ssteps.filters.label("combinatorics look")         , steps.top.combinatoricsLook('genTopRecoIndex',obj['jet'])
+             , ssteps.filters.label("combinatorial bg")           , steps.top.combinatorialBG(obj['jet'])
              ])
 
     ########################################################################################
 
     def conclude(self,pars) :
         org = self.organizer(pars, verbose = True )
-        org.scale( lumiToUseInAbsenceOfData = pars['lumi'] )
+        org.scale( toPdf = True )
+        #org.scale( lumiToUseInAbsenceOfData = pars['lumi'] )
 
         kwargs = {"detailedCalculables": False,
                   "blackList":["lumiHisto","xsHisto","nJobsHisto"],

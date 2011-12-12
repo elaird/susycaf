@@ -176,7 +176,7 @@ class IndicesGenB(wrappedChain.calculable) :
         for iGenB in self.source["genIndicesB"] :
             bP4 = genP4s[iGenB]
             p4 = p4s[index]
-            if r.Math.VectorUtil.DeltaR(p4,bP4) < 0.5 and abs(p4.pt()-bP4.pt()) / bP4.pt() < 0.4 : return True
+            if r.Math.VectorUtil.DeltaR(p4,bP4) < 0.6 : return True #and abs(p4.pt()-bP4.pt()) / bP4.pt() < 0.4 : return True
         return False
     def update(self,ignored) : self.value = filter(self.matchesGenB, self.source[self.Indices])
 ###################################
@@ -837,13 +837,13 @@ class CovariantResolution2(wrappedChain.calculable) :
         self.value = utils.hackMap(self.matrix , self.source[self.CorrectedP4] , self.source[self.Resolution] )
 #####################################
 class ProbabilityGivenBQN(calculables.secondary) :
-    def __init__(self, collection = None, bvar = None, binning = (0,0,0), samples = ('',[]), tag = '') :
+    def __init__(self, collection = None, bvar = None, binning = (0,0,0), samples = ('',[]), tag = None,) :
         self.fixes = collection
         self.__name = ('%s'+bvar+self.__class__.__name__+'%s')%self.fixes
         self.bvar = ("%s"+bvar+"%s")%xcStrip(collection)
         for item in ['binning','samples','tag'] : setattr(self,item,eval(item))
         self.stash(['Indices','IndicesGenB','IndicesGenWqq'])
-        self.moreName = tag + '; ' + ','.join(samples[1] if samples[1] else [samples[0]])
+        self.moreName = (tag if tag!=None else '') + '; ' + ','.join(samples[1] if samples[1] else [samples[0]])
     @property
     def name(self) : return self.__name
 

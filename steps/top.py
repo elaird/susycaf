@@ -1,5 +1,31 @@
-import math,ROOT as r
+import math,itertools,ROOT as r, numpy as np
 from supy import analysisStep,steps
+#####################################
+
+class jetPrinter(analysisStep) :
+    def __init__(self, jets) : self.jets = jets
+    def uponAcceptance(self,ev) :
+        iTT = ev['genTTbarIndices']
+        gen = ev['genP4']
+        print 'gen b,bbar,q*'
+        for i in [iTT['b'],iTT['bbar']]+iTT['q'] :
+            p4 = gen[i]
+            print ("\t%.0f\t%+.1f\t%+.1f")%(p4.pt(),p4.eta(),p4.phi())
+        print 'jet'
+        for i in ev['%sIndices%s'%self.jets] :
+            p4 = ev['%sCorrectedP4%s'%self.jets][i]
+            print 'b' if i in ev['%sIndicesGenB%s'%self.jets] else '',
+            print 'q' if i in ev['%sIndicesGenWqq%s'%self.jets] else '',
+            print ("\t%.0f\t%+.1f\t%+.1f")%(p4.pt(),p4.eta(),p4.phi()),
+            print 'p' if i==ev['%sIndicesGenTopPQHL%s'%self.jets][0] else '',
+            print 'q' if i==ev['%sIndicesGenTopPQHL%s'%self.jets][1] else '',
+            print 'h' if i==ev['%sIndicesGenTopPQHL%s'%self.jets][2] else '',
+            print 'l' if i==ev['%sIndicesGenTopPQHL%s'%self.jets][3] else ''
+        if ev['%sIndicesOther%s'%self.jets] : print '-id'
+        for i in ev['%sIndicesOther%s'%self.jets] :
+            p4 = ev['%sCorrectedP4%s'%self.jets][i]
+            print ("\t%.0f\t%+.1f\t%+.1f")%(p4.pt(),p4.eta(),p4.phi())
+            print
 #####################################
 class Asymmetry(analysisStep) :
     def __init__(self, collection, bins = 18 ) :
@@ -59,17 +85,18 @@ class kinFitLook(analysisStep) :
         #self.book.fill((residuals["hadP"],residuals["hadQ"]), "topKinFit_residual_had_PQ"+self.moreName, (100,100),(-5,-5),(5,5), title = ';residual hadP;residual hadQ;events / bin')
         #self.book.fill((residuals["lepS"],residuals["lepL"]), "topKinFit_residual_lep_SL"+self.moreName, (100,100),(-5,-5),(5,5), title = ';residual lepS;residual lepL;events / bin')
 
-        self.book.fill( lepWM, "wMassLepFit"+self.moreName, 60, 0, 180, title = ';fit mass_{W} (leptonic);events / bin')
-        self.book.fill( hadWM, "wMassHadFit"+self.moreName, 60, 0, 180, title = ';fit mass_{W} (hadronic);events / bin')
-        self.book.fill( rawHadWM, "wMassHadRaw"+self.moreName, 60, 0, 180, title = ';raw mass_{W} (hadronic);events / bin')
-        self.book.fill( lepTopM, "topMassLepFit"+self.moreName, 100,0,300, title = ";fit mass_{top} (leptonic);events / bin" )
-        self.book.fill( hadTopM, "topMassHadFit"+self.moreName, 100,0,300, title = ";fit mass_{top} (hadronic);events / bin" )
+        #self.book.fill( lepWM, "wMassLepFit"+self.moreName, 60, 0, 180, title = ';fit mass_{W} (leptonic);events / bin')
+        #self.book.fill( hadWM, "wMassHadFit"+self.moreName, 60, 0, 180, title = ';fit mass_{W} (hadronic);events / bin')
+        #self.book.fill( rawHadWM, "wMassHadRaw"+self.moreName, 60, 0, 180, title = ';raw mass_{W} (hadronic);events / bin')
+        #self.book.fill( lepTopM, "topMassLepFit"+self.moreName, 100,0,300, title = ";fit mass_{top} (leptonic);events / bin" )
+        #self.book.fill( hadTopM, "topMassHadFit"+self.moreName, 100,0,300, title = ";fit mass_{top} (hadronic);events / bin" )
         self.book.fill( (lepTopM, hadTopM), "topMassesFit"+self.moreName, (100,100),(0,0),(300,300),
                         title = ";fit mass_{top} (leptonic); fit mass_{top} (hadronic);events / bin",)
         
-        self.book.fill( topReco['chi2'], "topRecoChi2"+self.moreName, 50, 0 , 600, title = ';ttbar kin. fit #chi^{2};events / bin')
-        self.book.fill( math.log(1+topReco['chi2']), "topRecoLogOnePlusChi2"+self.moreName, 50, 0 , 7, title = ';ttbar kin. fit log(1+#chi^{2});events / bin')
-        self.book.fill( math.log(1+topReco['key']), "topRecoLogOnePlusKey"+self.moreName, 50, 0 , 7, title = ';ttbar kin. fit log(1+#chi^{2}-2logP);events / bin')
+        self.book.fill( topReco['chi2'], "topReco_Chi2"+self.moreName, 50, 0 , 600, title = ';ttbar kin. fit #chi^{2};events / bin')
+        self.book.fill( math.exp(-0.5*topReco['chi2']), "topReco_L"+self.moreName, 50, 0, 1, title = ";ttbar kin. fit exp(-0.5#chi^{2});events / bin" )
+        #self.book.fill( math.log(1+topReco['chi2']), "topRecoLogOnePlusChi2"+self.moreName, 50, 0 , 7, title = ';ttbar kin. fit log(1+#chi^{2});events / bin')
+        #self.book.fill( math.log(1+topReco['key']), "topRecoLogOnePlusKey"+self.moreName, 50, 0 , 7, title = ';ttbar kin. fit log(1+#chi^{2}-2logP);events / bin')
 
         #hadX2 = math.log(1+topReco['hadChi2'])
         #lepX2 = math.log(1+topReco['lepChi2'])
@@ -80,6 +107,55 @@ class kinFitLook(analysisStep) :
         #self.book.fill( lepX2, "topRecoLLepX2"+bound+self.moreName, 50, 0 , 10, title = ';ttbar kin. fit log(1+#chi^{2}_{lep});events / bin')
         #self.book.fill( (lepX2,hadX2), "topRecoVsLX2"+self.moreName, (50,50),(0,0),(10,10), title = ";log(1+#chi^{2}_{lep});log(1+#chi^{2}_{had});events / bin" )
 #####################################
+
+class combinatorialFiltering(analysisStep) :
+    def __init__(self,jets=None) :
+        for item in ["IndicesBtagged","CorrectedP4","IndicesGenTopPQHL","ComboPQBDeltaRawMassWTop"] :
+            setattr(self, item, ("%s"+item+"%s")%jets )
+        #theta = math.pi/6
+        theta = 0.05
+        self.ellipseR = np.array([[math.cos(theta),-math.sin(theta)],[math.sin(theta), math.cos(theta)]])
+        
+    def uponAcceptance(self,ev) :
+        iGenPQHL = ev[self.IndicesGenTopPQHL]
+
+        iP,iQ,iH,iL = iGenPQHL
+
+        comboDRawMass = ev[self.ComboPQBDeltaRawMassWTop]
+        indices = ev[self.IndicesBtagged]
+
+        iBless = -1 if iH not in indices or iL not in indices else max( indices.index(iH) ,
+                                                                        indices.index(iL) )
+        
+        self.book.fill( iBless , "max_bjet_genIndex", 8, -1.5, 6.5, title = ";b-index of lesser TCHE bjet;events / bin")
+
+        for iPQH in itertools.permutations(indices,3) :
+            if iPQH[0]>iPQH[1] : continue
+            rawMs = comboDRawMass[iPQH]
+            passEllipse = np.dot(*(2*[self.ellipseR.dot(rawMs) / [30,160]])) <= 1 
+            tag = "correct" if iPQH == iGenPQHL[:3] else "incorrect"
+            for ptag in ['','pass'][:2 if passEllipse else 1] :
+                self.book.fill( rawMs, "combo_raw_m_%s_%s"%(tag,ptag), (100,100),(-80,-170),(100,200), title = ";(%s) #Delta raw hadronic W mass;#Delta raw hadronic top mass;events / bin"%tag )
+
+class combinatorialFrequency(analysisStep) :
+    def __init__(self,jets=None) :
+        self.jets = jets
+        self.IndicesGenTopPQHL = "%sIndicesGenTopPQHL%s"%jets
+
+    def uponAcceptance(self,ev) :
+        recos = ev['TopReconstruction']
+        iP,iQ,iH,iL = ev[self.IndicesGenTopPQHL]
+
+        igen=ev['genTopRecoIndex']
+
+        bhadIndex = next((i for i,R in enumerate(recos) if R['iPQHL'][2]==iH) , -1)
+        lhadIndex = next((i for i,R in enumerate(recos) if R['iPQHL'][3]==iL) , -1)
+        hadIndex  = next((i for i,R in enumerate(recos) if R['iPQHL'][:3]==(iP,iQ,iH)), -1 )
+        index = next((i for i,R in enumerate(recos) if R['iPQHL']==(iP,iQ,iH,iL)), -1)
+
+        for i,item in enumerate(['bhadIndex','lhadIndex','hadIndex','index','igen']) :
+            self.book.fill(eval(item), str(i)+item, 10,-1.5,8.5, title=item )
+
 class combinatorialBG(analysisStep) :
     def __init__(self,jets=None) : self.jets = jets        
     def uponAcceptance(self,ev) :
@@ -153,7 +229,7 @@ class combinatoricsLook(analysisStep) :
         index = ev[self.moreName]
         for s in ['lep','nu','bLep','bHad','q'] :
             self.book.fill(ev['%sDeltaRTopRecoGen'%s][index], s+'DeltaRTopRecoGen', 50,0,3, title = ';%s DeltaR reco gen;events / bin'%s)
-        self.book.fill(index, self.moreName, 20, -0.5, 19.5, title = ';%s;events / bin'%self.moreName)
+        self.book.fill(index, self.moreName, 21, -1.5, 19.5, title = ';%s;events / bin'%self.moreName)
         self.book.fill(topReco[index]['probability'], "probability", 100,0,1, title = ';%s probability;events / bin'%self.moreName)
 
         if self.jets :
