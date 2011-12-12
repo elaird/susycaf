@@ -112,8 +112,7 @@ class combinatorialFiltering(analysisStep) :
     def __init__(self,jets=None) :
         for item in ["IndicesBtagged","CorrectedP4","IndicesGenTopPQHL","ComboPQBDeltaRawMassWTop"] :
             setattr(self, item, ("%s"+item+"%s")%jets )
-        #theta = math.pi/6
-        theta = 0.05
+        theta = math.pi/6
         self.ellipseR = np.array([[math.cos(theta),-math.sin(theta)],[math.sin(theta), math.cos(theta)]])
         
     def uponAcceptance(self,ev) :
@@ -132,7 +131,7 @@ class combinatorialFiltering(analysisStep) :
         for iPQH in itertools.permutations(indices,3) :
             if iPQH[0]>iPQH[1] : continue
             rawMs = comboDRawMass[iPQH]
-            passEllipse = np.dot(*(2*[self.ellipseR.dot(rawMs) / [30,160]])) <= 1 
+            passEllipse = np.dot(*(2*[self.ellipseR.dot(rawMs) / [35,70]])) <= 1 
             tag = "correct" if iPQH == iGenPQHL[:3] else "incorrect"
             for ptag in ['','pass'][:2 if passEllipse else 1] :
                 self.book.fill( rawMs, "combo_raw_m_%s_%s"%(tag,ptag), (100,100),(-80,-170),(100,200), title = ";(%s) #Delta raw hadronic W mass;#Delta raw hadronic top mass;events / bin"%tag )
