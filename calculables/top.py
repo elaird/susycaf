@@ -450,8 +450,8 @@ class TopReconstruction(wrappedChain.calculable) :
                                    "tbar" : hadFit.fitT if lepQ > 0 else lepFit.fitT,
 
                                    "iPQHL": iPQHL,
-                                   "lepCharge": lepQ,           "hadTraw" : hadFit.rawT,
-                                   "lepBound" : lepFit.bound,   "hadWraw" : hadFit.rawW,
+                                   "lepCharge": lepQ,           "hadTraw" : hadFit.rawT, "lepTraw" : lepFit.rawT,
+                                   "lepBound" : lepFit.bound,   "hadWraw" : hadFit.rawW, "lepWraw" : lepFit.rawW,
                                    "sumP4": sumP4,
                                    "residuals" : dict( zip(["lep"+i for i in "BSLT"],  lepFit.residualsBSLT ) +
                                                        zip(["had"+i for i in "PQBWT"], hadFit.residualsPQBWT ) )
@@ -494,20 +494,20 @@ class fitTopRecoIndex(wrappedChain.calculable) :
     value = 0
     def update(self,_) : pass
 class genTopRecoIndex(wrappedChain.calculable) :
-    def __init__(self,rMax = 0.6, rMaxNu = 10.0) :
+    def __init__(self,rMax = 0.6, rMaxNu = 10.0, jets = None) :
         for item in ['lep','bLep','bHad','q'] : setattr(self,"rMax"+item, rMax )
         self.rMaxnu = rMaxNu
+        self.iPQHL = '%sIndicesGenTopPQHL%s'%jets
         self.moreName = "deltaR[lep,b,b,q,q] <%0.1f; deltaRnum<%0.1f"%(rMax,rMaxNu)
     def update(self,_) :
         self.value = -1
-        #if not self.source['genTopSemiLeptonicAccepted'] : return
-        iPass = [ i for i in range(len(self.source['TopReconstruction']))
-                  if all( self.source["%sDeltaRTopRecoGen"%s][i]<getattr(self,"rMax%s"%s)
-                          for s in ['lep','nu','bLep','bHad','q'] ) ]
-        #print
-        #for i in iPass : print self.source['TopReconstruction'][i]['iPQHL']
+        iPQHL = self.source[self.iPQHL]
+        iPass = [ i for i,R in enumerate(self.source['TopReconstruction'])
+                  if R['iPQHL']==iPQHL and all( self.source["%sDeltaRTopRecoGen"%s][i]<getattr(self,"rMax%s"%s)
+                                                for s in ['lep','nu'] ) ]
+
         if len(iPass) :
-            self.value = sorted( iPass, key = lambda i: sum([self.source['%sDeltaRTopRecoGen'%s][i] for s in ['lep','nu','bLep','bHad','q']]))[0]
+            self.value = sorted( iPass, key = lambda i: sum([self.source['%sDeltaRTopRecoGen'%s][i] for s in ['lep','nu']]))[0]
 
 class IndicesGenTopPQHL(wrappedChain.calculable) :
     def __init__(self,jets=None, rMax = 0.6 ) :

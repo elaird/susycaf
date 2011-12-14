@@ -93,8 +93,8 @@ class kinFitLook(analysisStep) :
         self.book.fill( (lepTopM, hadTopM), "topMassesFit"+self.moreName, (100,100),(0,0),(300,300),
                         title = ";fit mass_{top} (leptonic); fit mass_{top} (hadronic);events / bin",)
         
-        self.book.fill( topReco['chi2'], "topReco_Chi2"+self.moreName, 50, 0 , 600, title = ';ttbar kin. fit #chi^{2};events / bin')
-        self.book.fill( math.exp(-0.5*topReco['chi2']), "topReco_L"+self.moreName, 50, 0, 1, title = ";ttbar kin. fit exp(-0.5#chi^{2});events / bin" )
+        self.book.fill( topReco['chi2'], "topReco_Chi2"+self.moreName, 50, 0 , 100, title = ';ttbar kin. fit #chi^{2};events / bin')
+        #self.book.fill( math.exp(-0.5*topReco['chi2']), "topReco_L"+self.moreName, 50, 0, 1, title = ";ttbar kin. fit exp(-0.5#chi^{2});events / bin" )
         #self.book.fill( math.log(1+topReco['chi2']), "topRecoLogOnePlusChi2"+self.moreName, 50, 0 , 7, title = ';ttbar kin. fit log(1+#chi^{2});events / bin')
         #self.book.fill( math.log(1+topReco['key']), "topRecoLogOnePlusKey"+self.moreName, 50, 0 , 7, title = ';ttbar kin. fit log(1+#chi^{2}-2logP);events / bin')
 
@@ -134,7 +134,7 @@ class combinatorialFiltering(analysisStep) :
             passEllipse = np.dot(*(2*[self.ellipseR.dot(rawMs) / [35,70]])) <= 1 
             tag = "correct" if iPQH == iGenPQHL[:3] else "incorrect"
             for ptag in ['','pass'][:2 if passEllipse else 1] :
-                self.book.fill( rawMs, "combo_raw_m_%s_%s"%(tag,ptag), (100,100),(-80,-170),(100,200), title = ";(%s) #Delta raw hadronic W mass;#Delta raw hadronic top mass;events / bin"%tag )
+                self.book.fill( (min(rawMs[0],150),min(rawMs[1],250)), "combo_raw_m_%s_%s"%(tag,ptag), (100,150),(-80,-150),(180,300), title = ";(%s) #Delta raw hadronic W mass;(%s) #Delta raw hadronic top mass;events / bin"%(tag,tag) )
 
 class combinatorialFrequency(analysisStep) :
     def __init__(self,jets=None) :
@@ -147,13 +147,13 @@ class combinatorialFrequency(analysisStep) :
 
         igen=ev['genTopRecoIndex']
 
-        bhadIndex = next((i for i,R in enumerate(recos) if R['iPQHL'][2]==iH) , -1)
-        lhadIndex = next((i for i,R in enumerate(recos) if R['iPQHL'][3]==iL) , -1)
-        hadIndex  = next((i for i,R in enumerate(recos) if R['iPQHL'][:3]==(iP,iQ,iH)), -1 )
-        index = next((i for i,R in enumerate(recos) if R['iPQHL']==(iP,iQ,iH,iL)), -1)
+        iGenHadB = next((i for i,R in enumerate(recos) if R['iPQHL'][2]==iH) , -1)
+        iGenLepB = next((i for i,R in enumerate(recos) if R['iPQHL'][3]==iL) , -1)
+        iGenHadPQB  = next((i for i,R in enumerate(recos) if R['iPQHL'][:3]==(iP,iQ,iH)), -1 )
+        iGenJets = next((i for i,R in enumerate(recos) if R['iPQHL']==(iP,iQ,iH,iL)), -1)
 
-        for i,item in enumerate(['bhadIndex','lhadIndex','hadIndex','index','igen']) :
-            self.book.fill(eval(item), str(i)+item, 10,-1.5,8.5, title=item )
+        for i,item in enumerate(['iGenHadB','iGenLepB','iGenHadPQB','iGenJets','igen']) :
+            self.book.fill(eval(item), str(i)+item, 10,-1.5,8.5, title=";%s;events / bin"%item )
 
 class combinatorialBG(analysisStep) :
     def __init__(self,jets=None) : self.jets = jets        
@@ -219,33 +219,35 @@ class topProbLook(analysisStep) :
         self.book.fill(maxProb, "TopComboMaxProbability", 100,0,1, title = ';TopComboMaxProbability;events / bin')
         self.book.fill((maxProb,multiplicity), "TopComboMaxProbabilityLen"+self.indices, (100,10), (0,-0.5), (1,9.5), title = ';TopComboMaxProbability;jet multiplicity;events / bin')
 #####################################
-class combinatoricsLook(analysisStep) :
-    def __init__(self,indexName, jets = None) :
-        self.moreName = indexName
-        self.jets = jets
+class resolutions(analysisStep) :
+    def __init__(self,indexName) : self.moreName = indexName
     def uponAcceptance(self,ev) :
         topReco = ev["TopReconstruction"]
-        index = ev[self.moreName]
-        for s in ['lep','nu','bLep','bHad','q'] :
-            self.book.fill(ev['%sDeltaRTopRecoGen'%s][index], s+'DeltaRTopRecoGen', 50,0,3, title = ';%s DeltaR reco gen;events / bin'%s)
-        self.book.fill(index, self.moreName, 21, -1.5, 19.5, title = ';%s;events / bin'%self.moreName)
-        self.book.fill(topReco[index]['probability'], "probability", 100,0,1, title = ';%s probability;events / bin'%self.moreName)
 
-        if self.jets :
-            self.book.fill((index,len(ev["%sIndices%s"%self.jets])), self.moreName+"%sMultiplicity%s"%self.jets, (20,10), (-0.5,-0.5), (19.5,9.5), title = ';%s;jet multiplicity;events / bin'%self.moreName)
+        index = ev[self.moreName]
+        self.book.fill(index, self.moreName, 21, -1.5, 19.5, title = ';%s;events / bin'%self.moreName)
+
+        for s in ['lep','nu','bLep','bHad','q'] :
+            self.book.fill(ev['%sDeltaRTopRecoGen'%s][index], s+'DeltaRTopRecoGen', 50,0,2, title = ';%s DeltaR reco gen;events / bin'%s)
+
 
         genTTbar = ev["genTopTTbar"]
         if not genTTbar : return
-        genY = (ev["genP4"][genTTbar[0]].Rapidity(), ev["genP4"][genTTbar[1]].Rapidity())
-        recoY = (topReco[index]['top'].Rapidity(),topReco[index]['tbar'].Rapidity())
         iLep = min(0,topReco[index]["lepCharge"])
-        self.book.fill( recoY[iLep] - genY[iLep], "dRapidityLepTop", 100,-1,1, title=";lep top #Delta y_{reco gen};events / bin")
-        self.book.fill( recoY[not iLep] - genY[not iLep], "dRapidityHadTop", 100,-1,1, title=";had top #Delta y_{reco gen};events / bin")
-        self.book.fill( recoY[0]-recoY[1] - (genY[0]-genY[1]), "ddRapidityTTbar", 100,-1,1, title = ";#Delta y_{t#bar{t} reco}-#Delta y_{t#bar{t} gen};events / bin")
 
-        iHad = max(0,topReco[index]["lepCharge"])
-        genLepY = ev['genP4'][max(ev['genTTbarIndices'][item] for item in ['lplus','lminus'])].Rapidity()
-        self.book.fill( recoY[iHad] - topReco[index]['lep'].Rapidity() - (genY[iHad]-genLepY), "ddRapidityLHadTop", 100,-1,1, title = ";#Delta y_{l-htop reco}-#Delta y_{l-htop gen};events / bin")
+
+        for func in ['Rapidity','eta'] :
+            gen = (getattr(ev["genP4"][genTTbar[0]],func)(), getattr(ev["genP4"][genTTbar[1]],func)())
+            reco = (getattr(topReco[index]['top'],func)(),getattr(topReco[index]['tbar'],func)())
+            unfit = (getattr(topReco[index]['lepTraw'],func)(), getattr(topReco[index]['hadTraw'],func)())[::topReco[index]["lepCharge"]]
+            for f,fit in [('fit',reco),('unfit',unfit)] :
+                self.book.fill( fit[iLep]     - gen[iLep],       "d%sLepTop_%s"%(func,f), 100,-1,1, title=";lep top #Delta %s_{%s reco gen};events / bin"%(func,f))
+                self.book.fill( fit[not iLep] - gen[not iLep],   "d%sHadTop_%s"%(func,f), 100,-1,1, title=";had top #Delta %s_{%s reco gen};events / bin"%(func,f))
+                self.book.fill( fit[0]-fit[1] - (gen[0]-gen[1]), "dd%sTTbar_%s"%(func,f), 100,-1,1, title = ";#Delta %s_{t#bar{t} %s reco}-#Delta %s_{t#bar{t} gen};events / bin"%(func,f,func))
+
+        #iHad = max(0,topReco[index]["lepCharge"])
+        #genLepY = ev['genP4'][max(ev['genTTbarIndices'][item] for item in ['lplus','lminus'])].Rapidity()
+        #self.book.fill( recoY[iHad] - topReco[index]['lep'].Rapidity() - (genY[iHad]-genLepY), "ddRapidityLHadTop", 100,-1,1, title = ";#Delta y_{l-htop reco}-#Delta y_{l-htop gen};events / bin")
 ######################################
 class discriminateNonTop(analysisStep) :
     def __init__(self, pars) :
