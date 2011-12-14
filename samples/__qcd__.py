@@ -62,6 +62,13 @@ for low,high,xs,form in zip(bins[:-1],bins[1:],xss[:-1],forms[:-1]) :
            '%s/%s/%s")'%(srm,py6FJmuLoc,formats[form]%("%dto%d"%(low,high) if high else str(low))),
            xs = xs)
 
+loc = '/bbetchar/ICF/automated/2011_12_08_09_09_32/'
+form = 'QCD_Pt-%s_MuPt5Enriched_TuneZ2_7TeV-pythia6.Fall11-PU_S6_START42_V14B-v1.AODSIM")'
+for low,high,xs,_ in zip(bins[:-1],bins[1:],xss[:-1],forms[:-1]) :
+    qcd.add("qcd_mu_%s"%("%d_%d"%(low,high) if high else str(low)),
+            srm+loc+form%(('%dto%d'%(low,high)) if high else str(low)),
+            xs = xs)
+
 # QCD (HT binned)
 qcdDset1 = "QCD_TuneZ2_HT-%s_7TeV-madgraph.Summer11-PU_S4_START42_V11-v1.AODSIM"
 qcdDset3 = "QCD_TuneZ2_HT-%s_7TeV-madgraph.Summer11-PU_S4_START42_V11-v3.AODSIM"
