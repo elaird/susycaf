@@ -869,6 +869,7 @@ class ProbabilityGivenBQN(calculables.secondary) :
                       for bvar in self.source[self.bvar]]
         
     def organize(self,org) :
+        if org.tag != self.tag : return
         if self.samples[1] :
             missing = [s for s in self.samples[1] if s not in [ss['name'] for ss in org.samples]]
             if missing: print self.name, "-- no such samples :\n", missing
