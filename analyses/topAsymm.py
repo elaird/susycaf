@@ -128,7 +128,7 @@ class topAsymm(supy.analysis) :
                                              ]], [])
                     )[: 0 if "QCD" in pars['tag'] else 2 if 'Wlv' in pars['tag'] else None]
         
-        return  ( self.data(pars) + qcd_py6_mu() + ewk() + ttbar_mg() + single_top() )
+        return  ( self.data(pars) + qcd_py6_mu() + ewk() + ttbar_mg(5e4) + single_top() )
 
 
     ########################################################################################
@@ -486,7 +486,7 @@ class topAsymm(supy.analysis) :
                           ).plotAll()
         
     def meldScale(self) :
-        meldSamples = {"top_muon_pf" : ["SingleMu","ttj_mg","w_jets","dyj_ll_mg"]+self.single_top(),
+        meldSamples = {"top_muon_pf" : ["SingleMu","ttj_mg","wj_lv_mg","dyj_ll_mg"]+self.single_top(),
                        #"Wlv_muon_pf" : ["w_jets"],
                        "QCD_muon_pf" : ["SingleMu"]}
         
@@ -495,7 +495,7 @@ class topAsymm(supy.analysis) :
         if len(organizers) < len(meldSamples) : return
         for org in organizers :
             org.mergeSamples(targetSpec = {"name":"t#bar{t}", "color":r.kViolet}, sources=["ttj_mg.wNonQQbar.tw.nvr","ttj_mg.wTopAsymP00.tw.nvr"], keepSources = True)
-            org.mergeSamples(targetSpec = {"name":"w_jets", "color":r.kRed}, allWithPrefix = "w_jets")
+            org.mergeSamples(targetSpec = {"name":"w_jets", "color":r.kRed}, allWithPrefix = "wj_lv_mg")
             org.mergeSamples(targetSpec = {"name":"dy_jets", "color":28}, allWithPrefix = "dyj_ll_mg")
             org.mergeSamples(targetSpec = {"name":"single", "color":r.kGray}, sources = ["%s.tw.nvr"%s for s in self.single_top()], keepSources = False )
             org.mergeSamples(targetSpec = {"name":"Data 2011",
