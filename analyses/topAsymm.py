@@ -42,7 +42,7 @@ class topAsymm(supy.analysis) :
                                           #"Wlv" : {"bCut":bCut["inverted"],"lIso":lIso["normal"]},
                                           }),
                  "topBsamples": { "pythia"   : ("tt_tauola_fj",["tt_tauola_fj.wNonQQbar.tw.nvr","tt_tauola_fj.wTopAsymP00.tw.nvr"]),
-                                  "madgraph" : ("ttj_mg",['ttj_mg.wNonQQBar.tw.nvr','ttj_mg.wTopAsymmP00.tw.nvr']),
+                                  "madgraph" : ("ttj_mg",['ttj_mg.wNonQQbar.tw.nvr','ttj_mg.wTopAsymP00.tw.nvr']),
                                   }["madgraph"]
                  }
 
@@ -319,11 +319,11 @@ class topAsymm(supy.analysis) :
     @classmethod
     def ratio(cls,pars) : 
         return supy.calculables.other.Ratio("nVertex", binning = (20,-0.5,19.5), thisSample = pars['baseSample'],
-                                            target = ("SingleMu",[]), groups = [('qcd_mg',[]),('qcd_mu',[]),('wj_lv_mg',[]),('dyj_ll_mg',[]),
+                                            target = ("SingleMu",[]), groups = [('qcd_mu',[]),('wj_lv_mg',[]),('dyj_ll_mg',[]),
                                                                                 ('single_top', ['%s.tw.nvr'%s for s in cls.single_top()]),
                                                                                 ('ttj_mg',['ttj_mg%s.tw.nvr'%s for s in ['',
-                                                                                                                                     '.wNonQQbar',
-                                                                                                                                     '.wTopAsymP00']])])
+                                                                                                                         '.wNonQQbar',
+                                                                                                                         '.wTopAsymP00']])])
     @staticmethod
     def discriminantQQgg(pars) :
         return supy.calculables.other.Discriminant( fixes = ("","TopQqQg"),
