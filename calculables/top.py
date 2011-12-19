@@ -341,6 +341,12 @@ class genTopTTbar(wrappedChain.calculable) :
         self.value = tuple(list(self.source['genPdgId']).index(i) for i in [6,-6]) if \
                      (not self.source['isRealData']) and \
                      all([id in self.source['genPdgId'] for id in [-6,6]]) else ()
+class genTopIndicesX(wrappedChain.calculable) :
+    def update(self,_) :
+        moms = self.source['genMotherIndex']
+        ids = self.source['genPdgId']
+        self.value = [i for i in range(len(moms)) if abs(ids[i])!=6 and moms[i]==4 ]
+######################################
 ######################################
 class genTTbarIndices(wrappedChain.calculable) :
     def update(self,_) :
@@ -456,7 +462,7 @@ class TopReconstruction(wrappedChain.calculable) :
                 for zPlus in [0,1] :
                     lepFit = utils.fitKinematic.leastsqLeptonicTop( p4[iL], resolution[iL], lepP4, nuXY, nuErr-covRes2[iL], zPlus = zPlus )
                     tt = hadFit.fitT + lepFit.fitT
-                    iX,ttx = min( [(None,tt)]+[(i,tt+p4[i]) for i in indices if i not in iPQHL], key = lambda lv : lv.pt() )
+                    iX,ttx = min( [(None,tt)]+[(i,tt+p4[i]) for i in indices if i not in iPQHL], key = lambda lv : lv[1].pt() )
                     recos.append( {"nu"   : lepFit.fitNu,       "hadP" : hadFit.fitJ[0],
                                    "lep"  : lepFit.mu,          "hadQ" : hadFit.fitJ[1],
                                    "lepB" : lepFit.fitB,        "hadB" : hadFit.fitJ[2],
