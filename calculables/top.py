@@ -43,7 +43,7 @@ class SumPt(TopP4Calculable) :
     def update(self,_) : self.value = self.source[self.P4]['t'].pt() + self.source[self.P4]['tbar'].pt()
 ######################################
 class TtxMass(TopP4Calculable) :
-    def update(self,_) : self.value = self.source[self.P4]['ttx'].m()
+    def update(self,_) : self.value = self.source[self.P4]['ttx'].mass()
 ######################################
 class TtxPt(TopP4Calculable) :
     def update(self,_) : self.value = self.source[self.P4]['ttx'].pt()
@@ -51,7 +51,7 @@ class TtxPt(TopP4Calculable) :
 class TtxPz(TopP4Calculable) :
     def update(self,_) : self.value = self.source[self.P4]['ttx'].z()
 ######################################
-class PartonX12(TopP4Calculable) :
+class PartonX12(wrappedChain.calculable) :
     def __init__(self, collection = None) :
         self.fixes = collection
         self.stash(['TtxMass','TtxPz'])
@@ -59,6 +59,18 @@ class PartonX12(TopP4Calculable) :
         self.source[self.TtxMass] - self.source[self.TtxPz]
         self.value = ( (self.source[self.TtxMass] + self.source[self.TtxPz]) / 7000 ,
                        (self.source[self.TtxMass] - self.source[self.TtxPz]) / 7000 )
+######################################
+class PartonXhi(wrappedChain.calculable) :
+    def __init__(self, collection = None) :
+        self.fixes = collection
+        self.stash(['PartonX12'])
+    def update(self,_) : self.value = max(self.source[self.PartonX12])
+######################################
+class PartonXlo(wrappedChain.calculable) :
+    def __init__(self, collection = None) :
+        self.fixes = collection
+        self.stash(['PartonX12'])
+    def update(self,_) : self.value = min(self.source[self.PartonX12])
 ######################################
 class Pt(wrappedChain.calculable) :
     def __init__(self,collection = None) :
