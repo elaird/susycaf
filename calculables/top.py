@@ -1,4 +1,5 @@
 from supy import wrappedChain,utils
+from jet import xcStrip
 import math,operator,itertools,ROOT as r
 try:
     import numpy as np
@@ -647,3 +648,12 @@ class TopRatherThanWProbability(wrappedChain.calculable) :
         wL = self.source["OtherJetsLikelihood"]
         denom = (topL + wL * self.invPriorTopMinusOne)
         self.value = (topL / denom) if denom else self.priorTop
+######################################
+class fitTopBMomentsSum2(wrappedChain.calculable) :
+    def __init__(self, jets = None) :
+        self.stash(["Phi2Moment","Eta2Moment"],xcStrip(jets))
+    def update(self,_) :
+        _,__,iH,iL = self.source['TopReconstruction'][0]['iPQHL']
+        phi2 = self.source[self.Phi2Moment]
+        eta2 = self.source[self.Eta2Moment]
+        self.value = phi2[iH]+phi2[iL]+eta2[iH]+eta2[iL]
