@@ -166,7 +166,9 @@ class topAsymm(supy.analysis) :
             calculables.top.TopComboQQBBLikelihood(pars['objects']['jet'], pars['bVar']),
             calculables.top.OtherJetsLikelihood(pars['objects']['jet'], pars['bVar']),
             calculables.top.TopRatherThanWProbability(priorTop=0.5),
+
             calculables.top.RadiativeCoherence(('fitTop',''),pars['objects']['jet']),
+            calculables.top.fitTopBMomentsSum2(pars['objects']['jet']),
 
             calculables.other.Mt(lepton,"mixedSumP4", allowNonIso=True, isSumP4=True),
             calculables.other.Covariance(('met','PF')),
@@ -269,23 +271,23 @@ class topAsymm(supy.analysis) :
              ####################################
              , ssteps.filters.label("selection complete")
 
-             , ssteps.histos.multiplicity("%sIndices%s"%obj["jet"])
-             , ssteps.histos.value("%sM3%s"%obj['jet'], 20,0,800)
-             , ssteps.histos.value("fitTopRadiativeCoherence", 100,-1,1)
+             #, ssteps.histos.multiplicity("%sIndices%s"%obj["jet"])
+             #, ssteps.histos.value("%sM3%s"%obj['jet'], 20,0,800)
+             #, ssteps.histos.value("fitTopRadiativeCoherence", 100,-1,1)
              
              ####################################
              , ssteps.filters.label('discriminants')
-             , ssteps.histos.value("KarlsruheDiscriminant", 28, -320, 800 )
-             , ssteps.histos.value("TriDiscriminant",50,-1,1)
-             #, ssteps.filters.label('qq:gg'),   self.discriminantQQgg(pars)
-             , ssteps.filters.label('top:W'),   self.discriminantTopW(pars)
-             , ssteps.filters.label('top:QCD'), self.discriminantTopQCD(pars)
-             , ssteps.filters.label('W:QCD'),   self.discriminantWQCD(pars)
-             , calculables.gen.qDirProbPlus('fitTopSumP4Eta', 10, 'top_muon_pf', 'ttj_mg.wTopAsymP00.tw.nvr', path = self.globalStem)
+             #, ssteps.histos.value("KarlsruheDiscriminant", 28, -320, 800 )
+             #, ssteps.histos.value("TriDiscriminant",50,-1,1)
+             , ssteps.filters.label('qq:gg'),   self.discriminantQQgg(pars)
+             #, ssteps.filters.label('top:W'),   self.discriminantTopW(pars)
+             #, ssteps.filters.label('top:QCD'), self.discriminantTopQCD(pars)
+             #, ssteps.filters.label('W:QCD'),   self.discriminantWQCD(pars)
+             #, calculables.gen.qDirProbPlus('fitTopSumP4Eta', 10, 'top_muon_pf', 'ttj_mg.wTopAsymP00.tw.nvr', path = self.globalStem)
              
-             , ssteps.filters.label('signal distributions')
-             , steps.top.Asymmetry(('fitTop',''), bins = 640)
-             , steps.top.Spin(('fitTop',''))
+             #, ssteps.filters.label('signal distributions')
+             #, steps.top.Asymmetry(('fitTop',''), bins = 640)
+             #, steps.top.Spin(('fitTop',''))
              
              #steps.histos.value('fitTopSumP4Eta', 12, -6, 6),
              #steps.filters.absEta('fitTopSumP4', min = 1),
@@ -326,13 +328,14 @@ class topAsymm(supy.analysis) :
                                                                                                                          '.wTopAsymP00']])])
     @staticmethod
     def discriminantQQgg(pars) :
-        return supy.calculables.other.Discriminant( fixes = ("","TopQqQg"),
-                                                    left = {"pre":"qq", "tag":"top_muon_pf", "samples":['ttj_mg.wNonQQbar.tw.nvr']},
-                                                    right = {"pre":"qg", "tag":"top_muon_pf", "samples":['ttj_mg.wTopAsymP00.tw.nvr']},
-                                                    dists = {"fitTopPtOverSumPt" : (20,0,1),
-                                                             "fitTopCosThetaDaggerTT" : (40,-1,1),
-                                                             "fitTopSumP4AbsEta" : (21,0,7),
-                                                             "%sIndices%s.size"%pars['objects']["jet"] : (10,-0.5,9.5)
+        return supy.calculables.other.Discriminant( fixes = ("","QQgg"),
+                                                    left = {"pre":"gg", "tag":"top_muon_pf", "samples":['ttj_mg.wNonQQbar.tw.nvr']},
+                                                    right = {"pre":"qq", "tag":"top_muon_pf", "samples":['ttj_mg.wTopAsymP00.tw.nvr']},
+                                                    dists = {"%sM3%s"%pars["objects"]['jet'] : (20,0,600), # 0.047
+                                                             "vertex0Ntracks" : (20,0,180),                # 0.049
+                                                             "fitTopPartonXlo" : (20,0,0.12),              # 0.036
+                                                             #"fitTopPartonXhi" : (20,0.04,0.4),           # 0.003
+                                                             #"fitTopBMomentsSum2" : (20,0,0.2),           # 0.004
                                                              },
                                                     correlations = pars['discriminant2DPlots'],
                                                     bins = 14)
@@ -385,7 +388,6 @@ class topAsymm(supy.analysis) :
         #self.meldWpartitions()
         #self.meldQCDpartitions()
         self.meldScale()
-        #self.dilutions()
         #self.measureQQbarComponent()
         self.plotMeldScale()
         #self.ensembleTest()
@@ -395,14 +397,14 @@ class topAsymm(supy.analysis) :
         org = self.organizer(pars, verbose = True )
         org.mergeSamples(targetSpec = {"name":"Data 2011", "color":r.kBlack, "markerStyle":20}, allWithPrefix="SingleMu")
         org.mergeSamples(targetSpec = {"name":"qcd_mu", "color":r.kBlue}, allWithPrefix="qcd_mu")
-        org.mergeSamples(targetSpec = {"name":"t#bar{t}", "color":r.kViolet}, sources=["ttj_mg.wNonQQbar.tw.nvr","ttj_mg.wTopAsymP00.tw.nvr"], keepSources = False)
+        org.mergeSamples(targetSpec = {"name":"t#bar{t}", "color":r.kViolet}, sources=["ttj_mg.wNonQQbar.tw.nvr","ttj_mg.wTopAsymP00.tw.nvr"], keepSources = True)
         org.mergeSamples(targetSpec = {"name":"t#bar{t}.q#bar{q}.N30", "color":r.kRed}, sources = ["ttj_mg.wTopAsymN30.tw.nvr","ttj_mg.wNonQQbar.tw.nvr"][:1])
         org.mergeSamples(targetSpec = {"name":"t#bar{t}.q#bar{q}.P30", "color":r.kGreen}, sources = ["ttj_mg.wTopAsymP30.tw.nvr","ttj_mg.wNonQQbar.tw.nvr"][:1])
         org.mergeSamples(targetSpec = {"name":"w_jets", "color":28}, allWithPrefix="wj_lv_mg", keepSources = False )
         org.mergeSamples(targetSpec = {"name":"dy_jets", "color":r.kYellow}, allWithPrefix="dyj_ll_mg", keepSources = False )
         org.mergeSamples(targetSpec = {"name":"single_top", "color":r.kGray}, sources = ["%s.tw.nvr"%s for s in self.single_top()], keepSources = False )
         org.mergeSamples(targetSpec = {"name":"standard_model", "color":r.kGreen+2}, sources = ["qcd_mu","t#bar{t}","w_jets","dy_jets","single_top"], keepSources = True)
-        for ss in filter(lambda ss: 'tt_tauola' in ss['name'],org.samples) : org.drop(ss['name'])
+        #for ss in filter(lambda ss: 'ttj_mg' in ss['name'],org.samples) : org.drop(ss['name'])
 
         orgpdf = copy.deepcopy(org)
         orgpdf.scale( toPdf = True )
@@ -542,29 +544,6 @@ class topAsymm(supy.analysis) :
         for iSample,ss in enumerate(self.orgMelded.samples) :
             if ss['name'] in fractions : self.orgMelded.scaleOneRaw(iSample, fractions[ss['name']] * sum(cs.observed) / distTup[iSample].Integral(0,distTup[iSample].GetNbinsX()+1))
         self.orgMelded.mergeSamples(targetSpec = {"name":"S.M.", "color":r.kGreen+2}, sources = templateSamples + baseSamples , keepSources = True, force = True)
-
-    def dilutions(self) :
-        import itertools
-        fileName = '%s/dilutions.txt'%self.globalStem
-        with open(fileName, "w") as file :
-            names = [ss['name'] for ss in self.orgMelded.samples]
-            iSamples = [names.index(n) for n in ['top.t#bar{t}','top.w_jets','QCD.Data 2011','top.ttj_mg.wNonQQbar.tw.nvr','top.ttj_mg.wTopAsymP00.tw.nvr']]
-            for i,iS in enumerate(iSamples) : print >> file, i,names[iS]
-            print >> file
-            print >> file, ''.rjust(40), ''.join(("[%d,%d]"%pair).rjust(10) for pair in itertools.combinations(range(len(iSamples)), 2))
-            for step in self.orgMelded.steps :
-                if not any("Discriminant" in item for item in step.nameTitle) : continue
-                print >> file
-                print >> file
-                print >> file, supy.utils.hyphens
-                print >> file, step.name, step.title
-                print >> file, supy.utils.hyphens
-                print >> file
-                for hname,hists in step.iteritems() :
-                    if issubclass(type(next(iter(filter(None,hists)))),r.TH2) : continue
-                    aHists = [[hists[i].GetBinContent(j) for j in range(0,hists[i].GetNbinsX()+2)] for i in iSamples]
-                    print >> file, hname.rjust(40), ''.join([(("%.3f"%round(supy.utils.dilution(A,B),3))).rjust(10) for A,B in itertools.combinations(aHists,2)])
-        print "Output file: %s"%fileName
 
     def PEcurves(self) :
         if not hasattr(self, 'orgMelded') : return
