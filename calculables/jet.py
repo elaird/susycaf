@@ -869,10 +869,12 @@ class ProbabilityGivenBQN(calculables.secondary) :
                       for bvar in self.source[self.bvar]]
         
     def organize(self,org) :
-        if self.samples[1] : org.mergeSamples( targetSpec = {'name':self.samples[0]}, sources = self.samples[1] )
+        if org.tag != self.tag : return
+        if self.samples[1] :
+            missing = [s for s in self.samples[1] if s not in [ss['name'] for ss in org.samples]]
+            if missing: print self.name, "-- no such samples :\n", missing
+            org.mergeSamples( targetSpec = {'name':self.samples[0]}, sources = self.samples[1] )
         else: org.mergeSamples( targetSpec = {'name':self.samples[0]}, allWithPrefix = self.samples[0] )
-        for sample in org.samples:
-            if sample['name']!=self.samples[0] : org.drop(sample['name'])
 #####################################
 class CorrectedP4(wrappedChain.calculable) :
     def __init__(self, genJets = None) : #purposefully not called collection
