@@ -463,33 +463,33 @@ class hadronicLook(supy.analysis) :
     def makeStandardPlots(self, org) :
         #plot
         pl = supy.plotter(org,
-                             psFileName = self.psFileName(org.tag),
-                             samplesForRatios = ("2011 Data","Standard Model "),
-                             sampleLabelsForRatios = ("data","s.m."),
-                             printRatios = True,
-                             showStatBox = not self.ra1Cosmetics(),
-                             rowColors = [r.kBlack, r.kViolet+4],
-                             #whiteList = ["lowestUnPrescaledTrigger"],
-                             #doLog = False,
-                             #compactOutput = True,
-                             #noSci = True,
-                             #latexYieldTable = True,
-                             linYAfter = ("variableGreaterFilter", "xcak5JetAlphaTEtPat>=0.550 "),
-                             pegMinimum = 0.1,
-                             blackList = ["lumiHisto","xsHisto","nJobsHisto"],
-                             )
+                          pdfFileName = self.pdfFileName(org.tag),
+                          samplesForRatios = ("2011 Data","Standard Model "),
+                          sampleLabelsForRatios = ("data","s.m."),
+                          printRatios = True,
+                          showStatBox = not self.ra1Cosmetics(),
+                          rowColors = [r.kBlack, r.kViolet+4],
+                          #whiteList = ["lowestUnPrescaledTrigger"],
+                          #doLog = False,
+                          #compactOutput = True,
+                          #noSci = True,
+                          #latexYieldTable = True,
+                          linYAfter = ("variableGreaterFilter", "xcak5JetAlphaTEtPat>=0.550 "),
+                          pegMinimum = 0.1,
+                          blackList = ["lumiHisto","xsHisto","nJobsHisto"],
+                          )
         pl.plotAll()
         #self.makeEfficiencyPlots(org, tag, sampleName = "LM1")
 
     def makeIndividualPlots(self, org) :
         #plot all
         pl = supy.plotter(org,
-                             psFileName = self.psFileName(org.tag),
-                             showStatBox = False,
-                             doLog = True,
-                             pegMinimum = 0.1,                             
-                             anMode = True,
-                             )
+                          pdfFileName = self.pdfFileName(org.tag),
+                          showStatBox = False,
+                          doLog = True,
+                          pegMinimum = 0.1,
+                          anMode = True,
+                          )
         pl.individualPlots(plotSpecs = [{"plotName":"xcak5JetAlphaTRoughPat",
                                          "stepName" :"alphaHistogrammer",
                                          "stepDesc" :"xcak5JetPat",
