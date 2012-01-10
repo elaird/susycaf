@@ -3,6 +3,7 @@ from supy.sites import srm
 mc = SampleHolder()
 
 mgKFactor = 3048.0/2400.0 #Z+jets NNLO/LO
+mgKFactor2 = 3048.0/2475.0#Z+jets NNLO/LO
 
 ######## QCD ##########
 mgQcdLoc = '/bbetchar//ICF/automated/2011_04_07_20_30_16/'
@@ -98,6 +99,17 @@ mc.add("z_nunu",  '%s/henning//ICF/automated/2011_04_15_10_55_57/")'%srm, xs = 4
 
 
 ## MG Summer '11 samples (CMSSW_4_2_5 / V15-03-14 / L1FastJetL2L3)
+mc.add("dyll_jets_mg_summer11", '%s/mstoye//ICF/automated/2011_08_06_17_06_28/")'%srm, xs = {"LO":2475.0, "NNLO":3048}["NNLO"])
+mc.add("tt_jets_mg_tauola_summer11", '%s/mstoye//ICF/automated/2011_07_30_02_06_09/", alwaysUseLastAttempt = True)'%srm, xs = {"LO":94.76, "guessNLO":157.5}["guessNLO"])
+
+l = 'utils.fileListFromDisk(isDirectory = False, location = "/vols/cms02/elaird1/29_skims/08_mumu/v2'
+mc.add("dyll_jets_mg_summer11_mumuSkim",      '%s/dyll_jets_mg_summer11_*_skim.root")'     %l, xs = 1.581657e-01 * 3.048000e+03)
+mc.add("tt_jets_mg_tauola_summer11_mumuSkim", '%s/tt_jets_mg_tauola_summer11_*_skim.root")'%l, xs = 1.276058e-02 * 1.575000e+02)
+
+l = 'utils.fileListFromDisk(isDirectory = False, location = "/vols/cms02/elaird1/29_skims/08_mumu/v3'
+mc.add("dyll_jets_mg_summer11_mumuHtSkim",      '%s/dyll_jets_mg_summer11_mumuSkim_*_skim.root")'     %l, xs = 6.685125e-03 * 4.820891e+02)
+mc.add("tt_jets_mg_tauola_summer11_mumuHtSkim", '%s/tt_jets_mg_tauola_summer11_mumuSkim_*_skim.root")'%l, xs = 2.900146e-01 * 2.009791e+00)
+
 # Z->nunu (HT binned)
 zNunuLoc = "/dburton//ICF/automated/2011_10_10_13_33_29/"
 tag = "7TeV-madgraph.Summer11-PU_S4_START42_V11-v1.AODSIM"
@@ -112,11 +124,8 @@ mc.add("znunu_jets_mg_ht_100_200_summer11_skim", '%s"%s/znunu_jets_mg_ht_100_200
 mc.add("znunu_jets_mg_ht_200_inf_summer11_skim", '%s"%s/znunu_jets_mg_ht_200_inf_*_skim.root")'%(l, dir), xs = 5.364460e-01 *  32.9*mgKFactor)
 
 # W->lnu (HT binned)
-wFactor = 31314./24640
+wFactor = 31314./27770.0
 mc.add("w_jets_mg_tauola_ht_300_inf_summer11", '%s/gouskos//ICF/automated/2011_08_19_18_17_37/")'%srm, xs = {"LO":48.49, "guessNLO":48.49*wFactor}["guessNLO"])
-
-# TT
-mc.add("tt_jets_mg_tauola_summer11", '%s/mstoye//ICF/automated/2011_07_30_02_06_09/", alwaysUseLastAttempt = True)'%srm, xs = {"LO":94.76, "guessNLO":157.5}["guessNLO"])
 
 # G + jets (HT binned)
 gJetMg = "/elaird//ICF/automated/2011_10_14_14_40_23/"

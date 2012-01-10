@@ -435,7 +435,7 @@ class hadronicLookEps(supy.analysis) :
     def makeStandardPlots(self, org) :
         #plot
         supy.plotter(org,
-                     psFileName = self.psFileName(org.tag),
+                     pdfFileName = self.pdfFileName(org.tag),
                      samplesForRatios = ("2011 Data","standard_model" if not self.ra1Cosmetics() else "Standard Model "),
                      sampleLabelsForRatios = ("data","s.m."),
                      #samplesForRatios = ("calo_325_scaled.xcak5JetnJetsWeightPat", "calo_325_scaled"),
@@ -455,7 +455,7 @@ class hadronicLookEps(supy.analysis) :
     def makeIndividualPlots(self, org) :
         #plot all
         pl = supy.plotter(org,
-                          psFileName = self.psFileName(org.tag),
+                          pdfFileName = self.pdfFileName(org.tag),
                           showStatBox = False,
                           doLog = True,
                           pegMinimum = 0.1,                             

@@ -5,17 +5,6 @@ try:
 except:
     pass
 
-class pt(wrappedChain.calculable) :
-    def __init__(self,var) :
-        self.fixes = ("%s."%var, "")
-        self.var = var
-    def update(self,_) : self.value = self.source[self.var].pt()
-#####################################
-class eta(wrappedChain.calculable) :
-    def __init__(self,var) :
-        self.fixes = ("%s."%var, "")
-        self.var = var
-    def update(self,_) : self.value = self.source[self.var].eta()
 #####################################
 class ecalDeadTowerIsBarrel(wrappedChain.calculable) :
     etaBE = configuration.detectorSpecs()["cms"]["etaBE"]

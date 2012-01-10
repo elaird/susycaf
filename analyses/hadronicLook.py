@@ -460,7 +460,7 @@ class hadronicLook(supy.analysis) :
 
     def makeStandardPlots(self, org) :
         #plot
-        pl = plotter.plotter(org,
+        pl = supy.plotter(org,
                              psFileName = self.psFileName(org.tag),
                              samplesForRatios = ("2011 Data","Standard Model "),
                              sampleLabelsForRatios = ("data","s.m."),
@@ -481,7 +481,7 @@ class hadronicLook(supy.analysis) :
 
     def makeIndividualPlots(self, org) :
         #plot all
-        pl = plotter.plotter(org,
+        pl = supy.plotter(org,
                              psFileName = self.psFileName(org.tag),
                              showStatBox = False,
                              doLog = True,

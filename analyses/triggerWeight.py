@@ -35,7 +35,8 @@ class triggerWeight(supy.analysis) :
                 }
     
     def listOfCalculables(self,pars) :
-        return (supy.calculables.zeroArgs() +
+        return (supy.calculables.zeroArgs(supy.calculables) +
+                supy.calculables.zeroArgs(calculables) +
                 supy.calculables.fromCollections(calculables.muon,[pars["muon"]]) +
                 [calculables.muon.Indices( pars["muon"], ptMin = 10, combinedRelIsoMax = 0.15),
                  calculables.muon.IndicesTriggering( pars['muon'] ),
@@ -48,36 +49,36 @@ class triggerWeight(supy.analysis) :
     def listOfSteps(self,pars) :
         return [
             supy.steps.printer.progressPrinter(),
-            supy.steps.other.histogrammer("genpthat",200,0,1000,title=";#hat{p_{T}} (GeV);events / bin"),
+            supy.steps.histos.value("genpthat",200,0,1000,xtitle="#hat{p_{T}} (GeV)").onlySim(),
             supy.steps.filters.multiplicity("vertexIndices",min=1),
-            steps.trigger.l1Filter("L1Tech_BPTX_plus_AND_minus.v0"),
-            steps.trigger.physicsDeclaredFilter(),
+            supy.steps.filters.value('physicsDeclared',min=1).onlyData(),
+            supy.steps.filters.value('hbheNoiseFilterResult',min=1).onlyData(),
+            steps.trigger.l1Filter("L1Tech_BPTX_plus_AND_minus.v0").onlyData(),
             steps.filters.monster(),
-            steps.filters.hbheNoise(),
             calculables.trigger.TriggerWeight(samples = [ss.weightedName for ss in self.listOfSamples(pars) if 'SingleMu' in ss.name],
                                               triggers = zip(*pars['triggers'])[0], thresholds = zip(*pars['triggers'])[1],
                                               unreliable = self.unreliableTriggers()),
             supy.calculables.other.Ratio("nVertex", binning = (15,-0.5,14.5), thisSample = pars['baseSample'],
                                          target = ("SingleMu",[]), groups = [('qcd_py6',[]),('w_jets_fj_mg',[]),('tt_tauola_fj_mg',[])]),
-            steps.histos.value("%sCombinedRelativeIso%s"%pars['muon'], 100, 0, 1, "%sIndicesTriggering%s"%pars['muon'], index=0),
-            steps.histos.absEta("%sP4%s"%pars['muon'], 200,0,2.2, "%sIndicesTriggering%s"%pars['muon'], index=0),
-            steps.histos.phi("%sP4%s"%pars['muon'], 200,-math.pi,math.pi, "%sIndicesTriggering%s"%pars['muon'], index=0),
-            steps.histos.generic(("%sP4%s"%pars['muon'],"%sTriggeringIndex%s"%pars['muon']),
-                                 (100,100),(0,-math.pi),(2.2,math.pi), title = ";mu |eta|;mu phi;events / bin",
-                                 funcString = "lambda x: (abs(x[0][x[1]].eta()),x[0][x[1]].phi())" ),
+            supy.steps.histos.value("%sCombinedRelativeIso%s"%pars['muon'], 100, 0, 1, "%sIndicesTriggering%s"%pars['muon'], index=0),
+            supy.steps.histos.absEta("%sP4%s"%pars['muon'], 200,0,2.2, "%sIndicesTriggering%s"%pars['muon'], index=0),
+            supy.steps.histos.phi("%sP4%s"%pars['muon'], 200,-math.pi,math.pi, "%sIndicesTriggering%s"%pars['muon'], index=0),
+            supy.steps.histos.generic(("%sP4%s"%pars['muon'],"%sTriggeringIndex%s"%pars['muon']),
+                                      (100,100),(0,-math.pi),(2.2,math.pi), title = ";mu |eta|;mu phi;events / bin",
+                                      funcString = "lambda x: (abs(x[0][x[1]].eta()),x[0][x[1]].phi())" ),
 
             supy.steps.filters.absEta( "%sP4%s"%pars['muon'], min = 1.8, indices = "%sIndicesTriggering%s"%pars['muon'], index = 0),
             #supy.steps.filters.value("%sTriggeringPt%s"%pars['muon'], min = 35, max = 45),
 
-            steps.histos.pt("%sP4%s"%pars['muon'], 200,0,200, "%sIndicesTriggering%s"%pars['muon'], index=0),
-            steps.histos.pt("%sP4%s"%pars['muon'], 200,30,50, "%sIndicesTriggering%s"%pars['muon'], index=0),
+            supy.steps.histos.pt("%sP4%s"%pars['muon'], 200,0,200, "%sIndicesTriggering%s"%pars['muon'], index=0),
+            supy.steps.histos.pt("%sP4%s"%pars['muon'], 200,30,50, "%sIndicesTriggering%s"%pars['muon'], index=0),
 
-            steps.histos.value("%sCombinedRelativeIso%s"%pars['muon'], 100, 0, 1, "%sIndicesTriggering%s"%pars['muon'], index=0),
-            steps.histos.absEta("%sP4%s"%pars['muon'], 200,0,2.2, "%sIndicesTriggering%s"%pars['muon'], index=0),
-            steps.histos.phi("%sP4%s"%pars['muon'], 200,-math.pi,math.pi, "%sIndicesTriggering%s"%pars['muon'], index=0),
-            steps.histos.generic(("%sP4%s"%pars['muon'],"%sTriggeringIndex%s"%pars['muon']),
-                                 (100,100),(0,-math.pi),(2.2,math.pi), title = ";mu |eta|;mu phi;events / bin",
-                                 funcString = "lambda x: (abs(x[0][x[1]].eta()),x[0][x[1]].phi())" ),
+            supy.steps.histos.value("%sCombinedRelativeIso%s"%pars['muon'], 100, 0, 1, "%sIndicesTriggering%s"%pars['muon'], index=0),
+            supy.steps.histos.absEta("%sP4%s"%pars['muon'], 200,0,2.2, "%sIndicesTriggering%s"%pars['muon'], index=0),
+            supy.steps.histos.phi("%sP4%s"%pars['muon'], 200,-math.pi,math.pi, "%sIndicesTriggering%s"%pars['muon'], index=0),
+            supy.steps.histos.generic(("%sP4%s"%pars['muon'],"%sTriggeringIndex%s"%pars['muon']),
+                                      (100,100),(0,-math.pi),(2.2,math.pi), title = ";mu |eta|;mu phi;events / bin",
+                                      funcString = "lambda x: (abs(x[0][x[1]].eta()),x[0][x[1]].phi())" ),
             ]
             
     def listOfSampleDictionaries(self) : return [samples.muon,samples.mc]
@@ -113,5 +114,5 @@ class triggerWeight(supy.analysis) :
         kwargs = { "blackList":["lumiHisto","xsHisto","nJobsHisto","muonTriggerWeightPF"],
                    "samplesForRatios":("SingleMu","s.m.") if "s.m." in [ss['name'] for ss in org.samples] else ("","")}
 
-        supy.plotter(org, psFileName = self.psFileName(org.tag+'_log'),   doLog = True,  **kwargs).plotAll()
-        supy.plotter(org, psFileName = self.psFileName(org.tag+'_nolog'), doLog = False, **kwargs).plotAll()
+        supy.plotter(org, pdfFileName = self.pdfFileName(org.tag+'_log'),   doLog = True,  **kwargs).plotAll()
+        supy.plotter(org, pdfFileName = self.pdfFileName(org.tag+'_nolog'), doLog = False, **kwargs).plotAll()

@@ -28,4 +28,4 @@ class triggerLook(supy.analysis) :
 
     def conclude(self, pars) :
         org = self.organizer(pars)
-        supy.plotter(org, psFileName = self.psFileName(org.tag), blackList = ["lumiHisto","xsHisto","nJobsHisto"]).plotAll()
+        supy.plotter(org, pdfFileName = self.pdfFileName(org.tag), blackList = ["lumiHisto","xsHisto","nJobsHisto"]).plotAll()

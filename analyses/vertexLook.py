@@ -240,8 +240,8 @@ class vertexLook(analysis.analysis) :
             org.mergeSamples(targetSpec = {"name":"2010 Data", "color":r.kBlack, "markerStyle":20}, allWithPrefix="Run2010")
             org.scale()
 
-            pl = plotter.plotter(org,
-                                 psFileName = self.psFileName(tag),
+            pl = supy.plotter(org,
+                                 pdfFileName = self.pdfFileName(tag),
                                  samplesForRatios=("2010 Data","qcd_py8"),
                                  sampleLabelsForRatios=("data","qcd"),
                                  )

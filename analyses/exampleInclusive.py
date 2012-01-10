@@ -23,6 +23,6 @@ class exampleInclusive(supy.analysis) :
         org.mergeSamples(targetSpec = {"name":"qcd_py6", "color":r.kBlue}, allWithPrefix="v12_qcd_py6")
         org.scale(100)
         supy.plotter( org,
-                      psFileName = self.psFileName(org.tag),
+                      pdfFileName = self.pdfFileName(org.tag),
                       blackList = ["lumiHisto","xsHisto","xsPostWeightsHisto","nJobsHisto"],
                       ).plotAll()

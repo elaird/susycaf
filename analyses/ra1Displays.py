@@ -1,8 +1,7 @@
-from core import analysis
-import steps,calculables,samples
-import copy,os,ROOT as r
+import supy,steps,calculables,samples
+import ROOT as r
 
-class ra1Displays(analysis.analysis) :
+class ra1Displays(supy.analysis) :
     def useCachedFileLists(self) : return False
     
     def parameters(self) :
@@ -31,7 +30,7 @@ class ra1Displays(analysis.analysis) :
     def calcListJet(self, obj, etRatherThanPt, ptMin, lowPtThreshold, lowPtName, highPtThreshold, highPtName, htThreshold) :
         def calcList(jet, met, photon, muon, electron, muonsInJets, jetIdFlag) :
             outList = [
-                calculables.XClean.xcJet(jet,
+                calculables.xclean.xcJet(jet,
                                          applyResidualCorrectionsToData = False,
                                          gamma = photon,
                                          gammaDR = 0.5,
@@ -40,22 +39,22 @@ class ra1Displays(analysis.analysis) :
                                          correctForMuons = not muonsInJets,
                                          electron = electron,
                                          electronDR = 0.5),
-                calculables.Jet.Indices( jet, ptMin = ptMin,           etaMax = 3.0, flagName = jetIdFlag),
-                calculables.Jet.Indices( jet, ptMin = lowPtThreshold,  etaMax = 3.0, flagName = jetIdFlag, extraName = lowPtName),
-                calculables.Jet.Indices( jet, ptMin = highPtThreshold, etaMax = 3.0, flagName = jetIdFlag, extraName = highPtName),
+                calculables.jet.Indices( jet, ptMin = ptMin,           etaMax = 3.0, flagName = jetIdFlag),
+                calculables.jet.Indices( jet, ptMin = lowPtThreshold,  etaMax = 3.0, flagName = jetIdFlag, extraName = lowPtName),
+                calculables.jet.Indices( jet, ptMin = highPtThreshold, etaMax = 3.0, flagName = jetIdFlag, extraName = highPtName),
                 
-                calculables.Jet.SumP4(jet),
-                calculables.Jet.SumP4(jet, extraName = lowPtName),
-                calculables.Jet.SumP4(jet, extraName = highPtName),
-                calculables.Jet.DeltaPhiStar(jet, extraName = lowPtName),
-                calculables.Jet.DeltaPseudoJet(jet, etRatherThanPt),
-                calculables.Jet.AlphaT(jet, etRatherThanPt),
-                calculables.Jet.AlphaTMet(jet, etRatherThanPt, met),
-                calculables.Jet.MhtOverMet((jet[0], jet[1]+highPtName), met),
-                calculables.Jet.deadEcalDR(jet, extraName = lowPtName, minNXtals = 10),
-                calculables.Other.FixedValue("%sFixedHtBin%s"%jet, htThreshold),
+                calculables.jet.SumP4(jet),
+                calculables.jet.SumP4(jet, extraName = lowPtName),
+                calculables.jet.SumP4(jet, extraName = highPtName),
+                calculables.jet.DeltaPhiStar(jet, extraName = lowPtName),
+                calculables.jet.DeltaPseudoJet(jet, etRatherThanPt),
+                calculables.jet.AlphaT(jet, etRatherThanPt),
+                calculables.jet.AlphaTMet(jet, etRatherThanPt, met),
+                calculables.jet.MhtOverMet((jet[0], jet[1]+highPtName), met),
+                calculables.jet.deadEcalDR(jet, extraName = lowPtName, minNXtals = 10),
+                supy.calculables.other.fixedValue("%sFixedHtBin%s"%jet, htThreshold),
                 ]
-            return outList+calculables.fromCollections(calculables.Jet, [jet])
+            return outList+supy.calculables.fromCollections(calculables.jet, [jet])
 
         outList = calcList(obj["jet"], obj["met"], obj["photon"], obj["muon"], obj["electron"], obj["muonsInJets"], obj["jetId"])
         if all([("comp"+item in obj) for item in ["Jet", "Met","MuonsInJets","JetId"]]) :
@@ -64,58 +63,59 @@ class ra1Displays(analysis.analysis) :
 
     def calcListOther(self, obj) :
         return [
-            calculables.XClean.IndicesUnmatched(collection = obj["photon"], xcjets = obj["jet"], DR = 0.5),
-            calculables.XClean.IndicesUnmatched(collection = obj["electron"], xcjets = obj["jet"], DR = 0.5),
+            calculables.xclean.IndicesUnmatched(collection = obj["photon"], xcjets = obj["jet"], DR = 0.5),
+            calculables.xclean.IndicesUnmatched(collection = obj["electron"], xcjets = obj["jet"], DR = 0.5),
 
-            calculables.Muon.Indices(obj["muon"], ptMin = 10, combinedRelIsoMax = 0.15),
-            calculables.Electron.Indices(obj["electron"], ptMin = 10, simpleEleID = "95", useCombinedIso = True),
-            calculables.Photon.Indices(obj["photon"],  ptMin = 25, flagName = "photonIDLooseFromTwikiPat"),
+            calculables.muon.Indices(obj["muon"], ptMin = 10, combinedRelIsoMax = 0.15),
+            calculables.electron.Indices(obj["electron"], ptMin = 10, simpleEleID = "95", useCombinedIso = True),
+            calculables.photon.Indices(obj["photon"],  ptMin = 25, flagName = "photonIDLooseFromTwikiPat"),
             #calculables.Photon.Indices(obj["photon"],  ptMin = 25, flagName = "photonIDTightFromTwikiPat"),
 
-            calculables.Other.RecHitSumPt(obj["rechit"]),
-            calculables.Other.RecHitSumP4(obj["rechit"]),
-            calculables.Vertex.ID(),
-            calculables.Vertex.Indices(),
+            calculables.other.RecHitSumPt(obj["rechit"]),
+            calculables.other.RecHitSumP4(obj["rechit"]),
+            calculables.vertex.ID(),
+            calculables.vertex.Indices(),
             ]
     
     def listOfCalculables(self, params) :
         obj = params["objects"]
-        outList  = calculables.zeroArgs()
-        outList += calculables.fromCollections(calculables.Muon, [obj["muon"]])
-        outList += calculables.fromCollections(calculables.Electron, [obj["electron"]])
-        outList += calculables.fromCollections(calculables.Photon, [obj["photon"]])
+        outList = []
+        outList += supy.calculables.zeroArgs(supy.calculables)
+        outList += supy.calculables.zeroArgs(calculables)
+        outList += supy.calculables.fromCollections(calculables.muon, [obj["muon"]])
+        outList += supy.calculables.fromCollections(calculables.electron, [obj["electron"]])
+        outList += supy.calculables.fromCollections(calculables.photon, [obj["photon"]])
         outList += self.calcListOther(obj)
         outList += self.calcListJet(obj, params["etRatherThanPt"], params["thresholds"][3],
                                     params["lowPtThreshold"], params["lowPtName"], params["highPtThreshold"], params["highPtName"], params["thresholds"][0])
         return outList
     
     def listOfSteps(self, params) :
-        from steps import Print,Displayer,Other
         return [
-            Print.progressPrinter(),
-            Other.variableGreaterFilter(575, "%sSumEt%s"%params["objects"]["jet"], suffix = "GeV"),
-            Displayer.displayer(jets      = params["objects"]["jet"],
-                                muons     = params["objects"]["muon"],
-                                met       = params["objects"]["met"],
-                                electrons = params["objects"]["electron"],
-                                photons   = params["objects"]["photon"],                            
-                                recHits   = params["objects"]["rechit"], recHitPtThreshold = 1.0,#GeV
-                                scale = 400.0,#GeV
-                                etRatherThanPt = params["etRatherThanPt"],
-                                deltaPhiStarExtraName = params["lowPtName"],
-                                deltaPhiStarCut = 0.5,
-                                deltaPhiStarDR = 0.3,
-                                j2Factor = params["thresholds"][2]/params["thresholds"][0],
-                                mhtOverMetName = "%sMht%sOver%s"%(params["objects"]["jet"][0], params["objects"]["jet"][1]+params["highPtName"], params["objects"]["met"]),
-                                metOtherAlgo  = params["objects"]["compMet"],
-                                jetsOtherAlgo = params["objects"]["compJet"],
-                                #doGenJets = True,
-                                #prettyMode = True,
-                                ),
+            supy.steps.printer.progressPrinter(),
+            #supy.steps.filters.value("%sSumEt%s"%params["objects"]["jet"], min = 575),
+            steps.displayer.displayer(jets      = params["objects"]["jet"],
+                                      muons     = params["objects"]["muon"],
+                                      met       = params["objects"]["met"],
+                                      electrons = params["objects"]["electron"],
+                                      photons   = params["objects"]["photon"],
+                                      recHits   = params["objects"]["rechit"], recHitPtThreshold = 1.0,#GeV
+                                      scale = 400.0,#GeV
+                                      etRatherThanPt = params["etRatherThanPt"],
+                                      deltaPhiStarExtraName = params["lowPtName"],
+                                      deltaPhiStarCut = 0.5,
+                                      deltaPhiStarDR = 0.3,
+                                      j2Factor = params["thresholds"][2]/params["thresholds"][0],
+                                      mhtOverMetName = "%sMht%sOver%s"%(params["objects"]["jet"][0], params["objects"]["jet"][1]+params["highPtName"], params["objects"]["met"]),
+                                      metOtherAlgo  = params["objects"]["compMet"],
+                                      jetsOtherAlgo = params["objects"]["compJet"],
+                                      #doGenJets = True,
+                                      #prettyMode = True,
+                                      ),
             ]
     
     def listOfSampleDictionaries(self) :
-        sampleDict = samples.SampleHolder()
+        sampleDict = supy.samples.SampleHolder()
         sampleDict.add("MT2_events", '["/home/hep/bm409/public_html/MT2Skim.root"]', lumi = 600)
         #sampleDict.add("Data_375", '["/home/hep/elaird1/73_candidates/v8/375.root"]', lumi = 1.1e3)
         sampleDict.add("Data_375", '["/home/hep/elaird1/73_candidates/v9/HT_375_skim_27fb.root"]', lumi = 2.7e3)
@@ -127,4 +127,4 @@ class ra1Displays(analysis.analysis) :
         return [sampleDict]
     
     def listOfSamples(self,params) :
-        return samples.specify(names = "Data_375")
+        return supy.samples.specify(names = "Data_375")

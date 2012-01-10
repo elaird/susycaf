@@ -176,7 +176,7 @@ class IndicesGenB(wrappedChain.calculable) :
         for iGenB in self.source["genIndicesB"] :
             bP4 = genP4s[iGenB]
             p4 = p4s[index]
-            if r.Math.VectorUtil.DeltaR(p4,bP4) < 0.5 and abs(p4.pt()-bP4.pt()) / bP4.pt() < 0.4 : return True
+            if r.Math.VectorUtil.DeltaR(p4,bP4) < 0.6 : return True #and abs(p4.pt()-bP4.pt()) / bP4.pt() < 0.4 : return True
         return False
     def update(self,ignored) : self.value = filter(self.matchesGenB, self.source[self.Indices])
 ###################################
@@ -843,7 +843,7 @@ class ProbabilityGivenBQN(calculables.secondary) :
         self.bvar = ("%s"+bvar+"%s")%xcStrip(collection)
         for item in ['binning','samples','tag'] : setattr(self,item,eval(item))
         self.stash(['Indices','IndicesGenB','IndicesGenWqq'])
-        self.moreName = tag + '; ' + ','.join(samples[1] if samples[1] else [samples[0]])
+        self.moreName = (tag if tag!=None else '') + '; ' + ','.join(samples[1] if samples[1] else [samples[0]])
     @property
     def name(self) : return self.__name
 
@@ -869,10 +869,12 @@ class ProbabilityGivenBQN(calculables.secondary) :
                       for bvar in self.source[self.bvar]]
         
     def organize(self,org) :
-        if self.samples[1] : org.mergeSamples( targetSpec = {'name':self.samples[0]}, sources = self.samples[1] )
+        if org.tag != self.tag : return
+        if self.samples[1] :
+            missing = [s for s in self.samples[1] if s not in [ss['name'] for ss in org.samples]]
+            if missing: print self.name, "-- no such samples :\n", missing
+            org.mergeSamples( targetSpec = {'name':self.samples[0]}, sources = self.samples[1] )
         else: org.mergeSamples( targetSpec = {'name':self.samples[0]}, allWithPrefix = self.samples[0] )
-        for sample in org.samples:
-            if sample['name']!=self.samples[0] : org.drop(sample['name'])
 #####################################
 class CorrectedP4(wrappedChain.calculable) :
     def __init__(self, genJets = None) : #purposefully not called collection
