@@ -155,7 +155,9 @@ class hadronicLook(supy.analysis) :
     
     def listOfCalculables(self, params) :
         obj = params["objects"]
-        outList  = supy.calculables.zeroArgs(supy.calculables)
+        outList = []
+        outList += supy.calculables.zeroArgs(supy.calculables)
+        outList += supy.calculables.zeroArgs(calculables)
         outList += supy.calculables.fromCollections(calculables.muon, [obj["muon"]])
         outList += supy.calculables.fromCollections(calculables.electron, [obj["electron"]])
         outList += supy.calculables.fromCollections(calculables.photon, [obj["photon"]])
@@ -179,15 +181,15 @@ class hadronicLook(supy.analysis) :
         htUpper = [steps.other.variableLessFilter(params["thresholds"][1],"%sSum%s%s"%(_jet[0], _et, _jet[1]), "GeV")] if params["thresholds"][1]!=None else []
         return scanBefore + [
             steps.printer.progressPrinter(),
-            steps.trigger.lowestUnPrescaledTriggerFilter(),
-            steps.trigger.l1Filter("L1Tech_BPTX_plus_AND_minus.v0"),
+            steps.trigger.lowestUnPrescaledTriggerFilter().onlyData(),
+            steps.trigger.l1Filter("L1Tech_BPTX_plus_AND_minus.v0").onlyData(),
             
-            steps.trigger.physicsDeclaredFilter(),
+            steps.trigger.physicsDeclaredFilter().onlyData(),
             steps.filters.monster(),
-            steps.filters.hbheNoise(),
+            steps.filters.hbheNoise().onlyData(),
 
             supy.steps.histos.histogrammer("genpthat",200,0,1000,title=";#hat{p_{T}} (GeV);events / bin").onlySim(),
-            steps.trigger.hltPrescaleHistogrammer(params["triggerList"]),
+            steps.trigger.hltPrescaleHistogrammer(params["triggerList"]).onlyData(),
             
             #steps.other.cutSorter([
 
@@ -229,7 +231,7 @@ class hadronicLook(supy.analysis) :
             #supy.steps.histos.histogrammer("logErrorTooManyClusters", 2, 0.0, 1.0, title = ";logErrorTooManyClusters;events / bin"),
             
             #many plots
-            steps.trigger.lowestUnPrescaledTriggerHistogrammer(),
+            steps.trigger.lowestUnPrescaledTriggerHistogrammer().onlyData(),
             supy.steps.filters.label("singleJetPlots1"),
             steps.jet.singleJetHistogrammer(_jet),
             supy.steps.filters.label("jetSumPlots1"), 
