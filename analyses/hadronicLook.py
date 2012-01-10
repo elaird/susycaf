@@ -95,7 +95,7 @@ class hadronicLook(supy.analysis) :
                                                 ("325_scaled", (325.0, 375.0,  86.7, 43.3)),#3
                                                 ("275_scaled", (275.0, 325.0,  73.3, 36.7)),#4
                                                 ][2:3] )),
-                 "triggerList": triggers_mht_2011,
+                 "triggerList": triggers_ht_eps,
                  }
 
     def ra1Cosmetics(self) : return False
@@ -404,7 +404,7 @@ class hadronicLook(supy.analysis) :
                      specify(names = wName, effectiveLumi = eL, color = 28         ) )
 
         def susy(eL) :
-            return specify(names = "lm6", effectiveLumi = eL, color = r.kRed)
+            return specify(names = "lm6", effectiveLumi = eL, color = r.kRed-1) + specify(names = "lm4", effectiveLumi = eL, color = r.kRed-2)
 
         def scan(tanBeta) :
             return specify(names = "scan_tanbeta%d"%tanBeta, color = r.kMagenta, nFilesMax = 1)
@@ -412,12 +412,12 @@ class hadronicLook(supy.analysis) :
         qcd_func,g_jets_func = {"py6": (qcd_py6,g_jets_py6),
                                 "py8": (qcd_py8,g_jets_py6), # no g_jets_py8 available
                                 "mg" : (qcd_mg, g_jets_mg ) }[params["mcSoup"]]
-        #era = "spring11"
-        era = "summer11"
+        era = "spring11"
+        #era = "summer11"
         smLumi = 30000 # 1/pb
-        susyLumi = 60000
+        susyLumi = 600
         #return data()
-        return ( data() +
+        return ( dataEps() +
                  qcd_func(smLumi) + #g_jets_func(eL) +
                  ttbar_mg(smLumi, era = era) + ewk(smLumi, era = era) +
                  susy(susyLumi)
