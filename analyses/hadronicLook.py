@@ -417,7 +417,7 @@ class hadronicLook(supy.analysis) :
         era = "spring11"
         #era = "summer11"
         smLumi = 30000 # 1/pb
-        susyLumi = 600
+        susyLumi = 60000
         #return data()
         return ( dataEps() +
                  qcd_func(smLumi) + #g_jets_func(eL) +
@@ -474,7 +474,7 @@ class hadronicLook(supy.analysis) :
                           #compactOutput = True,
                           #noSci = True,
                           #latexYieldTable = True,
-                          linYAfter = ("variableGreaterFilter", "xcak5JetAlphaTEtPat>=0.550 "),
+                          linYAfter = ("value", "0.55<=xcak5JetAlphaTEtPat"),
                           pegMinimum = 0.1,
                           blackList = ["lumiHisto","xsHisto","nJobsHisto"],
                           )
