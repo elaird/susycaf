@@ -310,7 +310,7 @@ class hadronicLook(supy.analysis) :
             ] + scanAfter + [supy.steps.filters.value("%sSumEt%s"%_jet, min = bin) for bin in [475, 575, 675, 775, 875]]
     
     def listOfSampleDictionaries(self) :
-        return [samples.ht, samples.jetmet, samples.mc]
+        return [samples.ht, samples.jetmet, samples.mc, samples.top]
 
     def listOfSamples(self,params) :
         from supy.samples import specify
@@ -390,7 +390,10 @@ class hadronicLook(supy.analysis) :
             if era=="spring11" : names = "tt_tauola_mg"
             if era=="summer11" : names = "tt_jets_mg_tauola_summer11"
             return specify( names = names, effectiveLumi = eL, color = r.kOrange)
-        
+
+        def top_ph(eL) :
+            return specify( names = self.singleTopList(), effectiveLumi = eL, color = r.kOrange-7)
+            
         def ewk(eL, era = "") :
             zName = ""
             wName = ""
@@ -421,9 +424,13 @@ class hadronicLook(supy.analysis) :
         #return data()
         return ( dataEps() +
                  qcd_func(smLumi) + #g_jets_func(eL) +
+                 top_ph(smLumi) +
                  ttbar_mg(smLumi, era = era) + ewk(smLumi, era = era) +
                  susy(susyLumi)
                  ) if params["tanBeta"]==None else scan(params["tanBeta"])
+
+    def singleTopList(self) :
+        return ["top_s_ph", "top_t_ph", "top_tW_ph", "tbar_s_ph", "tbar_t_ph", "tbar_tW_ph"]
 
     def mergeSamples(self, org) :
         def md(x, y) :
@@ -436,6 +443,7 @@ class hadronicLook(supy.analysis) :
         if "pythia6"  in org.tag :
             org.mergeSamples(targetSpec = md({"name":"QCD Multijet", "color":r.kGreen+3}, mcOps), allWithPrefix = "qcd_py6")
         org.mergeSamples(targetSpec = md({"name":"tt", "color": r.kBlue}, mcOps), allWithPrefix = "tt")
+        org.mergeSamples(targetSpec = md({"name":"t",  "color": r.kOrange-7}, mcOps), sources = self.singleTopList())
         org.mergeSamples(targetSpec = md({"name":"Z + jets", "color": r.kRed+1}, mcOps), allWithPrefix = "z")
         org.mergeSamples(targetSpec = md({"name":"W + jets", "color": r.kOrange-3}, mcOps), allWithPrefix = "w_jets")
         org.mergeSamples(targetSpec = md({"name":"LM6", "color":r.kMagenta}, mcOps), allWithPrefix = "lm6")
