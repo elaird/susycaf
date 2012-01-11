@@ -448,7 +448,8 @@ class hadronicLook(supy.analysis) :
         org.mergeSamples(targetSpec = md({"name":"t",  "color": r.kOrange-7}, mcOps), sources = self.singleTopList())
         org.mergeSamples(targetSpec = md({"name":"Z + jets", "color": r.kRed+1}, mcOps), allWithPrefix = "z")
         org.mergeSamples(targetSpec = md({"name":"W + jets", "color": r.kOrange-3}, mcOps), allWithPrefix = "w_jets")
-        org.mergeSamples(targetSpec = md({"name":"LM6", "color":r.kMagenta}, mcOps), allWithPrefix = "lm6")
+        org.mergeSamples(targetSpec = md({"name":"LM6", "color":r.kMagenta},   mcOps), allWithPrefix = "lm6")
+        org.mergeSamples(targetSpec = md({"name":"LM4", "color":r.kMagenta+1}, mcOps), allWithPrefix = "lm4")
         ewkSources = ["tt", "Z + jets", "W + jets"]
         qcdSources = ["QCD Multijet"]
 
