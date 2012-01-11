@@ -391,7 +391,7 @@ class hadronicLook(supy.analysis) :
             if era=="summer11" : names = "tt_jets_mg_tauola_summer11"
             return specify( names = names, effectiveLumi = eL, color = r.kOrange)
 
-        def top_ph(eL) :
+        def single_top_ph(eL) :
             return specify( names = self.singleTopList(), effectiveLumi = eL, color = r.kOrange-7)
             
         def ewk(eL, era = "") :
@@ -424,13 +424,15 @@ class hadronicLook(supy.analysis) :
         #return data()
         return ( dataEps() +
                  qcd_func(smLumi) + #g_jets_func(eL) +
-                 top_ph(smLumi) +
+                 single_top_ph(smLumi) +
                  ttbar_mg(smLumi, era = era) + ewk(smLumi, era = era) +
                  susy(susyLumi)
                  ) if params["tanBeta"]==None else scan(params["tanBeta"])
 
     def singleTopList(self) :
-        return ["top_s_ph", "top_t_ph", "top_tW_ph", "tbar_s_ph", "tbar_t_ph", "tbar_tW_ph"]
+        l = [#"top_s_ph",
+             "top_t_ph", "top_tW_ph", "tbar_s_ph", "tbar_t_ph", "tbar_tW_ph"]
+        return [s+"_summer11" for s in l]
 
     def mergeSamples(self, org) :
         def md(x, y) :
