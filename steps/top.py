@@ -233,8 +233,18 @@ class resolutions(analysisStep) :
 
         genTTbar = ev["genTopTTbar"]
         if not genTTbar : return
-        iLep = min(0,topReco[index]["lepCharge"])
+        iX = ev['genTopIndicesX']
 
+        self.book.fill(len(iX), "multiplicity_iX", 5, -0.5, 4.5, title = ";n extra hard;events / bin")
+        self.book.fill((len(iX),0 if topReco[index]['iX']==None else 1), "multiplicity_iX_v_reco", (5,2), (-0.5,-0.5), (4.5,1.5), title = ";n extra hard;n chosen xhard;events / bin")
+
+        gsP4 = ev['genSumP4']
+
+        self.book.fill( topReco[index]['ttx'].pz() - gsP4.pz(), "resolution_pz", 100, -500, 500, title = ";%s #Delta_{reco-gen} ttx.pz;events / bin"%self.moreName )
+        self.book.fill( topReco[index]['ttx'].pt() - gsP4.pt(), "resolution_pt", 100, -100, 100, title = ";%s #Delta_{reco-gen} ttx.pt;events / bin"%self.moreName )
+        self.book.fill( topReco[index]['ttx'].mass() - gsP4.mass(), "resolution_m", 100, -100, 100, title = ";%s #Delta_{reco-gen} ttx.m;events / bin"%self.moreName )
+
+        iLep = min(0,topReco[index]["lepCharge"])
 
         for func in ['Rapidity','eta'] :
             gen = (getattr(ev["genP4"][genTTbar[0]],func)(), getattr(ev["genP4"][genTTbar[1]],func)())

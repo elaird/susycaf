@@ -8,7 +8,7 @@ class TwoToTwo(wrappedChain.calculable) :
 class genSumP4(wrappedChain.calculable) :
     def update(self,_) :
         genP4 = self.source['genP4']
-        self.value = genP4.at(2) + genP4.at(3)
+        self.value = genP4.at(4) + genP4.at(5)
 ##############################
 class wNonQQbar(wrappedChain.calculable) :
     def update(self,_) :
