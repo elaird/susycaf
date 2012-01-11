@@ -271,24 +271,23 @@ class topAsymm(supy.analysis) :
              ####################################
              , ssteps.filters.label("selection complete")
 
-             #, ssteps.histos.multiplicity("%sIndices%s"%obj["jet"])
-             #, ssteps.histos.value("%sM3%s"%obj['jet'], 20,0,800)
-             #, ssteps.histos.value("fitTopRadiativeCoherence", 100,-1,1)
+             , ssteps.histos.multiplicity("%sIndices%s"%obj["jet"])
+             , ssteps.histos.value("%sM3%s"%obj['jet'], 20,0,800)
+             , ssteps.histos.value("fitTopRadiativeCoherence", 100,-1,1)
              
              ####################################
              , ssteps.filters.label('discriminants')
-             #, ssteps.histos.value("KarlsruheDiscriminant", 28, -320, 800 )
-             #, ssteps.histos.value("TriDiscriminant",50,-1,1)
+             , ssteps.histos.value("KarlsruheDiscriminant", 28, -320, 800 )
+             , ssteps.histos.value("TriDiscriminant",50,-1,1)
              , ssteps.filters.label('qq:gg'),   self.discriminantQQgg(pars)
-             #, ssteps.filters.label('top:W'),   self.discriminantTopW(pars)
-             #, ssteps.filters.label('top:QCD'), self.discriminantTopQCD(pars)
-             #, ssteps.filters.label('W:QCD'),   self.discriminantWQCD(pars)
-             #, calculables.gen.qDirProbPlus('fitTopSumP4Eta', 10, 'top_muon_pf', 'ttj_mg.wTopAsymP00.tw.nvr', path = self.globalStem)
-             
-             #, ssteps.filters.label('signal distributions')
-             #, steps.top.Asymmetry(('fitTop',''), bins = 640)
-             #, steps.top.Spin(('fitTop',''))
-             
+             , ssteps.filters.label('top:W'),   self.discriminantTopW(pars)
+             , ssteps.filters.label('top:QCD'), self.discriminantTopQCD(pars)
+             , ssteps.filters.label('W:QCD'),   self.discriminantWQCD(pars)
+             , calculables.gen.qDirProbPlus('fitTopSumP4Eta', 10, 'top_muon_pf', 'ttj_mg.wTopAsymP00.tw.nvr', path = self.globalStem)
+
+             , ssteps.filters.label('signal distributions'), steps.top.Asymmetry(('fitTop',''), bins = 640)
+             , ssteps.filters.label('spin distributions'),    steps.top.Spin(('fitTop',''))
+
              #steps.histos.value('fitTopSumP4Eta', 12, -6, 6),
              #steps.filters.absEta('fitTopSumP4', min = 1),
              #steps.histos.value('fitTopSumP4Eta', 12, -6, 6),
@@ -345,14 +344,14 @@ class topAsymm(supy.analysis) :
                                                     left = {"pre":"wj_lv_mg", "tag":"top_muon_pf", "samples":[]},
                                                     right = {"pre":"ttj_mg", "tag":"top_muon_pf", "samples": ['ttj_mg.%s.tw.nvr'%s for s in ['wNonQQbar','wTopAsymP00']]},
                                                     correlations = pars['discriminant2DPlots'],
-                                                    dists = {"%sKt%s"%pars['objects']["jet"] : (25,0,150),
-                                                             "%sB0pt%s"%pars['objects']["jet"] : (30,0,300),
-                                                             "%s3absEta%s"%pars['objects']["jet"] : (20,0,4),
-                                                             "fitTopHadChi2"     : (20,0,100),
-                                                             "mixedSumP4.pt"     : (30,0,180),
-                                                             #"fitTopLeptonPt"    : (30,0,180),  # not so powerful?
-                                                             "fitTopDeltaPhiLNu" : (20,0,math.pi),
-                                                             "TopRatherThanWProbability" : (20,0,1),
+                                                    dists = {"TopRatherThanWProbability" : (20,0,1),          # 0.183
+                                                             "%sB0pt%s"%pars['objects']["jet"] : (30,0,300),  # 0.082
+                                                             "fitTopHadChi2"     : (20,0,100),                # 0.047
+                                                             "mixedSumP4.pt"     : (30,0,180),                # 0.037
+                                                             #"%s3absEta%s"%pars['objects']["jet"] : (20,0,4),# 0.018
+                                                             #"%sKt%s"%pars['objects']["jet"] : (25,0,150),   # 0.018
+                                                             #"fitTopDeltaPhiLNu" : (20,0,math.pi),           # 0.019
+                                                             #"fitTopLeptonPt"    : (20,0,180),               # Find out
                                                              })
     @staticmethod
     def discriminantTopQCD(pars) :
@@ -360,14 +359,14 @@ class topAsymm(supy.analysis) :
                                                     left = {"pre":"SingleMu", "tag":"QCD_muon_pf", "samples":[]},
                                                     right = {"pre":"ttj_mg", "tag":"top_muon_pf", "samples": ['ttj_mg.%s.tw.nvr'%s for s in ['wNonQQbar','wTopAsymP00']]},
                                                     correlations = pars['discriminant2DPlots'],
-                                                    dists = {"%sKt%s"%pars['objects']["jet"] : (25,0,150),
-                                                             "%sB0pt%s"%pars['objects']["jet"] : (30,0,300),
-                                                             "%s3absEta%s"%pars['objects']["jet"] : (20,0,4),
-                                                             "%sMt%s"%pars['objects']['muon']+"mixedSumP4" : (30,0,180),
-                                                             "%sDeltaPhiB01%s"%pars['objects']["jet"] : (20,0,math.pi),
-                                                             #"mixedSumP4.pt"     : (30,0,180),
-                                                             #"fitTopLeptonPt"    : (30,0,180),
-                                                             #"fitTopDeltaPhiLNu" : (20,0,math.pi),
+                                                    dists = {"%sMt%s"%pars['objects']['muon']+"mixedSumP4" : (30,0,180), # 0.243
+                                                             "%s3absEta%s"%pars['objects']["jet"] : (20,0,4),            # 0.031
+                                                             "%sKt%s"%pars['objects']["jet"] : (25,0,150),               # 0.029
+                                                             "%sDeltaPhiB01%s"%pars['objects']["jet"] : (20,0,math.pi),  # 0.022
+                                                             #"%sB0pt%s"%pars['objects']["jet"] : (30,0,300),            # 0.010
+                                                             #"mixedSumP4.pt"     : (30,0,180),                          #
+                                                             #"fitTopLeptonPt"    : (30,0,180),                          #
+                                                             #"fitTopDeltaPhiLNu" : (20,0,math.pi),                      #
                                                              })
     @staticmethod
     def discriminantWQCD(pars) :
@@ -375,10 +374,10 @@ class topAsymm(supy.analysis) :
                                                     left = {"pre":"wj_lv_mg", "tag":"top_muon_pf", "samples":[]},
                                                     right = {"pre":"SingleMu", "tag":"QCD_muon_pf", "samples":[]},
                                                     correlations = pars['discriminant2DPlots'],
-                                                    dists = {"%sB0pt%s"%pars['objects']["jet"] : (30,0,300),
-                                                             "%sMt%s"%pars['objects']['muon']+"mixedSumP4" : (30,0,180),
-                                                             "%sDeltaPhiB01%s"%pars['objects']["jet"] : (20,0,math.pi),
-                                                             "fitTopCosHelicityThetaL": (20,-1,1),
+                                                    dists = {"%sMt%s"%pars['objects']['muon']+"mixedSumP4" : (30,0,180), # 0.267
+                                                             "%sB0pt%s"%pars['objects']["jet"] : (30,0,300),             # 0.091
+                                                             "fitTopCosHelicityThetaL": (20,-1,1),                       # 0.070
+                                                             "%sDeltaPhiB01%s"%pars['objects']["jet"] : (20,0,math.pi),  # 0.021
                                                              })
     
     ########################################################################################
