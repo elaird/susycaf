@@ -169,6 +169,7 @@ class topAsymm(supy.analysis) :
 
             calculables.top.RadiativeCoherence(('fitTop',''),pars['objects']['jet']),
             calculables.top.fitTopBMomentsSum2(pars['objects']['jet']),
+            calculables.top.TopJets(pars['objects']['jet']),
 
             calculables.other.Mt(lepton,"mixedSumP4", allowNonIso=True, isSumP4=True),
             calculables.other.Covariance(('met','PF')),
@@ -333,8 +334,10 @@ class topAsymm(supy.analysis) :
                                                     dists = {"%sM3%s"%pars["objects"]['jet'] : (20,0,600), # 0.047
                                                              "vertex0Ntracks" : (20,0,180),                # 0.049
                                                              "fitTopPartonXlo" : (20,0,0.12),              # 0.036
-                                                             #"fitTopPartonXhi" : (20,0.04,0.4),           # 0.003
+                                                             "fitTopFifthJet": (2,-0.5, 1.5)               # 0.052
+                                                             #"fitTopNtracks" : (20,0,80),                 # 0.006
                                                              #"fitTopBMomentsSum2" : (20,0,0.2),           # 0.004
+                                                             #"fitTopPartonXhi" : (20,0.04,0.4),           # 0.003
                                                              },
                                                     correlations = pars['discriminant2DPlots'],
                                                     bins = 14)
