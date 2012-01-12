@@ -251,6 +251,9 @@ class hadronicLook(supy.analysis) :
             #signal selection
             #supy.steps.filters.pt("%sSumP4%s"%_jet, min = 140.0),
             supy.steps.filters.value("%sAlphaT%s%s"%(_jet[0],"Et" if _etRatherThanPt else "Pt",_jet[1]), min = 0.55),
+            supy.steps.histos.histogrammer("%sRecHitSumPt"%params["objects"]["rechit"], 30, 0, 300, title = ";Sum of HBHE (sev.#geq10), EB,EE (sev.#geq2) RecHit p_{T} (GeV);events / bin"),
+            supy.steps.filters.value("%sRecHitSumPt"%params["objects"]["rechit"], max = 120.0),
+
             #]), #end cutSorter
 
             #steps.Trigger.lowestUnPrescaledTriggerFilter(),
@@ -272,8 +275,6 @@ class hadronicLook(supy.analysis) :
             supy.steps.histos.histogrammer("%sMht%sOver%s"%(_jet[0],_jet[1]+params["highPtName"],_met), 100, 0.0, 3.0,
                                      title = ";MHT %s%s / %s;events / bin"%(_jet[0],_jet[1]+params["highPtName"],_met)),
 
-            supy.steps.histos.histogrammer("%sRecHitSumPt"%params["objects"]["rechit"], 30, 0, 300, title = ";Sum of HBHE (sev.#geq10), EB,EE (sev.#geq2) RecHit p_{T} (GeV);events / bin"),
-            supy.steps.filters.value("%sRecHitSumPt"%params["objects"]["rechit"], max = 30.0),
             
             #steps.other.skimmer(),
             #steps.other.duplicateEventCheck(),
@@ -359,6 +360,9 @@ class hadronicLook(supy.analysis) :
             #out += specify(names = "calo_375")
             return out
 
+        def dataEpsSkim() :
+            return specify(names = "calo_375_11")
+        
         def qcd_py6(eL) :
             q6 = [0,5,15,30,50,80,120,170,300,470,600,800,1000,1400,1800]
             iCut = q6.index(80)
@@ -422,6 +426,7 @@ class hadronicLook(supy.analysis) :
         smLumi = 30000 # 1/pb
         susyLumi = 60000
         #return data()
+        #return dataEpsSkim()
         return ( dataEps() +
                  qcd_func(smLumi) + #g_jets_func(eL) +
                  single_top_ph(smLumi) +
