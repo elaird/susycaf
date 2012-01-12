@@ -416,7 +416,11 @@ class hadronicLook(supy.analysis) :
             return specify(names = name, effectiveLumi = eL, color = r.kRed + 2)
             
         def susy(eL) :
-            return specify(names = "lm6", effectiveLumi = eL, color = r.kRed-1) + specify(names = "lm4", effectiveLumi = eL, color = r.kRed-2)
+            out = []
+            out += specify(names = "lm1", effectiveLumi = eL, color = r.kRed-3)
+            #out += specify(names = "lm4", effectiveLumi = eL, color = r.kRed-2)
+            out += specify(names = "lm6", effectiveLumi = eL, color = r.kRed-1)
+            return out
 
         def scan(tanBeta) :
             return specify(names = "scan_tanbeta%d"%tanBeta, color = r.kMagenta, nFilesMax = 1)
@@ -430,7 +434,8 @@ class hadronicLook(supy.analysis) :
         susyLumi = 60000
         #return data()
         #return dataEpsSkim()
-        return ( dataEps()
+        return ( []
+                 + dataEps()
                  + qcd_func(smLumi) #+ g_jets_func(eL)
                  + single_top_ph(smLumi, era = era)
                  + ttbar_mg(smLumi, era = era)
@@ -439,7 +444,7 @@ class hadronicLook(supy.analysis) :
                  + susy(susyLumi)
                  ) if params["tanBeta"]==None else scan(params["tanBeta"])
 
-    def singleTopList(self, era = "") :
+    def singleTopList(self, era = "spring11") :
         if era=="summer11" :
             l = [#"top_s_ph",
                 "top_t_ph", "top_tW_ph", "tbar_s_ph", "tbar_t_ph", "tbar_tW_ph"]
@@ -461,11 +466,15 @@ class hadronicLook(supy.analysis) :
             org.mergeSamples(targetSpec = md({"name":"QCD Multijet", "color":r.kGreen+3}, mcOps), allWithPrefix = "qcd_py6")
         org.mergeSamples(targetSpec = md({"name":"tt", "color": r.kBlue}, mcOps), allWithPrefix = "tt")
         org.mergeSamples(targetSpec = md({"name":"t",  "color": r.kOrange-7}, mcOps), sources = self.singleTopList())
-        org.mergeSamples(targetSpec = md({"name":"Z + jets", "color": r.kRed+1}, mcOps), allWithPrefix = "z")
-        org.mergeSamples(targetSpec = md({"name":"W + jets", "color": r.kOrange-3}, mcOps), allWithPrefix = "w_jets")
-        org.mergeSamples(targetSpec = md({"name":"LM6", "color":r.kMagenta},   mcOps), allWithPrefix = "lm6")
+        org.mergeSamples(targetSpec = md({"name":"top",  "color": r.kOrange-7}, mcOps), sources = ["tt", "t"])
+        org.mergeSamples(targetSpec = md({"name":"Zinv + jets", "color": r.kRed+1}, mcOps), allWithPrefix = "z")
+        org.mergeSamples(targetSpec = md({"name":"DY + jets",   "color": r.kRed+2}, mcOps), allWithPrefix = "dyll")
+        org.mergeSamples(targetSpec = md({"name":"Z + jets", "color": r.kRed+1}, mcOps), sources = ["Zinv + jets", "DY + jets"])
+        org.mergeSamples(targetSpec = md({"name":"W + jets",    "color": r.kOrange-3}, mcOps), allWithPrefix = "w_jets")
+        org.mergeSamples(targetSpec = md({"name":"LM1", "color":r.kMagenta+2}, mcOps), allWithPrefix = "lm1")
         org.mergeSamples(targetSpec = md({"name":"LM4", "color":r.kMagenta+1}, mcOps), allWithPrefix = "lm4")
-        ewkSources = ["tt", "Z + jets", "W + jets"]
+        org.mergeSamples(targetSpec = md({"name":"LM6", "color":r.kMagenta},   mcOps), allWithPrefix = "lm6")
+        ewkSources = ["top", "Z + jets", "W + jets"]
         qcdSources = ["QCD Multijet"]
 
         if not self.ra1Cosmetics() :
