@@ -28,6 +28,7 @@ class Indices(wrappedChain.calculable) :
         
     def update(self,ignored) :
         sumPt = self.source["vertexSumPt"]
+        sumPt2 = self.source["vertexSumPt2"]
         id = self.source["vertexID"]
         self.value = []
         other = self.source["vertexIndicesOther"]
@@ -35,7 +36,7 @@ class Indices(wrappedChain.calculable) :
             if self.sumPtMin!=None and sumPt.at(i) < self.sumPtMin : continue
             elif id[i] : self.value.append(i)
             else : other.append(i)
-        self.value.sort( key = sumPt.__getitem__, reverse = True )
+        self.value.sort( key = sumPt2.__getitem__, reverse = True )
 #####################################
 class IndicesOther(calculables.IndicesOther) :
     def __init__(self) :
@@ -64,3 +65,8 @@ class SumP3(wrappedChain.calculable) :
 class nVertex(wrappedChain.calculable) :
     def update(self,ignored) : self.value = len(self.source["vertexIndices"])
 #####################################
+class vertex0Ntracks(wrappedChain.calculable) :
+    def update(self,_) :
+        ntrk = self.source["vertexNtrks"]
+        indices = self.source["vertexIndices"]
+        self.value = ntrk[indices[0]] if len(indices) else 0

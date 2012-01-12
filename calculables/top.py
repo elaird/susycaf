@@ -1,4 +1,5 @@
 from supy import wrappedChain,utils
+from jet import xcStrip
 import math,operator,itertools,ROOT as r
 try:
     import numpy as np
@@ -41,6 +42,36 @@ class SumP4(TopP4Calculable) :
 ######################################
 class SumPt(TopP4Calculable) :
     def update(self,_) : self.value = self.source[self.P4]['t'].pt() + self.source[self.P4]['tbar'].pt()
+######################################
+class TtxMass(TopP4Calculable) :
+    def update(self,_) : self.value = self.source[self.P4]['ttx'].mass()
+######################################
+class TtxPt(TopP4Calculable) :
+    def update(self,_) : self.value = self.source[self.P4]['ttx'].pt()
+######################################
+class TtxPz(TopP4Calculable) :
+    def update(self,_) : self.value = self.source[self.P4]['ttx'].z()
+######################################
+class PartonX12(wrappedChain.calculable) :
+    def __init__(self, collection = None) :
+        self.fixes = collection
+        self.stash(['TtxMass','TtxPz'])
+    def update(self,_) :
+        self.source[self.TtxMass] - self.source[self.TtxPz]
+        self.value = ( (self.source[self.TtxMass] + self.source[self.TtxPz]) / 7000 ,
+                       (self.source[self.TtxMass] - self.source[self.TtxPz]) / 7000 )
+######################################
+class PartonXhi(wrappedChain.calculable) :
+    def __init__(self, collection = None) :
+        self.fixes = collection
+        self.stash(['PartonX12'])
+    def update(self,_) : self.value = max(self.source[self.PartonX12])
+######################################
+class PartonXlo(wrappedChain.calculable) :
+    def __init__(self, collection = None) :
+        self.fixes = collection
+        self.stash(['PartonX12'])
+    def update(self,_) : self.value = min(self.source[self.PartonX12])
 ######################################
 class Pt(wrappedChain.calculable) :
     def __init__(self,collection = None) :
@@ -303,6 +334,7 @@ class fitTopP4(wrappedChain.calculable) :
                       'key': reco['key'],
                       'chi2': reco['chi2'],
                       'hadChi2': reco['hadChi2'],
+                      'ttx': reco['ttx'],
                       }
 class fitTopLeptonCharge(wrappedChain.calculable) :
     def __init__(self, lepton) :
@@ -322,6 +354,12 @@ class genTopTTbar(wrappedChain.calculable) :
         self.value = tuple(list(self.source['genPdgId']).index(i) for i in [6,-6]) if \
                      (not self.source['isRealData']) and \
                      all([id in self.source['genPdgId'] for id in [-6,6]]) else ()
+class genTopIndicesX(wrappedChain.calculable) :
+    def update(self,_) :
+        moms = self.source['genMotherIndex']
+        ids = self.source['genPdgId']
+        self.value = [i for i in range(len(moms)) if abs(ids[i])!=6 and moms[i]==4 ]
+######################################
 ######################################
 class genTTbarIndices(wrappedChain.calculable) :
     def update(self,_) :
@@ -436,6 +474,8 @@ class TopReconstruction(wrappedChain.calculable) :
                 iQQBB = iPQHL[:2]+tuple(sorted(iPQHL[2:]))
                 for zPlus in [0,1] :
                     lepFit = utils.fitKinematic.leastsqLeptonicTop( p4[iL], resolution[iL], lepP4, nuXY, nuErr-covRes2[iL], zPlus = zPlus )
+                    tt = hadFit.fitT + lepFit.fitT
+                    iX,ttx = min( [(None,tt)]+[(i,tt+p4[i]) for i in indices if i not in iPQHL], key = lambda lv : lv[1].pt() )
                     recos.append( {"nu"   : lepFit.fitNu,       "hadP" : hadFit.fitJ[0],
                                    "lep"  : lepFit.mu,          "hadQ" : hadFit.fitJ[1],
                                    "lepB" : lepFit.fitB,        "hadB" : hadFit.fitJ[2],
@@ -448,6 +488,7 @@ class TopReconstruction(wrappedChain.calculable) :
 
                                    "top"  : lepFit.fitT if lepQ > 0 else hadFit.fitT,
                                    "tbar" : hadFit.fitT if lepQ > 0 else lepFit.fitT,
+                                   "ttx" : ttx, "iX" : iX,
 
                                    "iPQHL": iPQHL,
                                    "lepCharge": lepQ,           "hadTraw" : hadFit.rawT, "lepTraw" : lepFit.rawT,
@@ -607,3 +648,12 @@ class TopRatherThanWProbability(wrappedChain.calculable) :
         wL = self.source["OtherJetsLikelihood"]
         denom = (topL + wL * self.invPriorTopMinusOne)
         self.value = (topL / denom) if denom else self.priorTop
+######################################
+class fitTopBMomentsSum2(wrappedChain.calculable) :
+    def __init__(self, jets = None) :
+        self.stash(["Phi2Moment","Eta2Moment"],xcStrip(jets))
+    def update(self,_) :
+        _,__,iH,iL = self.source['TopReconstruction'][0]['iPQHL']
+        phi2 = self.source[self.Phi2Moment]
+        eta2 = self.source[self.Eta2Moment]
+        self.value = phi2[iH]+phi2[iL]+eta2[iH]+eta2[iL]
