@@ -25,3 +25,8 @@ top.add("top_tW_ph_summer11",  srm + db%"", xs = 7.104 )
 top.add("tbar_s_ph_summer11",  srm + '/mstoye//ICF/automated/2011_10_26_16_58_10/")', xs = 1.265 )
 top.add("tbar_t_ph_summer11",  srm + '/dburton//ICF/automated/2011_10_27_12_35_42/")', xs = 18.43 )
 top.add("tbar_tW_ph_summer11", srm + db%"bar", xs = 7.108 )
+
+# Spring2011
+top.add("top_s_mg_spring11",  srm+'/henning//ICF/automated/2011_05_21_17_41_53/")', xs =  4.6)
+top.add("top_t_mg_spring11",  srm+'/henning//ICF/automated/2011_05_21_14_46_32/")', xs = 63  )
+top.add("top_tW_mg_spring11", srm+'/henning//ICF/automated/2011_05_21_14_52_01/")', xs = 10.6)

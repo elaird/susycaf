@@ -430,9 +430,10 @@ class hadronicLook(supy.analysis) :
                  ) if params["tanBeta"]==None else scan(params["tanBeta"])
 
     def singleTopList(self) :
-        l = [#"top_s_ph",
-             "top_t_ph", "top_tW_ph", "tbar_s_ph", "tbar_t_ph", "tbar_tW_ph"]
-        return [s+"_summer11" for s in l]
+        #l = [#"top_s_ph",
+        #     "top_t_ph", "top_tW_ph", "tbar_s_ph", "tbar_t_ph", "tbar_tW_ph"]
+        #return [s+"_summer11" for s in l]
+        return ["top_s_mg_spring11", "top_t_mg_spring11", "top_tW_mg_spring11"]
 
     def mergeSamples(self, org) :
         def md(x, y) :
