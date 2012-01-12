@@ -395,8 +395,8 @@ class hadronicLook(supy.analysis) :
             if era=="summer11" : names = "tt_jets_mg_tauola_summer11"
             return specify( names = names, effectiveLumi = eL, color = r.kOrange)
 
-        def single_top_ph(eL) :
-            return specify( names = self.singleTopList(), effectiveLumi = eL, color = r.kOrange-7)
+        def single_top_ph(eL, era = "") :
+            return specify( names = self.singleTopList(era = era), effectiveLumi = eL, color = r.kOrange-7)
             
         def ewk(eL, era = "") :
             zName = ""
@@ -409,9 +409,12 @@ class hadronicLook(supy.analysis) :
                 wName = "w_jets_mg_tauola_ht_300_inf_summer11"
             
             return ( specify(names = zName,  effectiveLumi = eL, color = r.kRed + 1) +
-                     #specify(names = "z_jets_mg_v12_skim", effectiveLumi = eL, color = r.kYellow-3) +
                      specify(names = wName, effectiveLumi = eL, color = 28         ) )
 
+        def dy(eL, era = "") :
+            name = "dyll_jets_mg%s"%("" if era in ["", "spring11"] else "_summer11")
+            return specify(names = name, effectiveLumi = eL, color = r.kRed + 2)
+            
         def susy(eL) :
             return specify(names = "lm6", effectiveLumi = eL, color = r.kRed-1) + specify(names = "lm4", effectiveLumi = eL, color = r.kRed-2)
 
@@ -427,18 +430,24 @@ class hadronicLook(supy.analysis) :
         susyLumi = 60000
         #return data()
         #return dataEpsSkim()
-        return ( dataEps() +
-                 qcd_func(smLumi) + #g_jets_func(eL) +
-                 single_top_ph(smLumi) +
-                 ttbar_mg(smLumi, era = era) + ewk(smLumi, era = era) +
-                 susy(susyLumi)
+        return ( dataEps()
+                 + qcd_func(smLumi) #+ g_jets_func(eL)
+                 + single_top_ph(smLumi, era = era)
+                 + ttbar_mg(smLumi, era = era)
+                 + ewk(smLumi, era = era)
+                 + dy(smLumi, era = era)
+                 + susy(susyLumi)
                  ) if params["tanBeta"]==None else scan(params["tanBeta"])
 
-    def singleTopList(self) :
-        #l = [#"top_s_ph",
-        #     "top_t_ph", "top_tW_ph", "tbar_s_ph", "tbar_t_ph", "tbar_tW_ph"]
-        #return [s+"_summer11" for s in l]
-        return ["top_s_mg_spring11", "top_t_mg_spring11", "top_tW_mg_spring11"]
+    def singleTopList(self, era = "") :
+        if era=="summer11" :
+            l = [#"top_s_ph",
+                "top_t_ph", "top_tW_ph", "tbar_s_ph", "tbar_t_ph", "tbar_tW_ph"]
+            return [s+"_summer11" for s in l]
+        elif era=="spring11" :
+            return ["top_s_mg_spring11", "top_t_mg_spring11", "top_tW_mg_spring11"]
+        else :
+            assert False
 
     def mergeSamples(self, org) :
         def md(x, y) :
