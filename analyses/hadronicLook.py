@@ -417,7 +417,7 @@ class hadronicLook(supy.analysis) :
             
         def susy(eL) :
             out = []
-            out += specify(names = "lm1", effectiveLumi = eL, color = r.kRed-3)
+            #out += specify(names = "lm1", effectiveLumi = eL, color = r.kRed-3)
             #out += specify(names = "lm4", effectiveLumi = eL, color = r.kRed-2)
             out += specify(names = "lm6", effectiveLumi = eL, color = r.kRed-1)
             return out
@@ -435,13 +435,13 @@ class hadronicLook(supy.analysis) :
         #return data()
         #return dataEpsSkim()
         return ( []
-                 + dataEps()
+                 + susy(susyLumi)
                  + qcd_func(smLumi) #+ g_jets_func(eL)
                  + single_top_ph(smLumi, era = era)
                  + ttbar_mg(smLumi, era = era)
                  + ewk(smLumi, era = era)
                  + dy(smLumi, era = era)
-                 + susy(susyLumi)
+                 + dataEps()
                  ) if params["tanBeta"]==None else scan(params["tanBeta"])
 
     def singleTopList(self, era = "spring11") :
@@ -459,7 +459,7 @@ class hadronicLook(supy.analysis) :
             x.update(y)
             return x
         
-        org.mergeSamples(targetSpec = {"name":"2011 Data", "color":r.kBlack, "markerStyle":20}, allWithPrefix = "HT.Run2011")
+        org.mergeSamples(targetSpec = {"name":"Data", "color":r.kBlack, "markerStyle":20, "goptions":"ex0", "legendOpt":"pe"}, allWithPrefix = "HT.Run2011")
 
         mcOps = {"markerStyle":1, "lineWidth":3, "goptions":"hist"}
         if "pythia6"  in org.tag :
@@ -473,12 +473,15 @@ class hadronicLook(supy.analysis) :
         org.mergeSamples(targetSpec = md({"name":"W + jets",    "color": r.kOrange-3}, mcOps), allWithPrefix = "w_jets")
         org.mergeSamples(targetSpec = md({"name":"LM1", "color":r.kMagenta+2}, mcOps), allWithPrefix = "lm1")
         org.mergeSamples(targetSpec = md({"name":"LM4", "color":r.kMagenta+1}, mcOps), allWithPrefix = "lm4")
-        org.mergeSamples(targetSpec = md({"name":"LM6", "color":r.kMagenta},   mcOps), allWithPrefix = "lm6")
+        org.mergeSamples(targetSpec = md({"name":"LM6", "color":r.kRed+1, "lineStyle":2}, mcOps), allWithPrefix = "lm6")
         ewkSources = ["top", "Z + jets", "W + jets"]
         qcdSources = ["QCD Multijet"]
 
         if not self.ra1Cosmetics() :
-            org.mergeSamples(targetSpec = md({"name":"Standard Model ", "color":r.kAzure+6}, mcOps), sources = ewkSources + qcdSources, keepSources = True)
+            smOps = {};
+            smOps.update(mcOps)
+            smOps.update({"name":"Standard Model ", "color":r.kCyan+1, "fillColor":r.kCyan+1, "fillStyle":3245, "goptions":"e2", "double":True, "legendOpt":"fl"})
+            org.mergeSamples(targetSpec = smOps, sources = ewkSources + qcdSources, keepSources = False)
         else :
             ewk = "t#bar{t}, W, Z + Jets"
             org.mergeSamples(targetSpec = md({"name":ewk, "color":r.kBlue}, mcOps), sources = ewkSources)
@@ -491,15 +494,15 @@ class hadronicLook(supy.analysis) :
 
         self.mergeSamples(org)
         org.scale() if not self.parameters()["tanBeta"] else org.scale(100.0)
-        
-        self.makeStandardPlots(org)
-        #self.makeIndividualPlots(org)
+
+        #self.makeStandardPlots(org)
+        self.makeIndividualPlots(org)
 
     def makeStandardPlots(self, org) :
         #plot
         pl = supy.plotter(org,
                           pdfFileName = self.pdfFileName(org.tag),
-                          samplesForRatios = ("2011 Data","Standard Model "),
+                          samplesForRatios = ("Data","Standard Model "),
                           sampleLabelsForRatios = ("data","s.m."),
                           printRatios = True,
                           showStatBox = not self.ra1Cosmetics(),
@@ -551,9 +554,12 @@ class hadronicLook(supy.analysis) :
                                          "stepName":"histogrammer",
                                          "stepDesc" :"(lambda x:x[0][0])(xcak5JetDeltaPhiStarPat)",
                                          "index" : -1,
-                                         "newTitle":";#Delta#phi*;events / bin",
-                                         "legendCoords": (0.6, 0.6, 0.92, 0.92),
+                                         "reBinFactor":2,
+                                         "newTitle":";#Delta#phi*;Events / 0.31",
+                                         "legendCoords": (0.54, 0.7, 0.96, 0.92),
                                          "stampCoords": (0.33, 0.88),
+                                         "stamp": False,
+                                         "reverseLegend":True,
                                          },
                                         {"plotName":"xcak5JetHtPlusMhtRoughPat",
                                          "stepName":"cleanJetHtMhtHistogrammer",
@@ -567,19 +573,22 @@ class hadronicLook(supy.analysis) :
                                          "stepName":"histogrammer",
                                          "stepDesc" :"(lambda x:len(x))(xcak5JetIndicesPat)",
                                          "index" : -1,
-                                         "newTitle":";N_{jets};events / bin",
-                                         "legendCoords": (0.6, 0.6, 0.92, 0.92),
+                                         "newTitle":";N_{ jets};Events",
+                                         "stamp":False,
+                                         "reverseLegend":True,
+                                         "legendCoords": (0.54, 0.7, 0.96, 0.92),
                                          "stampCoords": (0.6, 0.38),
+                                         "xRange": (0.0, 12.0),
                                          },
                                         {"plotName": "xcak5JetMhtPathighPtOvermetP4AK5TypeII",
                                          "stepName": "histogrammer",
                                          "stepDesc" :"(xcak5JetMhtPathighPtOvermetP4AK5TypeII)",
                                          "index" : -1,
-                                         "newTitle":";#slash{H}_{T} / #slash{E}_{T};events / bin",
+                                         "newTitle":";#slash{H}_{T} / #slash{E}_{T};Events / 0.06",
                                          "stamp":False,
                                          "reBinFactor":2,
                                          "reverseLegend":True,
-                                         "legendCoords": (0.6, 0.7, 0.92, 0.92),
+                                         "legendCoords": (0.54, 0.7, 0.96, 0.92),
                                          }
                                         ],
                            newSampleNames = None,
