@@ -401,9 +401,8 @@ class topAsymm(supy.analysis) :
         super(topAsymm,self).concludeAll()
         #self.meldWpartitions()
         #self.meldQCDpartitions()
-        #self.meldScale()
-        #self.measureQQbarComponent()
-        #self.plotMeldScale()
+        self.meldScale()
+        self.plotMeldScale()
         #self.ensembleTest()
         #self.PEcurves()
 
@@ -602,22 +601,6 @@ class topAsymm(supy.analysis) :
         c.Update()
         supy.utils.tCanvasPrintPdf(c, "%s/purity_v_efficiency"%self.globalStem)
         return
-
-    def measureQQbarComponent(self) :
-        dist = "DiscriminantTopQqQg"
-        dists = dict(zip([ss['name'] for ss in self.orgMelded.samples ],
-                         self.orgMelded.steps[next(self.orgMelded.indicesOfStepsWithKey(dist))][dist] ) )
-        def contents(name) : return np.array([dists[name].GetBinContent(i) for i in range(dists[name].GetNbinsX()+2)])
-
-        from supy.utils.fractions import componentSolver, drawComponentSolver
-        cs = componentSolver(observed = contents('top.Data 2011'),
-                             components = [ contents('top.ttj_mg.wTopAsymP00.tw.pu'), contents('top.ttj_mg.wNonQQbar.tw.pu')],
-                             ensembleSize = 1e4,
-                             base = contents('top.w_jets') + contents('QCD.Data 2011')
-                             )
-        csCanvas = drawComponentSolver(cs)
-        supy.utils.tCanvasPrintPdf(csCanvas[0], "%s/measuredQQFractions"%self.globalStem)
-        with open(self.globalStem+"/measuredQQFractions.txt","w") as file :  print >> file, cs
 
 
     def templates(self, iStep, dist, qqFrac) :
