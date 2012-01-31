@@ -41,8 +41,8 @@ class topAsymm(supy.analysis) :
                                           "QCD" : {"bCut":bCut["normal"],  "lIso":lIso["inverted"]}
                                           #"Wlv" : {"bCut":bCut["inverted"],"lIso":lIso["normal"]},
                                           }),
-                 "topBsamples": { "pythia"   : ("tt_tauola_fj",["tt_tauola_fj.wNonQQbar.tw.pu","tt_tauola_fj.wTopAsymP00.tw.pu"]),
-                                  "madgraph" : ("ttj_mg",['ttj_mg.wNonQQbar.tw.pu','ttj_mg.wTopAsymP00.tw.pu']),
+                 "topBsamples": { "pythia"   : ("tt_tauola_fj",["tt_tauola_fj.wNonQQbar.tw.rrho","tt_tauola_fj.wTopAsymP00.tw.rrho"]),
+                                  "madgraph" : ("ttj_mg",['ttj_mg.wNonQQbar.tw.rrho','ttj_mg.wTopAsymP00.tw.rrho']),
                                   }["madgraph"]
                  }
 
@@ -100,24 +100,24 @@ class topAsymm(supy.analysis) :
                                                   "qcd_mu_50_80",
                                                   "qcd_mu_80_120",
                                                   "qcd_mu_120_150",
-                                                  "qcd_mu_150"],  weights = ['tw','pu'], effectiveLumi = eL )     if 'Wlv' not in pars['tag'] else []
+                                                  "qcd_mu_150"],  weights = ['tw','rrho'], effectiveLumi = eL )     if 'Wlv' not in pars['tag'] else []
         def qcd_mg(eL = None) :
             return supy.samples.specify( names = ["qcd_mg_ht_50_100",
                                                   "qcd_mg_ht_100_250",
                                                   "qcd_mg_ht_250_500",
                                                   "qcd_mg_ht_500_1000",
-                                                  "qcd_mg_ht_1000_inf"],  weights = ['tw','pu'], effectiveLumi = eL )     if 'Wlv' not in pars['tag'] else []
+                                                  "qcd_mg_ht_1000_inf"],  weights = ['tw','rrho'], effectiveLumi = eL )     if 'Wlv' not in pars['tag'] else []
         def ewk(eL = None) :
-            return supy.samples.specify( names = ["wj_lv_mg","dyj_ll_mg"], effectiveLumi = eL, color = 28, weights = ['tw','pu'] ) if "QCD" not in pars['tag'] else []
+            return supy.samples.specify( names = ["wj_lv_mg","dyj_ll_mg"], effectiveLumi = eL, color = 28, weights = ['tw','rrho'] ) if "QCD" not in pars['tag'] else []
 
         def single_top(eL = None) :
             return supy.samples.specify( names = self.single_top(),
-                                         effectiveLumi = eL, color = r.kGray, weights = ['tw','pu']) if "QCD" not in pars['tag'] else []
+                                         effectiveLumi = eL, color = r.kGray, weights = ['tw','rrho']) if "QCD" not in pars['tag'] else []
         
         def ttbar_mg(eL = None) :
-            return (supy.samples.specify(names = "ttj_mg", effectiveLumi = eL, color = r.kBlue, weights = ["wNonQQbar",'tw','pu']) +
+            return (supy.samples.specify(names = "ttj_mg", effectiveLumi = eL, color = r.kBlue, weights = ["wNonQQbar",'tw','rrho']) +
                     sum( [supy.samples.specify( names = "ttj_mg", effectiveLumi = eL, 
-                                                color = color, weights = [ calculables.top.wTopAsym(asym, R_sm = -0.05), 'tw','pu' ] )
+                                                color = color, weights = [ calculables.top.wTopAsym(asym, R_sm = -0.05), 'tw','rrho' ] )
                           for asym,color in [(0.0,r.kOrange),
                                              (-0.3,r.kGreen),(0.3,r.kRed),
                                              #(-0.6,r.kYellow),(0.6,r.kYellow),
@@ -186,6 +186,7 @@ class topAsymm(supy.analysis) :
             
             supy.calculables.other.abbreviation( "TrkCountingHighEffBJetTags", "NTrkHiEff", fixes = calculables.jet.xcStrip(obj['jet']) ),
             supy.calculables.other.abbreviation( "nVertexRatio", "nvr" ),
+            supy.calculables.other.abbreviation( "rhoRatio", "rrho" ),
             supy.calculables.other.abbreviation('muonTriggerWeightPF','tw'),
             supy.calculables.other.abbreviation('pileupInteractionsBX0Target','pu'),
             ]
@@ -223,6 +224,8 @@ class topAsymm(supy.analysis) :
 
              , ssteps.filters.label('nvertex reweighting')
              , self.ratio(pars)
+             , ssteps.filters.label('rho reweighting')
+             , self.ratio_rho(pars)
              , ssteps.histos.value(obj["sumPt"],50,0,1500)
              , ssteps.histos.value("rho",100,0,40)
 
@@ -287,7 +290,7 @@ class topAsymm(supy.analysis) :
              , ssteps.filters.label('top:W'),   self.discriminantTopW(pars)
              , ssteps.filters.label('top:QCD'), self.discriminantTopQCD(pars)
              , ssteps.filters.label('W:QCD'),   self.discriminantWQCD(pars)
-             , calculables.gen.qDirProbPlus('fitTopSumP4Eta', 10, 'top_muon_pf', 'ttj_mg.wTopAsymP00.tw.pu', path = self.globalStem)
+             , calculables.gen.qDirProbPlus('fitTopSumP4Eta', 10, 'top_muon_pf', 'ttj_mg.wTopAsymP00.tw.rrho', path = self.globalStem)
 
              , ssteps.filters.label('signal distributions'), steps.top.Asymmetry(('fitTop',''), bins = 640)
              , ssteps.filters.label('spin distributions'),    steps.top.Spin(('fitTop',''))
@@ -326,23 +329,31 @@ class topAsymm(supy.analysis) :
         return supy.calculables.other.Target("pileupInteractionsBX0", thisSample = pars['baseSample'],
                                              target = ("data/target_SingleMu-2011.root","pileup"),
                                              groups = [('qcd_mu',[]),('wj_lv_mg',[]),('dyj_ll_mg',[]),
-                                                       ('single_top', ['%s.tw.pu'%s for s in cls.single_top()]),
-                                                       ('ttj_mg',['ttj_mg%s.tw.pu'%s for s in ['',
+                                                       ('single_top', ['%s.tw.rrho'%s for s in cls.single_top()]),
+                                                       ('ttj_mg',['ttj_mg%s.tw.rrho'%s for s in ['',
                                                                                                 '.wNonQQbar',
                                                                                                 '.wTopAsymP00']])]).onlySim()
     @classmethod
     def ratio(cls,pars) : 
         return supy.calculables.other.Ratio("nVertex", binning = (20,-0.5,19.5), thisSample = pars['baseSample'],
                                             target = ("SingleMu",[]), groups = [('qcd_mu',[]),('wj_lv_mg',[]),('dyj_ll_mg',[]),
-                                                                                ('single_top', ['%s.tw.pu'%s for s in cls.single_top()]),
-                                                                                ('ttj_mg',['ttj_mg%s.tw.pu'%s for s in ['',
+                                                                                ('single_top', ['%s.tw.rrho'%s for s in cls.single_top()]),
+                                                                                ('ttj_mg',['ttj_mg%s.tw.rrho'%s for s in ['',
                                                                                                                          '.wNonQQbar',
                                                                                                                          '.wTopAsymP00']])])
+    @classmethod
+    def ratio_rho(cls,pars) : 
+        return supy.calculables.other.Ratio("rho", binning = (90,0,30), thisSample = pars['baseSample'],
+                                            target = ("SingleMu",[]), groups = [('qcd_mu',[]),('wj_lv_mg',[]),('dyj_ll_mg',[]),
+                                                                                ('single_top', ['%s.tw.rrho'%s for s in cls.single_top()]),
+                                                                                ('ttj_mg',['ttj_mg%s.tw.rrho'%s for s in ['',
+                                                                                                                          '.wNonQQbar',
+                                                                                                                          '.wTopAsymP00']])])
     @staticmethod
     def discriminantQQgg(pars) :
         return supy.calculables.other.Discriminant( fixes = ("","QQgg"),
-                                                    left = {"pre":"gg", "tag":"top_muon_pf", "samples":['ttj_mg.wNonQQbar.tw.pu']},
-                                                    right = {"pre":"qq", "tag":"top_muon_pf", "samples":['ttj_mg.wTopAsymP00.tw.pu']},
+                                                    left = {"pre":"gg", "tag":"top_muon_pf", "samples":['ttj_mg.wNonQQbar.tw.rrho']},
+                                                    right = {"pre":"qq", "tag":"top_muon_pf", "samples":['ttj_mg.wTopAsymP00.tw.rrho']},
                                                     dists = {"%sM3%s"%pars["objects"]['jet'] : (20,0,600), # 0.047
                                                              "vertex0Ntracks" : (20,0,180),                # 0.049
                                                              "fitTopPartonXlo" : (20,0,0.12),              # 0.036
@@ -357,7 +368,7 @@ class topAsymm(supy.analysis) :
     def discriminantTopW(pars) :
         return supy.calculables.other.Discriminant( fixes = ("","TopW"),
                                                     left = {"pre":"wj_lv_mg", "tag":"top_muon_pf", "samples":[]},
-                                                    right = {"pre":"ttj_mg", "tag":"top_muon_pf", "samples": ['ttj_mg.%s.tw.pu'%s for s in ['wNonQQbar','wTopAsymP00']]},
+                                                    right = {"pre":"ttj_mg", "tag":"top_muon_pf", "samples": ['ttj_mg.%s.tw.rrho'%s for s in ['wNonQQbar','wTopAsymP00']]},
                                                     correlations = pars['discriminant2DPlots'],
                                                     dists = {"TopRatherThanWProbability" : (20,0,1),          # 0.183
                                                              "%sB0pt%s"%pars['objects']["jet"] : (30,0,300),  # 0.082
@@ -372,7 +383,7 @@ class topAsymm(supy.analysis) :
     def discriminantTopQCD(pars) :
         return supy.calculables.other.Discriminant( fixes = ("","TopQCD"),
                                                     left = {"pre":"SingleMu", "tag":"QCD_muon_pf", "samples":[]},
-                                                    right = {"pre":"ttj_mg", "tag":"top_muon_pf", "samples": ['ttj_mg.%s.tw.pu'%s for s in ['wNonQQbar','wTopAsymP00']]},
+                                                    right = {"pre":"ttj_mg", "tag":"top_muon_pf", "samples": ['ttj_mg.%s.tw.rrho'%s for s in ['wNonQQbar','wTopAsymP00']]},
                                                     correlations = pars['discriminant2DPlots'],
                                                     dists = {"%sMt%s"%pars['objects']['muon']+"mixedSumP4" : (30,0,180), # 0.243
                                                              "%s3absEta%s"%pars['objects']["jet"] : (20,0,4),            # 0.031
@@ -410,12 +421,12 @@ class topAsymm(supy.analysis) :
         org = self.organizer(pars, verbose = True )
         org.mergeSamples(targetSpec = {"name":"Data 2011", "color":r.kBlack, "markerStyle":20}, allWithPrefix="SingleMu")
         org.mergeSamples(targetSpec = {"name":"qcd_mu", "color":r.kBlue}, allWithPrefix="qcd_mu")
-        org.mergeSamples(targetSpec = {"name":"t#bar{t}", "color":r.kViolet}, sources=["ttj_mg.wNonQQbar.tw.pu","ttj_mg.wTopAsymP00.tw.pu"], keepSources = True)
-        org.mergeSamples(targetSpec = {"name":"t#bar{t}.q#bar{q}.N30", "color":r.kRed}, sources = ["ttj_mg.wTopAsymN30.tw.pu","ttj_mg.wNonQQbar.tw.pu"][:1])
-        org.mergeSamples(targetSpec = {"name":"t#bar{t}.q#bar{q}.P30", "color":r.kGreen}, sources = ["ttj_mg.wTopAsymP30.tw.pu","ttj_mg.wNonQQbar.tw.pu"][:1])
+        org.mergeSamples(targetSpec = {"name":"t#bar{t}", "color":r.kViolet}, sources=["ttj_mg.wNonQQbar.tw.rrho","ttj_mg.wTopAsymP00.tw.rrho"], keepSources = True)
+        org.mergeSamples(targetSpec = {"name":"t#bar{t}.q#bar{q}.N30", "color":r.kRed}, sources = ["ttj_mg.wTopAsymN30.tw.rrho","ttj_mg.wNonQQbar.tw.rrho"][:1])
+        org.mergeSamples(targetSpec = {"name":"t#bar{t}.q#bar{q}.P30", "color":r.kGreen}, sources = ["ttj_mg.wTopAsymP30.tw.rrho","ttj_mg.wNonQQbar.tw.rrho"][:1])
         org.mergeSamples(targetSpec = {"name":"w_jets", "color":28}, allWithPrefix="wj_lv_mg", keepSources = False )
         org.mergeSamples(targetSpec = {"name":"dy_jets", "color":r.kYellow}, allWithPrefix="dyj_ll_mg", keepSources = False )
-        org.mergeSamples(targetSpec = {"name":"single_top", "color":r.kGray}, sources = ["%s.tw.pu"%s for s in self.single_top()], keepSources = False )
+        org.mergeSamples(targetSpec = {"name":"single_top", "color":r.kGray}, sources = ["%s.tw.rrho"%s for s in self.single_top()], keepSources = False )
         org.mergeSamples(targetSpec = {"name":"standard_model", "color":r.kGreen+2}, sources = ["qcd_mu","t#bar{t}","w_jets","dy_jets","single_top"], keepSources = True)
         #for ss in filter(lambda ss: 'ttj_mg' in ss['name'],org.samples) : org.drop(ss['name'])
 
@@ -451,7 +462,7 @@ class topAsymm(supy.analysis) :
         if len(organizers)<2 : return
         for org in organizers :
             org.mergeSamples(targetSpec = {"name":"Data 2011", "color":r.kBlack, "markerStyle":20}, allWithPrefix="SingleMu")
-            org.mergeSamples(targetSpec = {"name":"w_mg", "color":r.kRed if "Wlv" in org.tag else r.kBlue, "markerStyle": 22}, sources = ["wj_lv_mg.tw.pu"])
+            org.mergeSamples(targetSpec = {"name":"w_mg", "color":r.kRed if "Wlv" in org.tag else r.kBlue, "markerStyle": 22}, sources = ["wj_lv_mg.tw.rrho"])
             org.scale(toPdf=True)
 
         melded = supy.organizer.meld("wpartitions",filter(lambda o: o.samples, organizers))
@@ -509,10 +520,10 @@ class topAsymm(supy.analysis) :
                       for tag in [p['tag'] for p in self.readyConfs if p["tag"] in meldSamples]]
         if len(organizers) < len(meldSamples) : return
         for org in organizers :
-            org.mergeSamples(targetSpec = {"name":"t#bar{t}", "color":r.kViolet}, sources=["ttj_mg.wNonQQbar.tw.pu","ttj_mg.wTopAsymP00.tw.pu"], keepSources = True)
+            org.mergeSamples(targetSpec = {"name":"t#bar{t}", "color":r.kViolet}, sources=["ttj_mg.wNonQQbar.tw.rrho","ttj_mg.wTopAsymP00.tw.rrho"], keepSources = True)
             org.mergeSamples(targetSpec = {"name":"w_jets", "color":r.kRed}, allWithPrefix = "wj_lv_mg")
             org.mergeSamples(targetSpec = {"name":"dy_jets", "color":28}, allWithPrefix = "dyj_ll_mg")
-            org.mergeSamples(targetSpec = {"name":"single", "color":r.kGray}, sources = ["%s.tw.pu"%s for s in self.single_top()], keepSources = False )
+            org.mergeSamples(targetSpec = {"name":"single", "color":r.kGray}, sources = ["%s.tw.rrho"%s for s in self.single_top()], keepSources = False )
             org.mergeSamples(targetSpec = {"name":"Data 2011",
                                            "color":r.kBlue if "QCD_" in org.tag else r.kBlack,
                                            "markerStyle":(20 if "top" in org.tag else 1)}, allWithPrefix="SingleMu")
@@ -557,7 +568,7 @@ class topAsymm(supy.analysis) :
             if ss['name'] in fractions : self.orgMelded.scaleOneRaw(iSample, fractions[ss['name']] * sum(cs.observed) / distTup[iSample].Integral(0,distTup[iSample].GetNbinsX()+1))
 
         self.orgMelded.mergeSamples(targetSpec = {"name":"bg", "color":r.kWhite}, sources = set(baseSamples + templateSamples) - set(['top.t#bar{t}']), keepSources = True, force = True)
-        templateSamples = ['top.ttj_mg.wTopAsymP00.tw.pu','top.ttj_mg.wNonQQbar.tw.pu']
+        templateSamples = ['top.ttj_mg.wTopAsymP00.tw.rrho','top.ttj_mg.wNonQQbar.tw.rrho']
         baseSamples = ['bg']
         distTup,cs = map(measureFractions,["vertex0Ntracks","fitTopFifthJet","fitTopPartonXlo","xcak5JetPFM3Pat","DiscriminantQQgg"])[-1]
 
@@ -606,7 +617,7 @@ class topAsymm(supy.analysis) :
     def templates(self, iStep, dist, qqFrac) :
         if not hasattr(self,'orgMelded') : print 'run meldScale() before asking for templates()'; return
         topQQs = [s['name'] for s in self.orgMelded.samples if 'wTopAsym' in s['name']]
-        asymm = [eval(name.replace("top.ttj_mg.wTopAsym","").replace(".tw.pu","").replace("P",".").replace("N","-.")) for name in topQQs]
+        asymm = [eval(name.replace("top.ttj_mg.wTopAsym","").replace(".tw.rrho","").replace("P",".").replace("N","-.")) for name in topQQs]
         distTup = self.orgMelded.steps[iStep][dist]
         edges = supy.utils.edgesRebinned( distTup[ self.orgMelded.indexOfSampleWithName("S.M.") ], targetUncRel = 0.015, offset = 2 )
 
@@ -621,7 +632,7 @@ class topAsymm(supy.analysis) :
         observed = nparray('top.Data 2011')
         base = ( nparray('QCD.Data 2011') +
                  nparray('top.w_jets') +
-                 nparray('top.ttj_mg.wNonQQbar.tw.pu', scaleToN = (1-qqFrac) * nTT )
+                 nparray('top.ttj_mg.wNonQQbar.tw.rrho', scaleToN = (1-qqFrac) * nTT )
                  )
         templates = [base +  nparray(qqtt, qqFrac*nTT ) for qqtt in topQQs]
         return zip(asymm, templates), observed
