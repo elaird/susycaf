@@ -2,6 +2,16 @@ import supy,steps,calculables,samples
 import os,math,copy,ROOT as r, numpy as np
 
 class topAsymm(supy.analysis) :
+    ''' Analysis for measurement of production asymmetry in top/anti-top pairs
+    
+    This analysis contains several secondary calculables, which need
+    to be primed in the following order:
+    
+    1. Reweightings: run all samples in both tags, inverting label "cross-cleaning";  --update
+    2. Prime the b-tagging variable for [BQN]-type jets: top samples only, inverting label "top reco"; --update
+    3. Prime the discriminants: [ top.tt, top.w_jet, QCD.SingleMu ] samples only, inverting after discriminants if at all; --update
+    4. Run the analysis, all samples, no label inversion
+    '''
 
     def parameters(self) :
 
