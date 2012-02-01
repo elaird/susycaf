@@ -46,6 +46,10 @@ class SumP4(TopP4Calculable) :
 class SumPt(TopP4Calculable) :
     def update(self,_) : self.value = self.source[self.P4]['t'].pt() + self.source[self.P4]['tbar'].pt()
 ######################################
+class AbsSumRapidities(TopP4Calculable) :
+    def update(self,_) : self.value = abs( self.source[self.P4]['t'].Rapidity() +
+                                           self.source[self.P4]['tbar'].Rapidity() )
+######################################
 class TtxMass(TopP4Calculable) :
     def update(self,_) : self.value = self.source[self.P4]['ttx'].mass()
 ######################################
@@ -60,6 +64,22 @@ class FifthJet(TopP4Calculable) :
 ######################################
 class Ntracks(TopP4Calculable) :
     def update(self,_) : self.value = self.source[self.P4]['ntracks']
+######################################
+class JetAbsEtaMax(wrappedChain.calculable) :
+    def __init__(self,collection = None) :
+        self.fixes = collection
+    def update(self,_) :
+        iPQHL = self.source["TopReconstruction"][0]['iPQHL']
+        p4 = self.source["%sCorrectedP4%s"%self.source["TopJets"]["fixes"]]
+        self.value = max([abs(p4[i].eta()) for i in iPQHL])
+######################################
+class JetPtMin(wrappedChain.calculable) :
+    def __init__(self,collection = None) :
+        self.fixes = collection
+    def update(self,_) :
+        iPQHL = self.source["TopReconstruction"][0]['iPQHL']
+        p4 = self.source["%sCorrectedP4%s"%self.source["TopJets"]["fixes"]]
+        self.value = min([abs(p4[i].pt()) for i in iPQHL])
 ######################################
 class PartonX12(wrappedChain.calculable) :
     def __init__(self, collection = None) :

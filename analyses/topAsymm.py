@@ -294,9 +294,15 @@ class topAsymm(supy.analysis) :
              , ssteps.filters.label('top:W'),   self.discriminantTopW(pars)
              , ssteps.filters.label('top:QCD'), self.discriminantTopQCD(pars)
              , ssteps.filters.label('W:QCD'),   self.discriminantWQCD(pars)
-             , calculables.gen.qDirProbPlus('fitTopSumP4Eta', 10, 'top_muon_pf', 'ttj_mg.wTopAsymP00.tw.%s'%rw, path = self.globalStem)
+             , calculables.gen.qDirProbPlus('fitTopSumP4Eta', 10, 'top_muon_pf_%s'%rw, 'ttj_mg.wTopAsymP00.tw.%s'%rw, path = self.globalStem)
 
-             , ssteps.filters.label('signal distributions'), steps.top.Asymmetry(('fitTop',''), bins = 640)
+             , ssteps.filters.label('extended jets')
+             , ssteps.histos.value('%sFourJetPtThreshold%s'%obj['jet'], 50,0,100)
+             , ssteps.histos.value('fitTopJetPtMin', 50,0,100)
+             , ssteps.histos.value('%sFourJetAbsEtaThreshold%s'%obj['jet'], 40,0,4)
+             , ssteps.histos.value('fitTopJetAbsEtaMax', 40,0,4)
+             
+             , ssteps.filters.label('signal distributions').invert(), steps.top.Asymmetry(('fitTop',''), bins = 640)
              , ssteps.filters.label('spin distributions'),    steps.top.Spin(('fitTop',''))
 
              #steps.histos.value('fitTopSumP4Eta', 12, -6, 6),
@@ -360,12 +366,13 @@ class topAsymm(supy.analysis) :
     def discriminantQQgg(pars) :
         rw = pars['reweights']['abbr']
         return supy.calculables.other.Discriminant( fixes = ("","QQgg"),
-                                                    left = {"pre":"gg", "tag":"top_muon_pf", "samples":['ttj_mg.wNonQQbar.tw.%s'%rw]},
-                                                    right = {"pre":"qq", "tag":"top_muon_pf", "samples":['ttj_mg.wTopAsymP00.tw.%s'%rw]},
+                                                    left = {"pre":"gg", "tag":"top_muon_pf_%s"%rw, "samples":['ttj_mg.wNonQQbar.tw.%s'%rw]},
+                                                    right = {"pre":"qq", "tag":"top_muon_pf_%s"%rw, "samples":['ttj_mg.wTopAsymP00.tw.%s'%rw]},
                                                     dists = {"%sM3%s"%pars["objects"]['jet'] : (20,0,600), # 0.047
                                                              "vertex0Ntracks" : (20,0,180),                # 0.049
                                                              "fitTopPartonXlo" : (20,0,0.12),              # 0.036
-                                                             "fitTopFifthJet": (2,-0.5, 1.5)               # 0.052
+                                                             "fitTopFifthJet": (2,-0.5, 1.5),              # 0.052
+                                                             "fitTopAbsSumRapidities" : (20, 0, 4),
                                                              #"fitTopNtracks" : (20,0,80),                 # 0.006
                                                              #"fitTopBMomentsSum2" : (20,0,0.2),           # 0.004
                                                              #"fitTopPartonXhi" : (20,0.04,0.4),           # 0.003
@@ -376,8 +383,8 @@ class topAsymm(supy.analysis) :
     def discriminantTopW(pars) :
         rw = pars['reweights']['abbr']
         return supy.calculables.other.Discriminant( fixes = ("","TopW"),
-                                                    left = {"pre":"wj_lv_mg", "tag":"top_muon_pf", "samples":[]},
-                                                    right = {"pre":"ttj_mg", "tag":"top_muon_pf", "samples": ['ttj_mg.%s.tw.%s'%(s,rw) for s in ['wNonQQbar','wTopAsymP00']]},
+                                                    left = {"pre":"wj_lv_mg", "tag":"top_muon_pf_%s"%rw, "samples":[]},
+                                                    right = {"pre":"ttj_mg", "tag":"top_muon_pf_%s"%rw, "samples": ['ttj_mg.%s.tw.%s'%(s,rw) for s in ['wNonQQbar','wTopAsymP00']]},
                                                     correlations = pars['discriminant2DPlots'],
                                                     dists = {"TopRatherThanWProbability" : (20,0,1),          # 0.183
                                                              "%sB0pt%s"%pars['objects']["jet"] : (30,0,300),  # 0.082
@@ -392,8 +399,8 @@ class topAsymm(supy.analysis) :
     def discriminantTopQCD(pars) :
         rw = pars['reweights']['abbr']
         return supy.calculables.other.Discriminant( fixes = ("","TopQCD"),
-                                                    left = {"pre":"SingleMu", "tag":"QCD_muon_pf", "samples":[]},
-                                                    right = {"pre":"ttj_mg", "tag":"top_muon_pf", "samples": ['ttj_mg.%s.tw.%s'%(s,rw) for s in ['wNonQQbar','wTopAsymP00']]},
+                                                    left = {"pre":"SingleMu", "tag":"QCD_muon_pf_%s"%rw, "samples":[]},
+                                                    right = {"pre":"ttj_mg", "tag":"top_muon_pf_%s"%rw, "samples": ['ttj_mg.%s.tw.%s'%(s,rw) for s in ['wNonQQbar','wTopAsymP00']]},
                                                     correlations = pars['discriminant2DPlots'],
                                                     dists = {"%sMt%s"%pars['objects']['muon']+"mixedSumP4" : (30,0,180), # 0.243
                                                              "%s3absEta%s"%pars['objects']["jet"] : (20,0,4),            # 0.031
@@ -406,9 +413,10 @@ class topAsymm(supy.analysis) :
                                                              })
     @staticmethod
     def discriminantWQCD(pars) :
+        rw = pars['reweights']['abbr']
         return supy.calculables.other.Discriminant( fixes = ("","WQCD"),
-                                                    left = {"pre":"wj_lv_mg", "tag":"top_muon_pf", "samples":[]},
-                                                    right = {"pre":"SingleMu", "tag":"QCD_muon_pf", "samples":[]},
+                                                    left = {"pre":"wj_lv_mg", "tag":"top_muon_pf_%s"%rw, "samples":[]},
+                                                    right = {"pre":"SingleMu", "tag":"QCD_muon_pf_%s"%rw, "samples":[]},
                                                     correlations = pars['discriminant2DPlots'],
                                                     dists = {"%sMt%s"%pars['objects']['muon']+"mixedSumP4" : (30,0,180), # 0.267
                                                              "%sB0pt%s"%pars['objects']["jet"] : (30,0,300),             # 0.091
@@ -419,7 +427,7 @@ class topAsymm(supy.analysis) :
     ########################################################################################
     def concludeAll(self) :
         self.rowcolors = 2*[13] + 2*[45]
-        super(topAsymm,self).concludeAll()
+        #super(topAsymm,self).concludeAll()
         #self.meldWpartitions()
         #self.meldQCDpartitions()
         for rw in set([pars['reweights']['abbr'] for pars in self.readyConfs]) :
@@ -467,9 +475,9 @@ class topAsymm(supy.analysis) :
 
     def meldWpartitions(self,pars) :
         rw = pars['reweights']['abbr']
-        samples = {"top_muon_pf" : ["w_"],
-                   "Wlv_muon_pf" : ["w_","SingleMu"],
-                   "QCD_muon_pf" : []}
+        samples = {"top_muon_pf_%s"%rw : ["w_"],
+                   "Wlv_muon_pf_%s"%rw : ["w_","SingleMu"],
+                   "QCD_muon_pf_%s"%rw : []}
         organizers = [supy.organizer(tag, [s for s in self.sampleSpecs(tag) if any(item in s['name'] for item in samples[tag])])
                       for tag in [p['tag'] for p in self.readyConfs]]
         if len(organizers)<2 : return
@@ -489,9 +497,9 @@ class topAsymm(supy.analysis) :
                           ).plotAll()
         
     def meldQCDpartitions(self) :
-        samples = {"top_muon_pf" : ["qcd_mu"],
-                   "Wlv_muon_pf" : [],
-                   "QCD_muon_pf" : ["qcd_mu","SingleMu"]}
+        samples = {"top_muon_pf_%s"%rw : ["qcd_mu"],
+                   "Wlv_muon_pf_%s"%rw : [],
+                   "QCD_muon_pf_%s"%rw : ["qcd_mu","SingleMu"]}
         organizers = [supy.organizer(tag, [s for s in self.sampleSpecs(tag) if any(item in s['name'] for item in samples[tag])])
                       for tag in [p['tag'] for p in self.readyConfs]]
         if len(organizers)<2 : return
@@ -526,7 +534,7 @@ class topAsymm(supy.analysis) :
         
     def meldScale(self,rw) :
         meldSamples = {"top_muon_pf_%s"%rw : ["SingleMu","ttj_mg","wj_lv_mg","dyj_ll_mg"]+self.single_top(),
-                       #"Wlv_muon_pf" : ["w_jets"],
+                       #"Wlv_muon_pf_%s"%rw : ["w_jets"],
                        "QCD_muon_pf_%s"%rw : ["SingleMu"]}
         
         organizers = [supy.organizer(tag, [s for s in self.sampleSpecs(tag) if any(item in s['name'] for item in meldSamples[tag])])
@@ -583,7 +591,8 @@ class topAsymm(supy.analysis) :
         self.orgMelded.mergeSamples(targetSpec = {"name":"bg", "color":r.kWhite}, sources = set(baseSamples + templateSamples) - set(['top.t#bar{t}']), keepSources = True, force = True)
         templateSamples = ['top.ttj_mg.wTopAsymP00.tw.%s'%rw,'top.ttj_mg.wNonQQbar.tw.%s'%rw]
         baseSamples = ['bg']
-        distTup,cs = map(measureFractions,["vertex0Ntracks","fitTopFifthJet","fitTopPartonXlo","xcak5JetPFM3Pat","DiscriminantQQgg"])[-1]
+        distTup,cs = map(measureFractions,["vertex0Ntracks","fitTopFifthJet","fitTopPartonXlo","xcak5JetPFM3Pat",
+                                           "fitTopAbsSumRapidities","xcak5JetPFFourJetPtThresholdPat","xcak5JetPFFourJetAbsEtaThresholdPat","DiscriminantQQgg"])[-1]
 
         fractions = dict(zip(templateSamples,cs.fractions))        
         for iSample,ss in enumerate(self.orgMelded.samples) :
