@@ -968,3 +968,22 @@ class DeltaPhiB01(wrappedChain.calculable) :
         b = self.source[self.IndicesBtagged]
         self.value = abs(r.Math.VectorUtil.DeltaPhi(p4[b[0]],p4[b[1]]))
 ######################################
+class FourJetPtThreshold(wrappedChain.calculable) :
+    def __init__(self, collection = None) :
+        self.fixes = collection
+        self.stash(['Pt', 'Indices'])
+    def update(self,_):
+        pt = self.source[self.Pt]
+        indices = self.source[self.Indices]
+        idPt = [pt[i] for i in indices]
+        self.value = 0 if len(idPt)<4 else idPt[3]
+######################################
+class FourJetAbsEtaThreshold(wrappedChain.calculable) :
+    def __init__(self, collection = None) :
+        self.fixes = collection
+        self.stash(['CorrectedP4', 'Indices'])
+    def update(self,_):
+        p4 = self.source[self.CorrectedP4]
+        indices = self.source[self.Indices]
+        idAbsEta = sorted([abs(p4.at(i).eta()) for i in indices])
+        self.value = 0 if len(idAbsEta)<4 else idAbsEta[3]

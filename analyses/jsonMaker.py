@@ -70,7 +70,7 @@ class jsonMaker(supy.analysis) :
                  ]
 
     def listOfCalculables(self,pars) :
-        return supy.calculables.zeroArgs()
+        return supy.calculables.zeroArgs(supy.calculables)
 
     def listOfSamples(self,pars) :
         return sum([supy.samples.specify(names = samps, weights = jw) for samps,jw in pars['group']],[])

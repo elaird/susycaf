@@ -6,6 +6,9 @@ try:
 except:
     pass
 
+class TopJets(wrappedChain.calculable) :
+    def __init__(self, jets ) : self.value = {"fixes":jets,"fixesStripped":xcStrip(jets)}
+    def update(self,_): pass
 ######################################
 class TopP4Calculable(wrappedChain.calculable) :
     def __init__(self, collection = None) :
@@ -43,6 +46,10 @@ class SumP4(TopP4Calculable) :
 class SumPt(TopP4Calculable) :
     def update(self,_) : self.value = self.source[self.P4]['t'].pt() + self.source[self.P4]['tbar'].pt()
 ######################################
+class AbsSumRapidities(TopP4Calculable) :
+    def update(self,_) : self.value = abs( self.source[self.P4]['t'].Rapidity() +
+                                           self.source[self.P4]['tbar'].Rapidity() )
+######################################
 class TtxMass(TopP4Calculable) :
     def update(self,_) : self.value = self.source[self.P4]['ttx'].mass()
 ######################################
@@ -51,6 +58,28 @@ class TtxPt(TopP4Calculable) :
 ######################################
 class TtxPz(TopP4Calculable) :
     def update(self,_) : self.value = self.source[self.P4]['ttx'].z()
+######################################
+class FifthJet(TopP4Calculable) :
+    def update(self,_) : self.value = self.source[self.P4]['fifth']
+######################################
+class Ntracks(TopP4Calculable) :
+    def update(self,_) : self.value = self.source[self.P4]['ntracks']
+######################################
+class JetAbsEtaMax(wrappedChain.calculable) :
+    def __init__(self,collection = None) :
+        self.fixes = collection
+    def update(self,_) :
+        iPQHL = self.source["TopReconstruction"][0]['iPQHL']
+        p4 = self.source["%sCorrectedP4%s"%self.source["TopJets"]["fixes"]]
+        self.value = max([abs(p4[i].eta()) for i in iPQHL])
+######################################
+class JetPtMin(wrappedChain.calculable) :
+    def __init__(self,collection = None) :
+        self.fixes = collection
+    def update(self,_) :
+        iPQHL = self.source["TopReconstruction"][0]['iPQHL']
+        p4 = self.source["%sCorrectedP4%s"%self.source["TopJets"]["fixes"]]
+        self.value = min([abs(p4[i].pt()) for i in iPQHL])
 ######################################
 class PartonX12(wrappedChain.calculable) :
     def __init__(self, collection = None) :
@@ -309,8 +338,17 @@ class genTopP4(wrappedChain.calculable) :
                        'tbar':p4[indices['tbar']],
                        'quark':p4[qqbar[0] if qqbar else self.source['genIndexStrongerParton']],
                        'lepton': p4[indices['lplus']] if indices['lplus'] else p4[indices['lminus']] if indices['lminus'] else None,
+                       'neutrino': None,
                        'p' : p4[indices['q'][0]] if indices['q'] else None,
-                       'q' : p4[indices['q'][1]] if len(indices['q'])>1 else None
+                       'q' : p4[indices['q'][1]] if len(indices['q'])>1 else None,
+                       'rawW': None,
+                       'sumP4': None,
+                       'key': None,
+                       'chi2': None,
+                       'hadChi2':None,
+                       'ttx': None,
+                       'fifth':None,
+                       'ntracks':None
                        }
 class genTopLeptonCharge(wrappedChain.calculable) :
     def update(self,_) : self.value = (1 if self.source['genTTbarIndices']['lplus'] else \
@@ -319,6 +357,7 @@ class genTopLeptonCharge(wrappedChain.calculable) :
 class fitTopP4(wrappedChain.calculable) :
     def update(self,_) :
         reco = self.source["TopReconstruction"][0]
+        tracks = self.source["%sNAssoTracksHighPurity%s"%self.source["TopJets"]['fixesStripped']]
         t = reco['top']
         tbar = reco['tbar']
         q_z = 0.5*(t+tbar).z()
@@ -335,6 +374,8 @@ class fitTopP4(wrappedChain.calculable) :
                       'chi2': reco['chi2'],
                       'hadChi2': reco['hadChi2'],
                       'ttx': reco['ttx'],
+                      'fifth': reco['iX']!=None,
+                      'ntracks': sum(tracks[i] for i in reco['iPQHL'])
                       }
 class fitTopLeptonCharge(wrappedChain.calculable) :
     def __init__(self, lepton) :
