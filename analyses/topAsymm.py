@@ -390,6 +390,17 @@ class topAsymm(supy.analysis) :
                                                     correlations = pars['discriminant2DPlots'],
                                                     bins = 14)
     @staticmethod
+    def discriminantQQgg4Jet(pars) :
+        rw = pars['reweights']['abbr']
+        return supy.calculables.other.Discriminant( fixes = ("","QQgg"),
+                                                    left = {"pre":"gg", "tag":"top_muon_pf_%s"%rw, "samples":['ttj_mg.wNonQQbar.tw.%s'%rw]},
+                                                    right = {"pre":"qq", "tag":"top_muon_pf_%s"%rw, "samples":['ttj_mg.wTopAsymP00.tw.%s'%rw]},
+                                                    dists = {'%sFourJetPtThreshold%s'%obj['jet'] : (25,0,100),
+                                                             '%sFourJetAbsEtaThreshold%s'%obj['jet'] : (20,0,4),
+                                                             },
+                                                    correlations = pars['discriminant2DPlots'],
+                                                    bins = 14)
+    @staticmethod
     def discriminantTopW(pars) :
         rw = pars['reweights']['abbr']
         return supy.calculables.other.Discriminant( fixes = ("","TopW"),
