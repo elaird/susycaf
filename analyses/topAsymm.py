@@ -301,6 +301,7 @@ class topAsymm(supy.analysis) :
              , ssteps.histos.value("KarlsruheDiscriminant", 28, -320, 800 )
              , ssteps.histos.value("TriDiscriminant",50,-1,1)
              , ssteps.filters.label('qq:gg'),   self.discriminantQQgg(pars)
+             , ssteps.filters.label('qq:gg:4j'),self.discriminantQQgg4Jet(pars)
              , ssteps.filters.label('top:W'),   self.discriminantTopW(pars)
              , ssteps.filters.label('top:QCD'), self.discriminantTopQCD(pars)
              , ssteps.filters.label('W:QCD'),   self.discriminantWQCD(pars)
@@ -392,7 +393,8 @@ class topAsymm(supy.analysis) :
     @staticmethod
     def discriminantQQgg4Jet(pars) :
         rw = pars['reweights']['abbr']
-        return supy.calculables.other.Discriminant( fixes = ("","QQgg"),
+        obj = pars['objects']
+        return supy.calculables.other.Discriminant( fixes = ("","QQgg4Jet"),
                                                     left = {"pre":"gg", "tag":"top_muon_pf_%s"%rw, "samples":['ttj_mg.wNonQQbar.tw.%s'%rw]},
                                                     right = {"pre":"qq", "tag":"top_muon_pf_%s"%rw, "samples":['ttj_mg.wTopAsymP00.tw.%s'%rw]},
                                                     dists = {'%sFourJetPtThreshold%s'%obj['jet'] : (25,0,100),
@@ -612,8 +614,8 @@ class topAsymm(supy.analysis) :
         self.orgMelded.mergeSamples(targetSpec = {"name":"bg", "color":r.kWhite}, sources = set(baseSamples + templateSamples) - set(['top.t#bar{t}']), keepSources = True, force = True)
         templateSamples = ['top.ttj_mg.wTopAsymP00.tw.%s'%rw,'top.ttj_mg.wNonQQbar.tw.%s'%rw]
         baseSamples = ['bg']
-        distTup,cs = map(measureFractions,["vertex0Ntracks","fitTopFifthJet","fitTopPartonXlo","xcak5JetPFM3Pat",
-                                           "fitTopAbsSumRapidities","xcak5JetPFFourJetPtThresholdPat","xcak5JetPFFourJetAbsEtaThresholdPat","DiscriminantQQgg"])[-1]
+        distTup,cs = map(measureFractions,["vertex0Ntracks","fitTopFifthJet","fitTopPartonXlo","xcak5JetPFM3Pat","fitTopAbsSumRapidities","DiscriminantQQgg"
+                                           "xcak5JetPFFourJetPtThresholdPat","xcak5JetPFFourJetAbsEtaThresholdPat","DiscriminantQQgg4Jet"])[-1]
 
         fractions = dict(zip(templateSamples,cs.fractions))        
         for iSample,ss in enumerate(self.orgMelded.samples) :
