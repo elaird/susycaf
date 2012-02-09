@@ -8,7 +8,7 @@ class photonSkim(analysis.analysis) :
         return {"photon": ("photon", "Pat")}
 
     def listOfSteps(self, params) :
-        stepList=[ steps.Print.progressPrinter(),
+        stepList=[ supy.steps.printer.progressPrinter(),
                    steps.Other.multiplicityFilter("%sIndices%s"%params["photon"], nMin = 1),
                    steps.Other.skimmer(),
                    ]

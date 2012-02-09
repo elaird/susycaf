@@ -19,7 +19,7 @@ class topAsymmTemplates(analysis) :
                  )
     
     def listOfSteps(self, pars) :
-        return [steps.Print.progressPrinter(),
+        return [supy.steps.printer.progressPrinter(),
                 #steps.Gen.topPrinter(),
                 steps.Gen.genParticlePrinter()
                 #steps.Filter.label("all"),         steps.Top.mcTruthTemplates(),

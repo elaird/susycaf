@@ -123,7 +123,7 @@ class photonLook(supy.analysis) :
         
         #event and trigger
         outList = [
-            steps.printer.progressPrinter(),
+            supy.steps.printer.progressPrinter(),
             supy.steps.histos.value("genpthat", 200, 0, 1000, xtitle = "#hat{p_{T}} (GeV)").onlySim(),
             steps.trigger.l1Filter("L1Tech_BPTX_plus_AND_minus.v0").onlyData(),
             steps.trigger.physicsDeclaredFilter().onlyData(),

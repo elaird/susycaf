@@ -37,7 +37,7 @@ class photonSelection(analysis.analysis) :
         _muon = params["objects"]["muon"]
         _photon = params["objects"]["photon"]
         stepList = [
-            steps.progressPrinter(),
+            supy.steps.printer.progressPrinter(),
 
             steps.jetPtSelector(_jet,100.0,0),
             steps.leadingUnCorrJetPtSelector( [_jet],100.0 ),
