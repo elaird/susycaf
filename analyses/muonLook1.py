@@ -116,7 +116,7 @@ class muonLook1(analysis.analysis) :
 
         htUpper = [steps.Other.variableLessFilter(params["thresholds"][1],"%sSum%s%s"%(_jet[0], _et, _jet[1]), "GeV")] if params["thresholds"][1]!=None else []
         return [
-            steps.Print.progressPrinter(),
+            supy.steps.printer.progressPrinter(),
             steps.Trigger.lowestUnPrescaledTrigger(),
             steps.Trigger.l1Filter("L1Tech_BPTX_plus_AND_minus.v0"),
             

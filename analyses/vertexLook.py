@@ -80,7 +80,7 @@ class vertexLook(analysis.analysis) :
         _etRatherThanPt = params["etRatherThanPt"]
 
         outList=[
-            steps.progressPrinter(),
+            supy.steps.printer.progressPrinter(),
             steps.histogrammer("genpthat",200,0,1000,title=";#hat{p_{T}} (GeV);events / bin"),
             
             steps.preIdJetPtSelector(_jet,100.0,0),

@@ -4,7 +4,7 @@ import steps,samples
 class checkHandles(supy.analysis) :
 
     def listOfSteps(self,params) :
-        stepList=[steps.printer.progressPrinter(2,300),
+        stepList=[supy.steps.printer.progressPrinter(2,300),
                   #steps.Other.handleChecker(),
                   supy.steps.histos.iterHistogrammer("ak5JetCorrectedP4Pat", 100, 0.0, 100.0, title=";ak5 calo jet corrected p_{T} (GeV);jets / bin", funcString="lambda x:x.pt()"),
                   supy.steps.histos.iterHistogrammer("ak5JetPFCorrectedP4Pat", 100, 0.0, 100.0, title=";ak5 PF jet corrected p_{T} (GeV);jets / bin", funcString="lambda x:x.pt()"),

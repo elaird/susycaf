@@ -2,7 +2,7 @@ import supy,steps,samples
 
 class eventSkim(supy.analysis) :
     def listOfSteps(self,_) :
-        return [ steps.printer.progressPrinter(2,300),
+        return [ supy.steps.printer.progressPrinter(2,300),
                  steps.filters.runLsEvent("/home/hep/elaird1/oneEvent.txt"),
                  supy.steps.other.skimmer(),
                  ]

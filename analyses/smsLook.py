@@ -88,7 +88,7 @@ class smsLook(analysis.analysis) :
         _et = "Et" if _etRatherThanPt else "Pt"
 
         return [
-            steps.Print.progressPrinter(),
+            supy.steps.printer.progressPrinter(),
             #steps.Other.collector(["susyScanM0","susyScanM12"]),
             #steps.Other.orFilter([steps.Gen.ParticleCountFilter({"gluino":2}), steps.Gen.ParticleCountFilter({"squark":2})]),
             #steps.Other.smsMedianHistogrammer(_jet),

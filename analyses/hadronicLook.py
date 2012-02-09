@@ -178,7 +178,7 @@ class hadronicLook(supy.analysis) :
                      steps.gen.scanHistogrammer(tanBeta = params["tanBeta"], htVar = "%sSum%s%s"%(_jet[0], _et, _jet[1]))] if params["tanBeta"]!=None else []
         htUpper = [steps.other.variableLessFilter(params["thresholds"][1],"%sSum%s%s"%(_jet[0], _et, _jet[1]), "GeV")] if params["thresholds"][1]!=None else []
         return scanBefore + [
-            steps.printer.progressPrinter(),
+            supy.steps.printer.progressPrinter(),
             steps.trigger.lowestUnPrescaledTriggerFilter(),
             steps.trigger.l1Filter("L1Tech_BPTX_plus_AND_minus.v0"),
             

@@ -16,7 +16,7 @@ class prescales(analysis.analysis) :
     
     def listOfSteps(self,params) :
         return [
-            steps.progressPrinter(),
+            supy.steps.printer.progressPrinter(),
             steps.jetPtSelector(params["jets"],100.0,0),
             steps.jetPtSelector(params["jets"],100.0,1),
             steps.jetEtaSelector(params["jets"],2.5,0),

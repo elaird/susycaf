@@ -10,7 +10,7 @@ class scanLook(analysis.analysis) :
     
     def listOfSteps(self, params) :
         return [
-            steps.Print.progressPrinter(),
+            supy.steps.printer.progressPrinter(),
             #steps.Gen.susyScanPointPrinter(),
             #steps.Gen.ParticleCountFilter({"squark":2}),
             steps.Other.passFilter("scanPlots"),
