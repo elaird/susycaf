@@ -113,3 +113,12 @@ class isRealData(wrappedChain.calculable) :
     def __init__(self) : self.moreName = "absence of genpthat"
     def update(self,ignored) : self.value = not ("genpthat" in self.source)
 ##############################
+class nTracksAll(wrappedChain.calculable) :
+    def update(self,_) : self.value = sum([self.source[item] for item in ["tracksNEtaLT0p9AllTracks",
+                                                                          "tracksNEta0p9to1p5AllTracks",
+                                                                          "tracksNEtaGT1p5AllTracks"]])
+##############################
+class nTracksHighPurity(wrappedChain.calculable) :
+    def update(self,_) : self.value = sum([self.source[item] for item in ["tracksNEtaLT0p9HighPurityTracks",
+                                                                          "tracksNEta0p9to1p5HighPurityTracks",
+                                                                          "tracksNEtaGT1p5HighPurityTracks"]])
