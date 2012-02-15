@@ -19,7 +19,7 @@ class topAsymm(supy.analysis) :
             'label' :['nvr',                'rrho',          'pu',        ],
             'abbr'  :['nvr',                'rrho',          'pu',        ],
             'func'  :['ratio_vertices',     'ratio_rho',     'pileup' ],
-            'var'   :['nVertexRatio',       'rhoRatio',      'pileupInteractionsBX0Target'],
+            'var'   :['nVertexRatio',       'rhoRatio',      'pileupTrueInteractionsBX0Target'],
             }
 
         objects = {
@@ -96,15 +96,17 @@ class topAsymm(supy.analysis) :
 
     ########################################################################################
 
-    def listOfSampleDictionaries(self) : return [getattr(samples,item) for item in ['muon', 'top', 'ewk', 'qcd']]
+    def listOfSampleDictionaries(self) : return [getattr(samples,item) for item in ['muon16', 'top16', 'ewk16', 'qcd16']]
 
     def data(self,pars) :
-        return supy.samples.specify( names = ['SingleMu.2011B-PR1.1b',
-                                              'SingleMu.2011B-PR1.1a',
-                                              'SingleMu.2011A-Oct.1',
-                                              'SingleMu.2011A-Aug.1',
-                                              'SingleMu.2011A-PR4.1',
-                                              'SingleMu.2011A-May.1'], weights = 'tw')
+        return { "muon" : supy.samples.specify( names = ['SingleMu.2011A.1',
+                                                         'SingleMu.2011A.2',
+                                                         'SingleMu.2011B'], weights = 'tw'),
+                 "electron" : supy.samples.specify( names = ['SingleEl.Run2011A.1',
+                                                             'SingleEl.Run2011A.2',
+                                                             'SingleEl.Run2011B', weights = 'tw' ])
+                 }[pars['lepton']['name']]
+
     @staticmethod
     def single_top() :
         return ['top_s_ph','top_t_ph','top_tW_ph','tbar_s_ph','tbar_t_ph','tbar_tW_ph']
@@ -189,6 +191,8 @@ class topAsymm(supy.analysis) :
             calculables.top.RadiativeCoherence(('fitTop',''),pars['objects']['jet']),
             calculables.top.fitTopBMomentsSum2(pars['objects']['jet']),
             calculables.top.TopJets(pars['objects']['jet']),
+            calculables.top.IndicesGenTopPQHL(pars['objects']['jet']),
+            calculables.top.IndicesGenTopExtra(pars['objects']['jet']),
 
             calculables.other.Mt(lepton,"mixedSumP4", allowNonIso=True, isSumP4=True),
             calculables.other.Covariance(('met','PF')),
@@ -245,7 +249,7 @@ class topAsymm(supy.analysis) :
 
              , ssteps.filters.label('trigger reweighting')
              , self.triggerWeight(pars, [ss.weightedName for ss in self.data(pars)])
-             , steps.trigger.lowestUnPrescaledTriggerHistogrammer()
+             , steps.trigger.lowestUnPrescaledTriggerHistogrammer().onlyData()
              
              ####################################
              , ssteps.filters.label('cross-cleaning'),
@@ -288,7 +292,8 @@ class topAsymm(supy.analysis) :
              
              , ssteps.filters.label('top reco'),
              ssteps.filters.multiplicity("TopReconstruction",min=1)
-             
+
+             , steps.top.pileupJets()
              ####################################
              , ssteps.filters.label("selection complete")
 
@@ -348,8 +353,8 @@ class topAsymm(supy.analysis) :
     @classmethod
     def pileup(cls,pars) : 
         rw = pars['reweights']['abbr']
-        return supy.calculables.other.Target("pileupInteractionsBX0", thisSample = pars['baseSample'],
-                                             target = ("data/target_SingleMu-2011.root","pileup"),
+        return supy.calculables.other.Target("pileupTrueInteractionsBX0", thisSample = pars['baseSample'],
+                                             target = ("data/pileup_true_Cert_160404-180252_7TeV_ReRecoNov08_Collisions11_JSON.root","pileup"),
                                              groups = [('qcd_mu',[]),('wj_lv_mg',[]),('dyj_ll_mg',[]),
                                                        ('single_top', ['%s.tw.%s'%(s,rw) for s in cls.single_top()]),
                                                        ('ttj_mg',['ttj_mg%s.tw.%s'%(s,rw) for s in ['',
