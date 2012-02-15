@@ -65,6 +65,9 @@ class FifthJet(TopP4Calculable) :
 class Ntracks(TopP4Calculable) :
     def update(self,_) : self.value = self.source[self.P4]['ntracks']
 ######################################
+class NtracksExtra(TopP4Calculable) :
+    def update(self,_) : self.value = self.source['tracksCountwithPrimaryHighPurityTracks'] - self.source[self.P4]['ntracks']
+######################################
 class JetAbsEtaMax(wrappedChain.calculable) :
     def __init__(self,collection = None) :
         self.fixes = collection
