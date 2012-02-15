@@ -357,7 +357,7 @@ class genTopLeptonCharge(wrappedChain.calculable) :
 class fitTopP4(wrappedChain.calculable) :
     def update(self,_) :
         reco = self.source["TopReconstruction"][0]
-        tracks = self.source["%sNAssoTracksHighPurity%s"%self.source["TopJets"]['fixesStripped']]
+        tracks = self.source["%CountwithPrimaryHighPurityTracks%s"%self.source["TopJets"]['fixesStripped']]
         t = reco['top']
         tbar = reco['tbar']
         q_z = 0.5*(t+tbar).z()
@@ -592,7 +592,7 @@ class genTopRecoIndex(wrappedChain.calculable) :
             self.value = sorted( iPass, key = lambda i: sum([self.source['%sDeltaRTopRecoGen'%s][i] for s in ['lep','nu']]))[0]
 
 class IndicesGenTopPQHL(wrappedChain.calculable) :
-    def __init__(self,jets=None, rMax = 0.6 ) :
+    def __init__(self, jets=None, rMax = 0.6 ) :
         self.rMax = rMax
         self.fixes = jets
         self.stash( ['Indices','CorrectedP4'] )
@@ -613,6 +613,21 @@ class IndicesGenTopPQHL(wrappedChain.calculable) :
         PQHL = [i if dR<self.rMax else None for dR,i in dRIs ]
         self.value = tuple( sorted(PQHL[:2]) + PQHL[2:] )
 
+class IndicesGenTopExtra(wrappedChain.calculable) :
+    def __init__(self, jets=None, rMax = 0.6) :
+        self.rMax = rMax
+        self.fixes = jets
+        self.stash(['Indices','CorrectedP4','IndicesGenTopPQHL'])
+
+    def update(self,_) :
+        imom = self.source['genMotherIndex']
+        p4 = self.source['genP4']
+
+        extraP4 = [p4[i] for i in range(8,len(imom)) if 2<imom[i]<6 ]
+
+        indices = self.source[self.Indices]
+        jet = self.source[self.CorrectedP4]
+        self.value = [j for j in indices if any( self.rMax > r.Math.VectorUtil.DeltaR(jet[j],gen) for gen in extraP4 ) ]
 ######################################
 class wTopAsym(wrappedChain.calculable) :
     def __init__(self, R, R_sm = 0, intrinsicC = 1) :

@@ -987,3 +987,13 @@ class FourJetAbsEtaThreshold(wrappedChain.calculable) :
         indices = self.source[self.Indices]
         idAbsEta = sorted([abs(p4.at(i).eta()) for i in indices])
         self.value = 0 if len(idAbsEta)<4 else idAbsEta[3]
+######################################
+class PileUpPtFraction(wrappedChain.calculable) :
+    def __init__(self, collection = None ) :
+        self.fixes = collection
+        self.stash(['SumP3withPrimaryHighPurityTracks',
+                    'SumP3withPileUpHighPurityTracks'], xcStrip(collection))
+    def update(self,_) :
+        pri = self.source[self.SumP3withPrimaryHighPurityTracks]
+        pu = self.source[self.SumP3withPileUpHighPurityTracks]
+        self.value = [pu[i].rho()/max(0.001,pu[i].rho()+pri[i].rho()) for i in range(len(pri))]

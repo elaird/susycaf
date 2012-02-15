@@ -3,8 +3,8 @@ from supy import analysisStep,steps
 #####################################
 
 class jetPrinter(analysisStep) :
-    def __init__(self, jets) : self.jets = jets
     def uponAcceptance(self,ev) :
+        jets = ev['TopJets']['fixes']
         iTT = ev['genTTbarIndices']
         gen = ev['genP4']
         print 'gen b,bbar,q*'
@@ -12,20 +12,48 @@ class jetPrinter(analysisStep) :
             p4 = gen[i]
             print ("\t%.0f\t%+.1f\t%+.1f")%(p4.pt(),p4.eta(),p4.phi())
         print 'jet'
-        for i in ev['%sIndices%s'%self.jets] :
-            p4 = ev['%sCorrectedP4%s'%self.jets][i]
-            print 'b' if i in ev['%sIndicesGenB%s'%self.jets] else '',
-            print 'q' if i in ev['%sIndicesGenWqq%s'%self.jets] else '',
+        fPU = ev['%sPileUpPtFraction%s'%jets]
+        for i in ev['%sIndices%s'%jets] :
+            p4 = ev['%sCorrectedP4%s'%jets][i]
+            print 'b' if i in ev['%sIndicesGenB%s'%jets] else '',
+            print 'q' if i in ev['%sIndicesGenWqq%s'%jets] else '',
             print ("\t%.0f\t%+.1f\t%+.1f")%(p4.pt(),p4.eta(),p4.phi()),
-            print 'p' if i==ev['%sIndicesGenTopPQHL%s'%self.jets][0] else '',
-            print 'q' if i==ev['%sIndicesGenTopPQHL%s'%self.jets][1] else '',
-            print 'h' if i==ev['%sIndicesGenTopPQHL%s'%self.jets][2] else '',
-            print 'l' if i==ev['%sIndicesGenTopPQHL%s'%self.jets][3] else ''
-        if ev['%sIndicesOther%s'%self.jets] : print '-id'
-        for i in ev['%sIndicesOther%s'%self.jets] :
-            p4 = ev['%sCorrectedP4%s'%self.jets][i]
+            print "  %.2f  "%fPU[i] ,
+            print 'p' if i==ev['%sIndicesGenTopPQHL%s'%jets][0] else '',
+            print 'q' if i==ev['%sIndicesGenTopPQHL%s'%jets][1] else '',
+            print 'h' if i==ev['%sIndicesGenTopPQHL%s'%jets][2] else '',
+            print 'l' if i==ev['%sIndicesGenTopPQHL%s'%jets][3] else '',
+            print 'g' if i in ev['%sIndicesGenTopExtra%s'%jets] else ''
+        if ev['%sIndicesOther%s'%jets] : print '-id'
+        for i in ev['%sIndicesOther%s'%jets] :
+            p4 = ev['%sCorrectedP4%s'%jets][i]
             print ("\t%.0f\t%+.1f\t%+.1f")%(p4.pt(),p4.eta(),p4.phi())
             print
+#####################################
+class pileupJets(analysisStep) :
+    def uponAcceptance(self,ev) :
+        if not ev['genTTbarIndices'] : return
+        xcjets = ev['TopJets']['fixes']
+        jets = ev['TopJets']['fixesStripped']
+        indices = ev['%sIndices%s'%xcjets]
+        p4 = ev['%sCorrectedP4%s'%xcjets]
+        n = ev['%sCountwithPrimaryHighPurityTracks%s'%jets]
+        #p = ev['%sSumP3withPrimaryHighPurityTracks%s'%jets]
+        nPU = ev['%sCountwithPileUpHighPurityTracks%s'%jets]
+        #pPU = ev['%sSumP3withPileUpHighPurityTracks%s'%jets]
+        iPQHL = ev['%sIndicesGenTopPQHL%s'%xcjets]
+        iExtra = ev['%sIndicesGenTopExtra%s'%xcjets]
+        puPtFrac = ev['%sPileUpPtFraction%s'%xcjets]
+
+        for i in indices :
+            label = ( 'B' if i in iPQHL[2:] else
+                      'Q' if i in iPQHL[:2] else
+                      'g' if i in iExtra else
+                      'pu')
+            self.book.fill( nPU[i], "ntracksPU_%s"%label, 30, 0, 30, title = ';ntracksPU (%s);jets / bin'%label )
+            self.book.fill( n[i], "ntracks_%s"%label, 30, 0, 30, title = ';ntracks (%s);jets / bin'%label )
+            self.book.fill( puPtFrac[i], "pileupPtFrac_%s"%label, 50, 0, 1, title = ';pileup Pt Fraction (%s);jets / bin'%label)
+
 #####################################
 class Asymmetry(analysisStep) :
     def __init__(self, collection, bins = 18 ) :
