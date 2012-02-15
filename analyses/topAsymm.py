@@ -19,7 +19,7 @@ class topAsymm(supy.analysis) :
             'label' :['nvr',                'rrho',          'pu',        ],
             'abbr'  :['nvr',                'rrho',          'pu',        ],
             'func'  :['ratio_vertices',     'ratio_rho',     'pileup' ],
-            'var'   :['nVertexRatio',       'rhoRatio',      'pileupTrueInteractionsBX0Target'],
+            'var'   :['nVertexRatio',       'rhoRatio',      'pileupTrueNumInteractionsBX0Target'],
             }
 
         objects = {
@@ -104,7 +104,7 @@ class topAsymm(supy.analysis) :
                                                          'SingleMu.2011B'], weights = 'tw'),
                  "electron" : supy.samples.specify( names = ['SingleEl.Run2011A.1',
                                                              'SingleEl.Run2011A.2',
-                                                             'SingleEl.Run2011B', weights = 'tw' ])
+                                                             'SingleEl.Run2011B'], weights = 'tw')
                  }[pars['lepton']['name']]
 
     @staticmethod
@@ -353,7 +353,7 @@ class topAsymm(supy.analysis) :
     @classmethod
     def pileup(cls,pars) : 
         rw = pars['reweights']['abbr']
-        return supy.calculables.other.Target("pileupTrueInteractionsBX0", thisSample = pars['baseSample'],
+        return supy.calculables.other.Target("pileupTrueNumInteractionsBX0", thisSample = pars['baseSample'],
                                              target = ("data/pileup_true_Cert_160404-180252_7TeV_ReRecoNov08_Collisions11_JSON.root","pileup"),
                                              groups = [('qcd_mu',[]),('wj_lv_mg',[]),('dyj_ll_mg',[]),
                                                        ('single_top', ['%s.tw.%s'%(s,rw) for s in cls.single_top()]),

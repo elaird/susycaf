@@ -357,7 +357,7 @@ class genTopLeptonCharge(wrappedChain.calculable) :
 class fitTopP4(wrappedChain.calculable) :
     def update(self,_) :
         reco = self.source["TopReconstruction"][0]
-        tracks = self.source["%CountwithPrimaryHighPurityTracks%s"%self.source["TopJets"]['fixesStripped']]
+        tracks = self.source["%sCountwithPrimaryHighPurityTracks%s"%self.source["TopJets"]['fixesStripped']]
         t = reco['top']
         tbar = reco['tbar']
         q_z = 0.5*(t+tbar).z()
