@@ -109,7 +109,7 @@ class topAsymm(supy.analysis) :
 
     @staticmethod
     def single_top() :
-        return ['top_s_ph','top_t_ph','top_tW_ph','tbar_s_ph','tbar_t_ph','tbar_tW_ph']
+        return ['top_s_ph','top_t_ph','top_tW_ph','tbar_s_ph','tbar_t_ph','tbar_tW_ph'][:0]
 
     def listOfSamples(self,pars) :
         rw = pars['reweights']['abbr']
@@ -136,9 +136,9 @@ class topAsymm(supy.analysis) :
                                          effectiveLumi = eL, color = r.kGray, weights = ['tw',rw]) if "QCD" not in pars['tag'] else []
         
         def ttbar_mg(eL = None) :
-            return (supy.samples.specify(names = "ttj_mg", effectiveLumi = eL, color = r.kBlue, weights = ["wNonQQbar",'tw',rw]) +
+            return (supy.samples.specify(names = "ttj_mg", effectiveLumi = eL, color = r.kBlue, weights = ["wNonQQbar",'tw',rw], nFilesMax = 200) +
                     sum( [supy.samples.specify( names = "ttj_mg", effectiveLumi = eL, 
-                                                color = color, weights = [ calculables.top.wTopAsym(asym, R_sm = -0.05), 'tw',rw ] )
+                                                color = color, weights = [ calculables.top.wTopAsym(asym, R_sm = -0.05), 'tw',rw ], nFilesMax = 200 )
                           for asym,color in [(0.0,r.kOrange),
                                              (-0.3,r.kGreen),(0.3,r.kRed),
                                              #(-0.6,r.kYellow),(0.6,r.kYellow),
@@ -293,7 +293,7 @@ class topAsymm(supy.analysis) :
              , ssteps.filters.label('top reco'),
              ssteps.filters.multiplicity("TopReconstruction",min=1)
 
-             , steps.top.pileupJets()
+             , steps.top.pileupJets().onlySim()
              ####################################
              , ssteps.filters.label("selection complete")
 
@@ -385,11 +385,11 @@ class topAsymm(supy.analysis) :
                                                     left = {"pre":"gg", "tag":"top_muon_pf_%s"%rw, "samples":['ttj_mg.wNonQQbar.tw.%s'%rw]},
                                                     right = {"pre":"qq", "tag":"top_muon_pf_%s"%rw, "samples":['ttj_mg.wTopAsymP00.tw.%s'%rw]},
                                                     dists = {"%sM3%s"%pars["objects"]['jet'] : (20,0,600), # 0.047
-                                                             "vertex0Ntracks" : (20,0,180),                # 0.049
+                                                             "fitTopNtracksExtra" : (20,0,160),             
+                                                             "tracksCountwithPrimaryHighPurityTracks" :  (20,0,250),               # 0.049
                                                              "fitTopPartonXlo" : (20,0,0.12),              # 0.036
                                                              "fitTopFifthJet": (2,-0.5, 1.5),              # 0.052
                                                              "fitTopAbsSumRapidities" : (20, 0, 4),
-                                                             #"fitTopNtracks" : (20,0,80),                 # 0.006
                                                              #"fitTopBMomentsSum2" : (20,0,0.2),           # 0.004
                                                              #"fitTopPartonXhi" : (20,0.04,0.4),           # 0.003
                                                              },
@@ -619,7 +619,7 @@ class topAsymm(supy.analysis) :
         self.orgMelded.mergeSamples(targetSpec = {"name":"bg", "color":r.kWhite}, sources = set(baseSamples + templateSamples) - set(['top.t#bar{t}']), keepSources = True, force = True)
         templateSamples = ['top.ttj_mg.wTopAsymP00.tw.%s'%rw,'top.ttj_mg.wNonQQbar.tw.%s'%rw]
         baseSamples = ['bg']
-        distTup,cs = map(measureFractions,["vertex0Ntracks","fitTopFifthJet","fitTopPartonXlo","xcak5JetPFM3Pat","fitTopAbsSumRapidities","DiscriminantQQgg",
+        distTup,cs = map(measureFractions,["tracksCountwithPrimaryHighPurityTracks","fitTopNtracksExtra","fitTopFifthJet","fitTopPartonXlo","xcak5JetPFM3Pat","fitTopAbsSumRapidities","DiscriminantQQgg",
                                            "xcak5JetPFFourJetPtThresholdPat","xcak5JetPFFourJetAbsEtaThresholdPat","DiscriminantQQgg4Jet"])[-1]
 
         fractions = dict(zip(templateSamples,cs.fractions))        
