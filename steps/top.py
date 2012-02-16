@@ -44,12 +44,13 @@ class pileupJets(analysisStep) :
         iPQHL = ev['%sIndicesGenTopPQHL%s'%xcjets]
         iExtra = ev['%sIndicesGenTopExtra%s'%xcjets]
         puPtFrac = ev['%sPileUpPtFraction%s'%xcjets]
-
+        dz = ev['vertexDzSeparation']
+        self.book.fill( dz, 'vertexDzSeparation', 60,0,30, title = ";vertexDzSeparation;events / bin")
         for i in indices :
             label = ( 'B' if i in iPQHL[2:] else
                       'Q' if i in iPQHL[:2] else
                       'g' if i in iExtra else
-                      'pu')
+                      'pu') + '_' + ('inner' if abs(p4[i].eta())<2.6 else 'outer') + '_' + ('sharp' if dz<5 else 'blurry')
             self.book.fill( nPU[i], "ntracksPU_%s"%label, 30, 0, 30, title = ';ntracksPU (%s);jets / bin'%label )
             self.book.fill( n[i], "ntracks_%s"%label, 30, 0, 30, title = ';ntracks (%s);jets / bin'%label )
             self.book.fill( puPtFrac[i], "pileupPtFrac_%s"%label, 50, 0, 1, title = ';pileup Pt Fraction (%s);jets / bin'%label)

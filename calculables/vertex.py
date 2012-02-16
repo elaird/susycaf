@@ -70,3 +70,9 @@ class vertex0Ntracks(wrappedChain.calculable) :
         ntrk = self.source["vertexNtrks"]
         indices = self.source["vertexIndices"]
         self.value = ntrk[indices[0]] if len(indices) else 0
+#####################################
+class vertexDzSeparation(wrappedChain.calculable) :
+    def update(self,_) :
+        p = self.source["vertexPosition"]
+        posZ = [p[i].z() for i in self.source["vertexIndices"]]
+        self.value = min([29] + [abs(posZ[0])-z for z in posZ[1:]])
