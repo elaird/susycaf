@@ -32,7 +32,7 @@ class jetPrinter(analysisStep) :
 #####################################
 class pileupJets(analysisStep) :
     def uponAcceptance(self,ev) :
-        if not ev['genTTbarIndices'] : return
+        if not ev['genTopTTbar'] : return
         xcjets = ev['TopJets']['fixes']
         jets = ev['TopJets']['fixesStripped']
         indices = ev['%sIndices%s'%xcjets]
