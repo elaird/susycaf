@@ -8,12 +8,9 @@ class jsonMaker(supy.analysis) :
 
         group = self.vary()
 
-        group['SingleMu'] = [(['SingleMu.2011A-May.1',
-                               'SingleMu.2011A-PR4.1',
-                               'SingleMu.2011A-Aug.1',
-                               'SingleMu.2011A-Oct.1',
-                               'SingleMu.2011B-PR1.1a',
-                               'SingleMu.2011B-PR1.1b',
+        group['SingleMu'] = [(['SingleMu.2011A.1',
+                               'SingleMu.2011A.2',
+                               'SingleMu.2011B',
                                ], [])] # no json filtering necessary, golden json used
 
         group['Photon1'] = [(['Photon.Run2011A-May10ReReco-v1.AOD.job536',
@@ -76,7 +73,7 @@ class jsonMaker(supy.analysis) :
         return sum([supy.samples.specify(names = samps, weights = jw) for samps,jw in pars['group']],[])
 
     def listOfSampleDictionaries(self) :
-        return [samples.ht, samples.muon, samples.photon, samples.electron, samples.mumu]
+        return [samples.ht, samples.muon16, samples.photon, samples.electron, samples.mumu]
 
     def mainTree(self) :
         return ("lumiTree","tree")
