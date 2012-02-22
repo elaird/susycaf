@@ -1,4 +1,4 @@
-from supy import calculables,utils
+from supy import calculables,utils,wrappedChain
 import collections,os, ROOT as r
 try:
     import numpy as np
@@ -6,6 +6,22 @@ except:
     pass
 
 #####################################
+class lowestUnPrescaledTrigger(wrappedChain.calculable) :
+    def __init__(self, sortedListOfPaths = []) :
+        self.sortedListOfPaths = sortedListOfPaths
+        self.cached = dict()
+        self.moreName = "lowest unprescaled of "+','.join(self.sortedListOfPaths).replace("HLT_","")
+
+    def update(self, ignored) :
+        key = (self.source["run"],self.source["lumiSection"])
+        if key not in self.cached :
+            self.cached[key] = None
+            for path in self.sortedListOfPaths :
+                if self.source["prescaled"][path]==1 :
+                    self.cached[key] = path
+                    break
+        self.value = self.cached[key]
+##############################
 class TriggerWeight(calculables.secondary) :
     '''Probability that the event was triggered.'''
     

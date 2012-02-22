@@ -169,6 +169,8 @@ class topAsymm(supy.analysis) :
             calculables.muon.IndicesAnyIsoIsoOrder(lepton, pars["lepton"]["iso"]),
             calculables.xclean.xcJet_SingleLepton( obj["jet"], leptons = lepton, indices = "IndicesAnyIsoIsoOrder" ),
 
+            calculables.trigger.lowestUnPrescaledTrigger(zip(*pars["lepton"]["triggers"])[0]),
+
             calculables.vertex.ID(),
             calculables.vertex.Indices(),
 
@@ -183,7 +185,6 @@ class topAsymm(supy.analysis) :
 
             calculables.other.Mt( lepton, "mixedSumP4", allowNonIso = True, isSumP4 = True),
             calculables.other.Covariance(('met','PF')),
-            calculables.other.lowestUnPrescaledTrigger(zip(*pars["lepton"]["triggers"])[0]),
             calculables.other.TriDiscriminant( LR = "DiscriminantWQCD", LC = "DiscriminantTopW", RC = "DiscriminantTopQCD"),
             calculables.other.KarlsruheDiscriminant( obj['jet'], obj['met'] ),
 
