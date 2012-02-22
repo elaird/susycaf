@@ -368,3 +368,44 @@ class smsMedianHistogrammer(analysisStep) :
         for i in range(2) :
             self.oneHisto("%sJet%dPt%s"%(self.cs[0], i, self.cs[1]), "Median pT of jet %d (GeV)"%(i+1))
 #####################################
+
+class muIsoStudy(analysisStep) :
+    def __init__(self, jets, mus ) :
+        self.jet = jets
+        self.mu = mus
+
+    def uponAcceptance(self,ev) :
+        iso = ev["%sCombinedRelativeIso%s"%self.mu]
+        mu = ev["%sP4%s"%self.mu]
+        jet = ev["%sCorrectedP4%s"%self.jet]
+        muIndices = ev["%sIndicesAnyIso%s"%self.mu]
+        jetIndices = ev["%sIndices%s"%self.jet]
+
+        for iJet in jetIndices :
+            p4 = jet.at(iJet)
+            iMuMatch = [iMu for iMu in muIndices if r.Math.VectorUtil.DeltaR(p4,mu[iMu])<0.5 ]
+            p4_ = sum( [-mu[iMu] for iMu in iMuMatch] , p4 )
+        
+            self.book.fill(len(iMuMatch), '0nMu', 5,-0.5,4.5, title = ';nMuons;jets / bin')
+
+            if len(iMuMatch) < 1 : continue
+        
+            self.book.fill( (len(iMuMatch),min(49,p4_.pt())), '1nMu_v_pt', (5,50), (-0.5,0), (4.5,50), title = ";nMuon;pT_{jet}-pT_{mu};jets / bin")
+
+            if len(iMuMatch) > 1 : continue
+
+            iMu = iMuMatch[0]
+            self.book.fill( iso[iMu], '2iso', 100, 0, 1, title = ";iso_{mu};jets / bin")
+            self.book.fill( p4_.pt(), '3pt', 50, 0, 49, title = ";pt_{jet}-pt_{mu};jets / bin")
+            self.book.fill( (min(0.9,iso[iMu]),min(49,p4_.pt())), '4iso_v_pt', (100,50), (0,0), (1,50), title = ";iso_{mu};pT_{jet}-pT_{mu};jets / bin")
+
+            label = ("iso" if iso[iMu]<0.15 else "non")
+
+            self.book.fill( (min(99,mu[iMu].pt()),min(99,p4_.pt())), "5mu_v_jet-"+label, (100,100), (0,0), (100,100), title = ";pT_{mu} (%s);pT_{jet-mu};jets / bin"%label)
+            
+
+            if p4_.pt() < 20 : continue
+            self.book.fill( (min(0.9,iso[iMu]), min(3.9,mu[iMu].pt() / p4_.pt())), "6iso_v_ptr", (100,50), (0,0), (1,4), title = ";iso_{mu}; pT_{mu} / (pT_{jet}-pT_{mu});jets / bin"  )
+            self.book.fill(  min(3.9,mu[iMu].pt() / p4_.pt()), "7ptr-"+label, 50, 0, 4, title = ";(%s) pT_{mu} / (pT_{jet}-pT_{mu});jets / bin"%label  )
+
+            
