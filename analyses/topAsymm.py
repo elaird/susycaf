@@ -158,60 +158,58 @@ class topAsymm(supy.analysis) :
         lepton = obj[pars["lepton"]["name"]]
         calcs  = supy.calculables.zeroArgs(supy.calculables)
         calcs += supy.calculables.zeroArgs(calculables)
+        calcs += supy.calculables.fromCollections(calculables.top,[('genTop',""),('fitTop',"")])
         for item in ['jet','photon','electron','muon'] :
             calcs += supy.calculables.fromCollections( getattr(calculables, item), [obj[item]])
         calcs += [
             calculables.jet.IndicesBtagged(obj["jet"],pars["bVar"]),
             calculables.jet.Indices(       obj["jet"],      ptMin = 20, etaMax = 3.5, flagName = "JetIDloose"),
-            calculables.photon.Indices(    obj["photon"],   ptMin = 25, flagName = "photonIDLooseFromTwikiPat"),
+            #calculables.photon.Indices(    obj["photon"],   ptMin = 25, flagName = "photonIDLooseFromTwikiPat"),
             calculables.electron.Indices(  obj["electron"], ptMin = 10, simpleEleID = "80", useCombinedIso = True),
             calculables.muon.Indices(      obj["muon"],     ptMin = 10, combinedRelIsoMax = 0.15),
-            calculables.muon.IndicesTriggering(obj["muon"]),
-            calculables.muon.IndicesAnyIsoIsoOrder(obj[pars["lepton"]["name"]], pars["lepton"]["iso"]),
+            calculables.muon.IndicesTriggering(lepton),
+            calculables.muon.IndicesAnyIsoIsoOrder(lepton, pars["lepton"]["iso"]),
 
-            calculables.xclean.IndicesUnmatched(collection = obj["photon"], xcjets = obj["jet"], DR = 0.5),
-            calculables.xclean.IndicesUnmatched(collection = obj["electron"], xcjets = obj["jet"], DR = 0.5),
-            calculables.xclean.xcJet(obj["jet"], applyResidualCorrectionsToData = False,
-                                     gamma    = obj["photon"],      gammaDR = 0.5,
-                                     electron = obj["electron"], electronDR = 0.5,
-                                     muon     = obj["muon"],         muonDR = 0.5, correctForMuons = not obj["muonsInJets"]),
+            #calculables.xclean.IndicesUnmatched(collection = obj["photon"], xcjets = obj["jet"], DR = 0.5),
+            #calculables.xclean.IndicesUnmatched(collection = obj["electron"], xcjets = obj["jet"], DR = 0.5),
+            #calculables.xclean.xcJet(obj["jet"], applyResidualCorrectionsToData = False,
+            #                         gamma    = obj["photon"],      gammaDR = 0.5,
+            #                         electron = obj["electron"], electronDR = 0.5,
+            #                         muon     = obj["muon"],         muonDR = 0.5, correctForMuons = not obj["muonsInJets"]),
+            calculables.xclean.xcJet_SingleLepton( obj["jet"], lepton = lepton, indices = "" )
+
 
             calculables.vertex.ID(),
             calculables.vertex.Indices(),
 
+            calculables.top.TopJets(obj['jet']),
+            calculables.top.TopLeptons(lepton),
             calculables.top.mixedSumP4(transverse = obj["met"], longitudinal = obj["sumP4"]),
-            calculables.top.SemileptonicTopIndex(lepton),
-            calculables.top.fitTopLeptonCharge(lepton),
-            calculables.top.TopReconstruction(lepton,obj["jet"],"mixedSumP4"),
 
-            calculables.top.TopComboQQBBLikelihood(pars['objects']['jet'], pars['bVar']),
-            calculables.top.OtherJetsLikelihood(pars['objects']['jet'], pars['bVar']),
+            calculables.top.TopComboQQBBLikelihood( pars['bVar']),
+            calculables.top.OtherJetsLikelihood( pars['bVar']),
             calculables.top.TopRatherThanWProbability(priorTop=0.5),
 
-            calculables.top.RadiativeCoherence(('fitTop',''),pars['objects']['jet']),
-            calculables.top.fitTopBMomentsSum2(pars['objects']['jet']),
-            calculables.top.TopJets(pars['objects']['jet']),
-            calculables.top.IndicesGenTopPQHL(pars['objects']['jet']),
-            calculables.top.IndicesGenTopExtra(pars['objects']['jet']),
+            calculables.top.IndicesGenTopPQHL(obj['jet']),  # move to calculables.jet?
+            calculables.top.IndicesGenTopExtra(obj['jet']), # move to calculables.jet?
 
             calculables.other.Mt(lepton,"mixedSumP4", allowNonIso=True, isSumP4=True),
             calculables.other.Covariance(('met','PF')),
-            calculables.other.PtSorted(obj['muon']),
+            #calculables.other.PtSorted(obj['muon']),
             calculables.other.lowestUnPrescaledTrigger(zip(*pars["lepton"]["triggers"])[0]),
 
             calculables.other.TriDiscriminant(LR = "DiscriminantWQCD", LC = "DiscriminantTopW", RC = "DiscriminantTopQCD"),
-            calculables.other.KarlsruheDiscriminant(pars['objects']['jet'], pars['objects']['met']),
+            calculables.other.KarlsruheDiscriminant(obj['jet'], obj['met']),
 
             calculables.jet.pt( obj['jet'], index = 0, Btagged = True ),
             calculables.jet.absEta( obj['jet'], index = 3, Btagged = False),
-            supy.calculables.other.size("%sIndices%s"%pars['objects']['jet']),
+            supy.calculables.other.size("Indices".join(obj['jet'])),
             supy.calculables.other.pt("mixedSumP4"),
             
             supy.calculables.other.abbreviation( "TrkCountingHighEffBJetTags", "NTrkHiEff", fixes = calculables.jet.xcStrip(obj['jet']) ),
             supy.calculables.other.abbreviation( pars['reweights']['var'], pars['reweights']['abbr']),
             supy.calculables.other.abbreviation('muonTriggerWeightPF','tw'),
             ]
-        calcs += supy.calculables.fromCollections(calculables.top,[('genTop',""),('fitTop',"")])
         return calcs
     ########################################################################################
 
@@ -219,11 +217,11 @@ class topAsymm(supy.analysis) :
         obj = pars["objects"]
         lepton = obj[pars["lepton"]["name"]]
         lPtMin = pars["lepton"]["ptMin"]
-        lEtaMax = pars["lepton"]["etaMax"]
-        lIso = ('%s'+pars['lepton']['iso']+'%s') % lepton
-        lIsoIndices = ("%s"+pars["selection"]["lIso"]["indices"]+"%s")%lepton
+        #lEtaMax = pars["lepton"]["etaMax"]
+        lIndices = 'IndicesAnyIsoIsoOrder'.join(lepton)
+        lIso = pars['lepton']['iso'].join(lepton)
         topTag = pars['tag'].replace("Wlv","top").replace("QCD","top")
-        bVar = ("%s"+pars["bVar"]+"%s")%calculables.jet.xcStrip(obj["jet"])
+        bVar = pars["bVar"].join((calculables.jet.xcStrip(obj["jet"]))
         rw = pars['reweights']['abbr']
         
         ssteps = supy.steps
@@ -231,6 +229,7 @@ class topAsymm(supy.analysis) :
         return (
             [ssteps.printer.progressPrinter()
              , ssteps.histos.value("genpthat",200,0,1000,xtitle="#hat{p_{T}} (GeV)").onlySim()
+             , ssteps.histos.value("genQ",200,0,1000,xtitle="#hat{Q} (GeV)").onlySim()
              
              ####################################
              , ssteps.filters.label('data cleanup'),
@@ -252,53 +251,52 @@ class topAsymm(supy.analysis) :
              , steps.trigger.lowestUnPrescaledTriggerHistogrammer().onlyData()
              
              ####################################
-             , ssteps.filters.label('cross-cleaning'),
+             , ssteps.filters.label('1-lepton cross-cleaning'),
+             ssteps.filters.OR([ ssteps.filters.multiplicity( max=1, var = lIndices )
+                                 ssteps.filters.value( var = lIso, min = 0.25, indices = lIndices, index=1)]), #FIXME hardcoded min
+             ssteps.filters.multiplicity( max=0, var = "Indices".join(obj['electron' if lepton=='muon' else 'muon']))
+             # jet-crossclean here
+             ssteps.filters.multiplicity( max=0, var = "IndicesOther".join(obj['jet'])), #this is too harsh ; veto on fail ID; do not veto on threshold after 3.5
              steps.jet.forwardFailedJetVeto( obj["jet"], ptAbove = 50, etaAbove = 3.5),
-             ssteps.filters.multiplicity( max=0, var = "%sIndicesOther%s"%obj['jet']),
-             ssteps.filters.multiplicity( max=0, var = "%sIndicesOther%s"%obj['muon']),
-             ssteps.filters.multiplicity( max=0, var = "%sIndicesUnmatched%s"%obj['photon']),
-             ssteps.filters.multiplicity( max=0, var = "%sIndicesUnmatched%s"%obj['electron']),
-             steps.jet.uniquelyMatchedNonisoMuons(obj["jet"])
+
+             #ssteps.filters.multiplicity( max=0, var = "IndicesOther".join(obj['muon'])),
+             #ssteps.filters.multiplicity( max=0, var = "IndicesUnmatched".join(obj['photon'])),
+             #ssteps.filters.multiplicity( max=0, var = "IndicesUnmatched".join(obj['electron'])),
+             #ssteps.filters.multiplicity( max=0, var = "Indices".join(obj['photon'])),
              
              ####################################
              , ssteps.filters.label('selection'),
-             ssteps.filters.OR( [ssteps.filters.multiplicity( max=1, var = '%sIndicesAnyIso%s'%lepton),
-                                 ssteps.filters.value( lIso, min=0.25, indices = "%sIndicesAnyIsoIsoOrder%s"%lepton, index = 1)]),
-             ssteps.filters.multiplicity( max=0, var = "%sIndices%s"%obj['photon']),
-             ssteps.filters.multiplicity( max=0, var = "%sIndices%s"%obj['electron'])
 
-             , ssteps.histos.value("%sTriggeringPt%s"%lepton, 200,0,200),
-             ssteps.filters.value("%sTriggeringPt%s"%lepton, min = lPtMin)
+             , ssteps.histos.pt("P4".join(lepton), 200,0,200, indices = lIndices, index = 0),
+             ssteps.filters.pt("P4".join(lepton), min = lPtMin, indices = lIndices, index = 0),
+             #ssteps.filters.absEta("P4".join(lepton), max = lEtaMax, indices = lIndices, index = 0)
 
-             , ssteps.histos.multiplicity("%sIndices%s"%obj["jet"]),
-             ssteps.filters.multiplicity("%sIndices%s"%obj["jet"], **pars["nJets"])
+             , ssteps.histos.multiplicity("Indices".join(%obj["jet"])),
+             ssteps.filters.multiplicity("Indices".join(obj["jet"]), **pars["nJets"])
 
              , ssteps.histos.pt("mixedSumP4",100,0,300),
              ssteps.filters.pt("mixedSumP4",min=20)
 
-             , ssteps.histos.value( lIso, 55,0,1.1, indices = "%sIndicesAnyIsoIsoOrder%s"%lepton, index=0),
-             ssteps.filters.value( lIso, max = 1.0, indices = "%sIndicesAnyIsoIsoOrder%s"%lepton, index = 0),
-             ssteps.filters.multiplicity("%sIndices%s"%lepton, min=pars["selection"]["lIso"]["N"],max=pars["selection"]["lIso"]["N"]),
-             ssteps.filters.pt("%sP4%s"%lepton, min = lPtMin, indices = lIsoIndices, index = 0),
-             ssteps.filters.absEta("%sP4%s"%lepton, max = lEtaMax, indices = lIsoIndices, index = 0)
+             , ssteps.histos.value( lIso, 55,0,1.1, indices = lIndices, index=0),
+             ssteps.filters.value( lIso, indices = lIndices, index = 0, **lIsoMinMax),
 
-             , ssteps.histos.value(bVar, 60,0,15, indices = "%sIndicesBtagged%s"%obj["jet"], index = 0)
-             , ssteps.histos.value(bVar, 60,0,15, indices = "%sIndicesBtagged%s"%obj["jet"], index = 1)
-             , ssteps.histos.value(bVar, 60,0,15, indices = "%sIndicesBtagged%s"%obj["jet"], index = 2)
+             , ssteps.histos.value(bVar, 60,0,15, indices = "IndicesBtagged".join(obj["jet"]), index = 0)
+             , ssteps.histos.value(bVar, 60,0,15, indices = "IndicesBtagged".join(obj["jet"]), index = 1)
+             , ssteps.histos.value(bVar, 60,0,15, indices = "IndicesBtagged".join(obj["jet"]), index = 2)
              , calculables.jet.ProbabilityGivenBQN(obj["jet"], pars['bVar'], binning=(64,-1,15), samples = (pars['topBsamples'][0],[s%rw for s in pars['topBsamples'][1]]), tag = topTag)
              , ssteps.histos.value("TopRatherThanWProbability", 100,0,1),
-             ssteps.filters.value(bVar, indices = "%sIndicesBtagged%s"%obj["jet"], index = 1, min = 0.0),
-             ssteps.filters.value(bVar, indices = "%sIndicesBtagged%s"%obj["jet"], **pars["selection"]["bCut"])
+             ssteps.filters.value(bVar, indices = "IndicesBtagged".join(obj["jet"]), index = 1, min = 0.0),
+             ssteps.filters.value(bVar, indices = "IndicesBtagged".join(obj["jet"]), **pars["selection"]["bCut"])
              
+             , steps.top.pileupJets().onlySim()
              , ssteps.filters.label('top reco'),
              ssteps.filters.multiplicity("TopReconstruction",min=1)
 
-             , steps.top.pileupJets().onlySim()
-             ####################################
+              ####################################
              , ssteps.filters.label("selection complete")
 
-             , ssteps.histos.multiplicity("%sIndices%s"%obj["jet"])
-             , ssteps.histos.value("%sM3%s"%obj['jet'], 20,0,800)
+             , ssteps.histos.multiplicity("Indices".join(obj["jet"]))
+             , ssteps.histos.value("M3".join(obj['jet']), 20,0,800)
              , ssteps.histos.value("fitTopRadiativeCoherence", 100,-1,1)
              
              ####################################
@@ -313,9 +311,9 @@ class topAsymm(supy.analysis) :
              , calculables.gen.qDirProbPlus('fitTopSumP4Eta', 10, 'top_muon_pf_%s'%rw, 'ttj_mg.wTopAsymP00.tw.%s'%rw, path = self.globalStem)
 
              , ssteps.filters.label('extended jets')
-             , ssteps.histos.value('%sFourJetPtThreshold%s'%obj['jet'], 50,0,100)
+             , ssteps.histos.value('FourJetPtThreshold'.join(obj['jet']), 50,0,100)
              , ssteps.histos.value('fitTopJetPtMin', 50,0,100)
-             , ssteps.histos.value('%sFourJetAbsEtaThreshold%s'%obj['jet'], 40,0,4)
+             , ssteps.histos.value('FourJetAbsEtaThreshold'.join(obj['jet']), 40,0,4)
              , ssteps.histos.value('fitTopJetAbsEtaMax', 40,0,4)
              
              , ssteps.filters.label('signal distributions').invert(), steps.top.Asymmetry(('fitTop',''), bins = 640)
@@ -384,7 +382,7 @@ class topAsymm(supy.analysis) :
         return supy.calculables.other.Discriminant( fixes = ("","QQgg"),
                                                     left = {"pre":"gg", "tag":"top_muon_pf_%s"%rw, "samples":['ttj_mg.wNonQQbar.tw.%s'%rw]},
                                                     right = {"pre":"qq", "tag":"top_muon_pf_%s"%rw, "samples":['ttj_mg.wTopAsymP00.tw.%s'%rw]},
-                                                    dists = {"%sM3%s"%pars["objects"]['jet'] : (20,0,600), # 0.047
+                                                    dists = {"M3".join(pars["objects"]['jet']) : (20,0,600), # 0.047
                                                              "fitTopNtracksExtra" : (20,0,160),             
                                                              "tracksCountwithPrimaryHighPurityTracks" :  (20,0,250),               # 0.049
                                                              "fitTopPartonXlo" : (20,0,0.12),              # 0.036
@@ -402,8 +400,8 @@ class topAsymm(supy.analysis) :
         return supy.calculables.other.Discriminant( fixes = ("","QQgg4Jet"),
                                                     left = {"pre":"gg", "tag":"top_muon_pf_%s"%rw, "samples":['ttj_mg.wNonQQbar.tw.%s'%rw]},
                                                     right = {"pre":"qq", "tag":"top_muon_pf_%s"%rw, "samples":['ttj_mg.wTopAsymP00.tw.%s'%rw]},
-                                                    dists = {'%sFourJetPtThreshold%s'%obj['jet'] : (25,0,100),
-                                                             '%sFourJetAbsEtaThreshold%s'%obj['jet'] : (20,0,4),
+                                                    dists = {'FourJetPtThreshold'.join(obj['jet']) : (25,0,100),
+                                                             'FourJetAbsEtaThreshold'.join(obj['jet']) : (20,0,4),
                                                              },
                                                     correlations = pars['discriminant2DPlots'],
                                                     bins = 14)
@@ -415,11 +413,11 @@ class topAsymm(supy.analysis) :
                                                     right = {"pre":"ttj_mg", "tag":"top_muon_pf_%s"%rw, "samples": ['ttj_mg.%s.tw.%s'%(s,rw) for s in ['wNonQQbar','wTopAsymP00']]},
                                                     correlations = pars['discriminant2DPlots'],
                                                     dists = {"TopRatherThanWProbability" : (20,0,1),          # 0.183
-                                                             "%sB0pt%s"%pars['objects']["jet"] : (30,0,300),  # 0.082
+                                                             "B0pt".join(pars['objects']["jet"]) : (30,0,300),  # 0.082
                                                              "fitTopHadChi2"     : (20,0,100),                # 0.047
                                                              "mixedSumP4.pt"     : (30,0,180),                # 0.037
-                                                             #"%s3absEta%s"%pars['objects']["jet"] : (20,0,4),# 0.018
-                                                             #"%sKt%s"%pars['objects']["jet"] : (25,0,150),   # 0.018
+                                                             #"3absEta".join(pars['objects']["jet"]) : (20,0,4),# 0.018
+                                                             #"Kt".join(pars['objects']["jet"]) : (25,0,150),   # 0.018
                                                              #"fitTopDeltaPhiLNu" : (20,0,math.pi),           # 0.019
                                                              #"fitTopLeptonPt"    : (20,0,180),               # Find out
                                                              })
@@ -430,11 +428,11 @@ class topAsymm(supy.analysis) :
                                                     left = {"pre":"SingleMu", "tag":"QCD_muon_pf_%s"%rw, "samples":[]},
                                                     right = {"pre":"ttj_mg", "tag":"top_muon_pf_%s"%rw, "samples": ['ttj_mg.%s.tw.%s'%(s,rw) for s in ['wNonQQbar','wTopAsymP00']]},
                                                     correlations = pars['discriminant2DPlots'],
-                                                    dists = {"%sMt%s"%pars['objects']['muon']+"mixedSumP4" : (30,0,180), # 0.243
-                                                             "%s3absEta%s"%pars['objects']["jet"] : (20,0,4),            # 0.031
-                                                             "%sKt%s"%pars['objects']["jet"] : (25,0,150),               # 0.029
-                                                             "%sDeltaPhiB01%s"%pars['objects']["jet"] : (20,0,math.pi),  # 0.022
-                                                             #"%sB0pt%s"%pars['objects']["jet"] : (30,0,300),            # 0.010
+                                                    dists = {"Mt".join(pars['objects']['muon'])+"mixedSumP4" : (30,0,180), # 0.243
+                                                             "3absEta".join(pars['objects']["jet"]) : (20,0,4),            # 0.031
+                                                             "Kt".join(pars['objects']["jet"]) : (25,0,150),               # 0.029
+                                                             "DeltaPhiB01".join(pars['objects']["jet"]) : (20,0,math.pi),  # 0.022
+                                                             #"B0pt".join(pars['objects']["jet"]) : (30,0,300),            # 0.010
                                                              #"mixedSumP4.pt"     : (30,0,180),                          #
                                                              #"fitTopLeptonPt"    : (30,0,180),                          #
                                                              #"fitTopDeltaPhiLNu" : (20,0,math.pi),                      #
@@ -446,10 +444,10 @@ class topAsymm(supy.analysis) :
                                                     left = {"pre":"wj_lv_mg", "tag":"top_muon_pf_%s"%rw, "samples":[]},
                                                     right = {"pre":"SingleMu", "tag":"QCD_muon_pf_%s"%rw, "samples":[]},
                                                     correlations = pars['discriminant2DPlots'],
-                                                    dists = {"%sMt%s"%pars['objects']['muon']+"mixedSumP4" : (30,0,180), # 0.267
-                                                             "%sB0pt%s"%pars['objects']["jet"] : (30,0,300),             # 0.091
-                                                             "fitTopCosHelicityThetaL": (20,-1,1),                       # 0.070
-                                                             "%sDeltaPhiB01%s"%pars['objects']["jet"] : (20,0,math.pi),  # 0.021
+                                                    dists = {"Mt".join(pars['objects']['muon'])+"mixedSumP4" : (30,0,180), # 0.267
+                                                             "B0pt".join(pars['objects']["jet"]) : (30,0,300),             # 0.091
+                                                             "fitTopCosHelicityThetaL": (20,-1,1),                         # 0.070
+                                                             "DeltaPhiB01".join(pars['objects']["jet"]) : (20,0,math.pi),  # 0.021
                                                              })
     
     ########################################################################################
