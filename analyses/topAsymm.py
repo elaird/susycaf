@@ -109,7 +109,7 @@ class topAsymm(supy.analysis) :
 
     @staticmethod
     def single_top() :
-        return ['top_s_ph','top_t_ph','top_tW_ph','tbar_s_ph','tbar_t_ph','tbar_tW_ph'][:0]
+        return ['top_s_ph','top_t_ph','top_tW_ph','tbar_s_ph','tbar_t_ph','tbar_tW_ph']
 
     def listOfSamples(self,pars) :
         rw = pars['reweights']['abbr']
@@ -136,9 +136,9 @@ class topAsymm(supy.analysis) :
                                          effectiveLumi = eL, color = r.kGray, weights = ['tw',rw]) if "QCD" not in pars['tag'] else []
         
         def ttbar_mg(eL = None) :
-            return (supy.samples.specify(names = "ttj_mg", effectiveLumi = eL, color = r.kBlue, weights = ["wNonQQbar",'tw',rw], nFilesMax = 200) +
+            return (supy.samples.specify(names = "ttj_mg", effectiveLumi = eL, color = r.kBlue, weights = ["wNonQQbar",'tw',rw], nFilesMax = 100) +
                     sum( [supy.samples.specify( names = "ttj_mg", effectiveLumi = eL, 
-                                                color = color, weights = [ calculables.top.wTopAsym(asym, R_sm = -0.05), 'tw',rw ], nFilesMax = 200 )
+                                                color = color, weights = [ calculables.top.wTopAsym(asym, R_sm = -0.05), 'tw',rw ], nFilesMax = 80 )
                           for asym,color in [(0.0,r.kOrange),
                                              (-0.3,r.kGreen),(0.3,r.kRed),
                                              #(-0.6,r.kYellow),(0.6,r.kYellow),
@@ -212,6 +212,7 @@ class topAsymm(supy.analysis) :
             supy.calculables.other.abbreviation('muonTriggerWeightPF','tw'),
             ]
         calcs += supy.calculables.fromCollections(calculables.top,[('genTop',""),('fitTop',"")])
+        calcs.append( calculables.top.genTopRecoIndex(jets = pars['objects']['jet']))
         return calcs
     ########################################################################################
 
@@ -231,6 +232,7 @@ class topAsymm(supy.analysis) :
         return (
             [ssteps.printer.progressPrinter()
              , ssteps.histos.value("genpthat",200,0,1000,xtitle="#hat{p_{T}} (GeV)").onlySim()
+             , ssteps.histos.value("genQ",200,0,1000,xtitle="genQ (GeV)").onlySim()
              
              ####################################
              , ssteps.filters.label('data cleanup'),
@@ -290,12 +292,18 @@ class topAsymm(supy.analysis) :
              ssteps.filters.value(bVar, indices = "%sIndicesBtagged%s"%obj["jet"], index = 1, min = 0.0),
              ssteps.filters.value(bVar, indices = "%sIndicesBtagged%s"%obj["jet"], **pars["selection"]["bCut"])
              
-             , ssteps.filters.label('top reco'),
+             #, steps.top.pileupJets().onlySim()
+             , ssteps.filters.pt("%sCorrectedP4%s"%obj['jet'], min = 100, indices = "%sIndicesGenPileup%s"%obj['jet'], index = 0)
+             , steps.printer.muons(obj['muon'])
+             , steps.top.jetPrinter()
+             , steps.gen.genJetPrinter('genak5','')
+             , steps.gen.genParticlePrinter()
+             , ssteps.filters.label('top reco').invert(),
              ssteps.filters.multiplicity("TopReconstruction",min=1)
+             , steps.top.combinatorialFrequency(obj["jet"])
 
-             , steps.top.pileupJets().onlySim()
              ####################################
-             , ssteps.filters.label("selection complete")
+             , ssteps.filters.label("selection complete").invert()
 
              , ssteps.histos.multiplicity("%sIndices%s"%obj["jet"])
              , ssteps.histos.value("%sM3%s"%obj['jet'], 20,0,800)
@@ -498,7 +506,7 @@ class topAsymm(supy.analysis) :
 
         kwargs.update({"samplesForRatios":("",""),
                        "omit2D" : False,
-                       "dependence2D" : True})
+                       "dependence2D" : False})
         supy.plotter(orgpdf, pdfFileName = self.pdfFileName(org.tag+"_pdf"), doLog = False, **kwargs ).plotAll()
 
     def meldWpartitions(self,pars) :
