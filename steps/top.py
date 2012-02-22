@@ -7,8 +7,11 @@ class jetPrinter(analysisStep) :
         jets = ev['TopJets']['fixes']
         iTT = ev['genTTbarIndices']
         gen = ev['genP4']
-        print 'gen b,bbar,q*'
-        for i in [iTT['b'],iTT['bbar']]+iTT['q'] :
+        print 'mu,gen b,bbar,q*'
+        for i in [max(iTT['lminus'],iTT['lplus']),iTT['b'],iTT['bbar']]+iTT['q'] :
+            if i==None :
+                print "--"
+                continue
             p4 = gen[i]
             print ("\t%.0f\t%+.1f\t%+.1f")%(p4.pt(),p4.eta(),p4.phi())
         print 'jet'
@@ -32,28 +35,43 @@ class jetPrinter(analysisStep) :
 #####################################
 class pileupJets(analysisStep) :
     def uponAcceptance(self,ev) :
-        if not ev['genTopTTbar'] : return
         xcjets = ev['TopJets']['fixes']
         jets = ev['TopJets']['fixesStripped']
         indices = ev['%sIndices%s'%xcjets]
+        indicesPU = ev['%sIndicesGenPileup%s'%xcjets]
         p4 = ev['%sCorrectedP4%s'%xcjets]
         n = ev['%sCountwithPrimaryHighPurityTracks%s'%jets]
-        #p = ev['%sSumP3withPrimaryHighPurityTracks%s'%jets]
         nPU = ev['%sCountwithPileUpHighPurityTracks%s'%jets]
-        #pPU = ev['%sSumP3withPileUpHighPurityTracks%s'%jets]
-        iPQHL = ev['%sIndicesGenTopPQHL%s'%xcjets]
-        iExtra = ev['%sIndicesGenTopExtra%s'%xcjets]
         puPtFrac = ev['%sPileUpPtFraction%s'%xcjets]
+
         dz = ev['vertexDzSeparation']
-        self.book.fill( dz, 'vertexDzSeparation', 60,0,30, title = ";vertexDzSeparation;events / bin")
+        vtd = ev['vertexTrackPurity']
+
+        self.book.fill( dz, 'vertexDzSeparation', 100,0,10, title = ";vertexDzSeparation;events / bin")
+        self.book.fill( vtd, 'vertexTrackPurity', 100,0,1.001, title = ";vertexTrackPurity;events / bin")
         for i in indices :
-            label = ( 'B' if i in iPQHL[2:] else
-                      'Q' if i in iPQHL[:2] else
-                      'g' if i in iExtra else
-                      'pu') + '_' + ('inner' if abs(p4[i].eta())<2.6 else 'outer') + '_' + ('sharp' if dz<5 else 'blurry')
-            self.book.fill( nPU[i], "ntracksPU_%s"%label, 30, 0, 30, title = ';ntracksPU (%s);jets / bin'%label )
-            self.book.fill( n[i], "ntracks_%s"%label, 30, 0, 30, title = ';ntracks (%s);jets / bin'%label )
-            self.book.fill( puPtFrac[i], "pileupPtFrac_%s"%label, 50, 0, 1, title = ';pileup Pt Fraction (%s);jets / bin'%label)
+            rltrkpur = float(n[i])/max(1, n[i]+nPU[i]) - vtd
+            pt = p4[i].pt()
+            eta = abs(p4[i].eta())
+
+            label = "pileup" if i in indicesPU else "primary"
+            label2 = label + '_' + ('inner' if eta<1.9 else 'middle' if eta<2.6 else 'outer')
+            if "outer" in label2 : continue
+
+            self.book.fill( pt, "pT_"+label, 50, 0, 100, title = ';p_{T};jets / bin')
+            self.book.fill( n[i], "ntracks_%s"%label2, 30, 0, 30, title = ';ntracks (%s);jets / bin'%label2 )
+            self.book.fill( puPtFrac[i], "pileupPtFrac_%s"%label2, 50, 0, 1, title = ';pileup Pt Fraction (%s);jets / bin'%label2)
+            self.book.fill( rltrkpur, "relTrackPurity_%s"%label2, 40, -1, 1, title = ";track dilution (jet-vertex) (%s);jets / bin"%label2 )
+            self.book.fill( pt * n[i] , "trackbypT_"+label2, 50,0, 1000)
+
+            self.book.fill( (min(99,pt),n[i]), "pT_vs_n_"+label2, (50,20), (0,0), (100,20), title = ";pt (%s);ntracks;jets / bin"%label2 )
+            self.book.fill( (min(99,pt),rltrkpur ), "pT_vs_reltrackpur_"+label2, (50,50), (0,-1), (100,1), title = ";pt (%s);rel track pur;jets / bin"%label2 )
+
+            self.book.fill( (min(99,pt),eta), "pt_eta_"+label, (50,30), (0,0), (100,3) , title = ";pt (%s);eta;jets / bin"%label)
+            self.book.fill( (min(19,n[i]),eta), "ntrk_eta"+label, (20,30), (0,0), (20,3) , title = ";ntrk (%s);eta;jets / bin"%label)
+
+            #self.book.fill( abs(p4[i].eta()), "absEta_"+label, 40,0,4, title = ';|#eta|;jets / bin' )
+            #self.book.fill( (n[i],nDijet[i]-n[i]), "ntracks_by_ntracksmatchedjet_"+label2, (20,20), (0,0), (20,20), title = ";ntrk;ntrk dijet (%s);jets / bin"%label2)
 
 #####################################
 class Asymmetry(analysisStep) :

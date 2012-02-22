@@ -75,4 +75,20 @@ class vertexDzSeparation(wrappedChain.calculable) :
     def update(self,_) :
         p = self.source["vertexPosition"]
         posZ = [p[i].z() for i in self.source["vertexIndices"]]
-        self.value = min([29] + [abs(posZ[0])-z for z in posZ[1:]])
+        self.value = min([29] + [abs(posZ[0]-z) for z in posZ[1:]])
+#####################################
+class vertexTrackedDz(wrappedChain.calculable) :
+    def update(self,_) :
+        p = self.source["vertexPosition"]
+        ntrk = self.source["vertexNtrks"]
+        indices = self.source["vertexIndices"]
+        posZ0 = p[indices[0]].z()
+        self.value = sum([abs(posZ0-z) for z in posZ[1:]]) / sum(ntrk[i] for i in indices[1:] )
+#####################################
+class vertexTrackPurity(wrappedChain.calculable) :
+    def update(self,_) :
+        p = self.source["vertexPosition"]
+        ntrk = self.source["vertexNtrks"]
+        indices = self.source["vertexIndices"]
+        posZ0 = p[indices[0]].z()
+        self.value = float( ntrk[indices[0]] ) / sum( ntrk[i] for i in indices if abs(posZ0-p[i].z()) < 5 )

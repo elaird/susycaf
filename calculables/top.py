@@ -484,6 +484,7 @@ class TopReconstruction(wrappedChain.calculable) :
     def __init__(self, lepton, jets, SumP4) :
         self.stash(["SemileptonicTopIndex","P4","Charge"],lepton)
         self.stash(["CorrectedP4","IndicesBtagged","Indices","Resolution","CovariantResolution2","ComboPQBDeltaRawMassWTop"],jets)
+        self.stash(["CountwithPrimaryHighPurityTracks"],xcStrip(jets))
         self.SumP4 = SumP4
         theta = math.pi/6
         self.ellipseR = np.array([[math.cos(theta),-math.sin(theta)],[math.sin(theta), math.cos(theta)]])
@@ -498,6 +499,7 @@ class TopReconstruction(wrappedChain.calculable) :
         maxP = self.source["TopComboQQBBMaxProbability"]
         lepQ = self.source[self.Charge][self.source[self.SemileptonicTopIndex]]
         lepP4 = self.source[self.P4][self.source[self.SemileptonicTopIndex]]
+        ntrk = self.source[self.CountwithPrimaryHighPurityTracks]
         
         indices = self.source[self.Indices]
         bIndices = self.source[self.IndicesBtagged][:5] #consider only the first few b-tagged jets as possible b-candidates
@@ -516,6 +518,11 @@ class TopReconstruction(wrappedChain.calculable) :
                 if iL in iPQH : continue
                 iPQHL = iPQH+(iL,)
                 iQQBB = iPQHL[:2]+tuple(sorted(iPQHL[2:]))
+
+                #if sorted([ntrk[i] for i in iPQHL])[1]<4 : continue
+                #if sorted([ntrk[i] for i in iPQHL])[0]<3 : continue
+                #if sorted([ntrk[i] for i in iPQHL])[1]<3 : continue
+
                 for zPlus in [0,1] :
                     lepFit = utils.fitKinematic.leastsqLeptonicTop( p4[iL], resolution[iL], lepP4, nuXY, nuErr-covRes2[iL], zPlus = zPlus )
                     tt = hadFit.fitT + lepFit.fitT
@@ -620,7 +627,7 @@ class IndicesGenTopExtra(wrappedChain.calculable) :
     def __init__(self, jets=None, rMax = 0.6) :
         self.rMax = rMax
         self.fixes = jets
-        self.stash(['Indices','CorrectedP4','IndicesGenTopPQHL'])
+        self.stash(['Indices','CorrectedP4'])
 
     def update(self,_) :
         imom = self.source['genMotherIndex']
