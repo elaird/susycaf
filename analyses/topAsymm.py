@@ -156,11 +156,10 @@ class topAsymm(supy.analysis) :
     def listOfCalculables(self, pars) :
         obj = pars["objects"]
         lepton = obj[pars["lepton"]["name"]]
-        calcs  = supy.calculables.zeroArgs(supy.calculables)
-        calcs += supy.calculables.zeroArgs(calculables)
+        calcs = sum( [supy.calculables.zeroArgs(module) for module in [calculables, supy.calculables]]+
+                     [supy.calculables.fromCollections(getattr(calculables,item), [obj[item]])
+                      for item in  ['jet','photon','electron','muon']], [])
         calcs += supy.calculables.fromCollections(calculables.top,[('genTop',""),('fitTop',"")])
-        for item in ['jet','photon','electron','muon'] :
-            calcs += supy.calculables.fromCollections( getattr(calculables, item), [obj[item]])
         calcs += [
             calculables.jet.IndicesBtagged(obj["jet"],pars["bVar"]),
             calculables.jet.Indices(       obj["jet"],      ptMin = 20, etaMax = 3.5, flagName = "JetIDloose"),
@@ -170,40 +169,32 @@ class topAsymm(supy.analysis) :
             calculables.muon.IndicesAnyIsoIsoOrder(lepton, pars["lepton"]["iso"]),
             calculables.xclean.xcJet_SingleLepton( obj["jet"], leptons = lepton, indices = "IndicesAnyIsoIsoOrder" ),
 
-            #calculables.photon.Indices(    obj["photon"],   ptMin = 25, flagName = "photonIDLooseFromTwikiPat"),
-            #calculables.xclean.IndicesUnmatched(collection = obj["photon"], xcjets = obj["jet"], DR = 0.5),
-            #calculables.xclean.IndicesUnmatched(collection = obj["electron"], xcjets = obj["jet"], DR = 0.5),
-
             calculables.vertex.ID(),
             calculables.vertex.Indices(),
 
-            calculables.top.TopJets(obj['jet']),
-            calculables.top.TopLeptons(lepton),
-            calculables.top.mixedSumP4(transverse = obj["met"], longitudinal = obj["sumP4"]),
+            calculables.top.TopJets( obj['jet'] ),
+            calculables.top.TopLeptons( lepton ),
+            calculables.top.mixedSumP4( transverse = obj["met"], longitudinal = obj["sumP4"] ),
+            calculables.top.TopComboQQBBLikelihood( pars['bVar'] ),
+            calculables.top.OtherJetsLikelihood( pars['bVar'] ),
+            calculables.top.TopRatherThanWProbability( priorTop = 0.5 ),
+            calculables.top.IndicesGenTopPQHL( obj['jet'] ),
+            calculables.top.IndicesGenTopExtra (obj['jet'] ),
 
-            calculables.top.TopComboQQBBLikelihood( pars['bVar']),
-            calculables.top.OtherJetsLikelihood( pars['bVar']),
-            calculables.top.TopRatherThanWProbability(priorTop=0.5),
-
-            calculables.top.IndicesGenTopPQHL(obj['jet']),  # move to calculables.jet?
-            calculables.top.IndicesGenTopExtra(obj['jet']), # move to calculables.jet?
-
-            calculables.other.Mt(lepton,"mixedSumP4", allowNonIso=True, isSumP4=True),
+            calculables.other.Mt( lepton, "mixedSumP4", allowNonIso = True, isSumP4 = True),
             calculables.other.Covariance(('met','PF')),
-            #calculables.other.PtSorted(obj['muon']),
             calculables.other.lowestUnPrescaledTrigger(zip(*pars["lepton"]["triggers"])[0]),
-
-            calculables.other.TriDiscriminant(LR = "DiscriminantWQCD", LC = "DiscriminantTopW", RC = "DiscriminantTopQCD"),
-            calculables.other.KarlsruheDiscriminant(obj['jet'], obj['met']),
+            calculables.other.TriDiscriminant( LR = "DiscriminantWQCD", LC = "DiscriminantTopW", RC = "DiscriminantTopQCD"),
+            calculables.other.KarlsruheDiscriminant( obj['jet'], obj['met'] ),
 
             calculables.jet.pt( obj['jet'], index = 0, Btagged = True ),
             calculables.jet.absEta( obj['jet'], index = 3, Btagged = False),
-            supy.calculables.other.size("Indices".join(obj['jet'])),
-            supy.calculables.other.pt("mixedSumP4"),
-            
+
+            supy.calculables.other.pt( "mixedSumP4" ),
+            supy.calculables.other.size( "Indices".join(obj['jet']) ),
             supy.calculables.other.abbreviation( "TrkCountingHighEffBJetTags", "NTrkHiEff", fixes = calculables.jet.xcStrip(obj['jet']) ),
-            supy.calculables.other.abbreviation( pars['reweights']['var'], pars['reweights']['abbr']),
-            supy.calculables.other.abbreviation('muonTriggerWeightPF','tw'),
+            supy.calculables.other.abbreviation( pars['reweights']['var'], pars['reweights']['abbr'] ),
+            supy.calculables.other.abbreviation( 'muonTriggerWeightPF', 'tw' ),
             ]
         return calcs
     ########################################################################################
@@ -212,7 +203,6 @@ class topAsymm(supy.analysis) :
         obj = pars["objects"]
         lepton = obj[pars["lepton"]["name"]]
         lPtMin = pars["lepton"]["ptMin"]
-        #lEtaMax = pars["lepton"]["etaMax"]
         lIndices = 'IndicesAnyIsoIsoOrder'.join(lepton)
         lIso = pars['lepton']['iso'].join(lepton)
         lIsoMinMax = pars["lepton"][pars['selection']['iso']]
@@ -247,41 +237,33 @@ class topAsymm(supy.analysis) :
              , steps.trigger.lowestUnPrescaledTriggerHistogrammer().onlyData()
              
              ####################################
-             , ssteps.filters.label('1-lepton cross-cleaning'),
+             , ssteps.filters.label('selection'),
              ssteps.filters.OR([ ssteps.filters.multiplicity( max=1, var = lIndices ),
                                  ssteps.filters.value( var = lIso, min = 0.25, indices = lIndices, index=1)]), #FIXME hardcoded min
-             ssteps.filters.multiplicity( max=0, var = "Indices".join(obj['electron' if pars['lepton']['name']=='muon' else 'muon'])),
-             # jet-crossclean here
-             ssteps.filters.assertNotYetCalculated("CorrectedP4".join(obj['jet'])),
-             ssteps.filters.multiplicity( max=0, var = "IndicesOther".join(obj['jet'])), #this is too harsh ; veto on fail ID; do not veto on threshold after 3.5
-             steps.jet.forwardFailedJetVeto( obj["jet"], ptAbove = 50, etaAbove = 3.5)
-
+             ssteps.filters.multiplicity( max=0, var = "Indices".join(obj['electron' if pars['lepton']['name']=='muon' else 'muon']))
              #ssteps.filters.multiplicity( max=0, var = "IndicesOther".join(obj['muon'])),
-             #ssteps.filters.multiplicity( max=0, var = "IndicesUnmatched".join(obj['photon'])),
-             #ssteps.filters.multiplicity( max=0, var = "IndicesUnmatched".join(obj['electron'])),
-             #ssteps.filters.multiplicity( max=0, var = "Indices".join(obj['photon'])),
              
-             ####################################
-             , ssteps.filters.label('selection')
+             , ssteps.histos.pt("mixedSumP4",100,0,300),
+             ssteps.filters.pt("mixedSumP4",min=20)
 
+             , ssteps.histos.absEta("P4".join(lepton), 100,0,4, indices = lIndices, index = 0)
              , ssteps.histos.pt("P4".join(lepton), 200,0,200, indices = lIndices, index = 0),
              ssteps.filters.pt("P4".join(lepton), min = lPtMin, indices = lIndices, index = 0)
              #ssteps.filters.absEta("P4".join(lepton), max = lEtaMax, indices = lIndices, index = 0)
 
              , ssteps.histos.multiplicity("Indices".join(obj["jet"])),
-             ssteps.filters.multiplicity("Indices".join(obj["jet"]), **pars["nJets"])
-
-             , ssteps.histos.pt("mixedSumP4",100,0,300),
-             ssteps.filters.pt("mixedSumP4",min=20)
+             ssteps.filters.multiplicity("Indices".join(obj["jet"]), **pars["nJets"]),
+             steps.jet.forwardFailedJetVeto( obj["jet"], ptAbove = 50, etaAbove = 3.5),
+             ssteps.filters.multiplicity( max=0, var = "IndicesOther".join(obj['jet'])) #this is too harsh ; veto on fail ID; do not veto on threshold after 3.5
 
              , ssteps.histos.value( lIso, 55,0,1.1, indices = lIndices, index=0),
              ssteps.filters.value( lIso, indices = lIndices, index = 0, **lIsoMinMax)
 
+             , calculables.jet.ProbabilityGivenBQN(obj["jet"], pars['bVar'], binning=(64,-1,15), samples = (pars['topBsamples'][0],[s%rw for s in pars['topBsamples'][1]]), tag = topTag)
+             , ssteps.histos.value("TopRatherThanWProbability", 100,0,1)
              , ssteps.histos.value(bVar, 60,0,15, indices = "IndicesBtagged".join(obj["jet"]), index = 0)
              , ssteps.histos.value(bVar, 60,0,15, indices = "IndicesBtagged".join(obj["jet"]), index = 1)
-             , ssteps.histos.value(bVar, 60,0,15, indices = "IndicesBtagged".join(obj["jet"]), index = 2)
-             , calculables.jet.ProbabilityGivenBQN(obj["jet"], pars['bVar'], binning=(64,-1,15), samples = (pars['topBsamples'][0],[s%rw for s in pars['topBsamples'][1]]), tag = topTag)
-             , ssteps.histos.value("TopRatherThanWProbability", 100,0,1),
+             , ssteps.histos.value(bVar, 60,0,15, indices = "IndicesBtagged".join(obj["jet"]), index = 2),
              ssteps.filters.value(bVar, indices = "IndicesBtagged".join(obj["jet"]), index = 1, min = 0.0),
              ssteps.filters.value(bVar, indices = "IndicesBtagged".join(obj["jet"]), **pars["selection"]["bCut"])
              
