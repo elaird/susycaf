@@ -1,6 +1,28 @@
 from supy import wrappedChain,utils
 import bisect,math, ROOT as r
 ##############################
+class xcJet_SingleLepton(wrappedChain.calculable) :
+
+    @property
+    def name(self) : return self.name_
+
+    def __init__(self, xcjets = None, leptons = None, indices = None ) :
+        self.name_ = "CorrectedP4".join(xcjets)
+        self.p4jet = self.name_[2:]
+        self.p4lep = "P4".join(leptons)
+        self.indices = indices.join(leptons)
+        self.moreName = self.p4jet +" without " + self.p4lep + self.indices.join(['[','[0]]'])
+
+    def update(self,_) :
+        jets = self.source[self.p4jet]
+        lep =  self.source[self.p4lep][next(iter(self.source[self.indices]), None )]
+        self.value = utils.vector()
+        for iJet in range(len(jets)) :
+            jet = jets[iJet]
+            self.value.push_back( jet - lep
+                                  if lep and 0.5>r.Math.VectorUtil.DeltaR(jet,lep) else
+                                  jet )
+##############################
 class xcJet(wrappedChain.calculable) :
     @property
     def name(self) : return "%sCorrectedP4%s"%self.xcjets
@@ -14,7 +36,7 @@ class xcJet(wrappedChain.calculable) :
                  jesAbs = 1,
                  jesRel = 0 ) :
         self.value = utils.vector()
-        self.jetP4Source = ("%sCorrectedP4%s"%xcjets)[2:]
+        self.jetP4Source = "CorrectedP4".join(xcjets)[2:]
 
         for item in ["xcjets", "applyResidualCorrectionsToData", "applyResidualCorrectionBug", "correctForMuons", "jesAbs", "jesRel"] :
             setattr(self, item, eval(item))

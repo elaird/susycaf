@@ -10,6 +10,10 @@ class TopJets(wrappedChain.calculable) :
     def __init__(self, jets ) : self.value = {"fixes":jets,"fixesStripped":xcStrip(jets)}
     def update(self,_): pass
 ######################################
+class TopLeptons(wrappedChain.calculable) :
+    def __init__(self, leptons ) : self.value = leptons
+    def update(self,_): pass
+######################################
 class TopP4Calculable(wrappedChain.calculable) :
     def __init__(self, collection = None) :
         self.fixes = collection
@@ -466,7 +470,7 @@ class mixedSumP4(wrappedChain.calculable) :
 #####################################
 class SemileptonicTopIndex(wrappedChain.calculable) :
     def update(self,_) :
-        self.value = next( self.source["IndicesAnyIsoIsoOrder".join(self.source["TopLeptons"])], None )
+        self.value = next( iter(self.source["IndicesAnyIsoIsoOrder".join(self.source["TopLeptons"])]), None )
 #####################################
 class TopReconstruction(wrappedChain.calculable) :
     def __init__(self) :

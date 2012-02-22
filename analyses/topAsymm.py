@@ -35,17 +35,17 @@ class topAsymm(supy.analysis) :
             }
 
         leptons = {
-            'name'     : [               'muon',      'electron'],
-            'ptMin'    : [                20.0 ,           30.0 ],
-            'etaMax'   : [                 2.1 ,            9.0 ],
-            'iso'      : ['CombinedRelativeIso',   'IsoCombined'],
-            'triggers' : [    self.mutriggers(),           None ]
+            'name'     : [                  'muon',              'electron'],
+            'ptMin'    : [                   20.0 ,                   30.0 ],
+            'etaMax'   : [                    2.1 ,                    9.0 ],
+            'iso'      : [   'CombinedRelativeIso',           'IsoCombined'],
+            'triggers' : [       self.mutriggers(),                   None ],
+            'isoNormal': [            {"max":0.15},            {'max':0.07}],#0.06 for endcap electron !!!!!
+            'isoInvert': [{"min":0.015, "max":1.0}, {'min':0.07, 'max':1.0}] #check inverted iso max for electron
             }
 
         bCut = {"normal"   : {"index":1, "min":2.0},
                 "inverted" : {"index":1, "max":2.0}}
-        lIso = {"normal":  {"N":1, "indices":"Indices"},
-                "inverted":{"N":0, "indices":"IndicesNonIso"}}
 
         return { "vary" : ['selection','lepton','objects','reweights'],
                  "discriminant2DPlots": True,
@@ -55,9 +55,9 @@ class topAsymm(supy.analysis) :
                  "objects": self.vary([ ( objects['label'][index], dict((key,val[index]) for key,val in objects.iteritems())) for index in range(2) if objects['label'][index] in ['pf']]),
                  "lepton" : self.vary([ ( leptons['name'][index], dict((key,val[index]) for key,val in leptons.iteritems())) for index in range(2) if leptons['name'][index] in ['muon']]),
                  "reweights" : self.vary([ ( reweights['label'][index], dict((key,val[index]) for key,val in reweights.iteritems())) for index in range(3) if reweights['label'][index] in ['pu']]),
-                 "selection" : self.vary({"top" : {"bCut":bCut["normal"],  "lIso":lIso["normal"]},
-                                          "QCD" : {"bCut":bCut["normal"],  "lIso":lIso["inverted"]}
-                                          #"Wlv" : {"bCut":bCut["inverted"],"lIso":lIso["normal"]},
+                 "selection" : self.vary({"top" : {"bCut":bCut["normal"],  "iso":"isoNormal"},
+                                          "QCD" : {"bCut":bCut["normal"],  "iso":"isoInvert"}
+                                          #"Wlv" : {"bCut":bCut["inverted"],"iso":"isoNormal"},
                                           }),
                  "topBsamples": { "pythia"   : ("tt_tauola_fj",["tt_tauola_fj.wNonQQbar.tw.%s","tt_tauola_fj.wTopAsymP00.tw.%s"]),
                                   "madgraph" : ("ttj_mg",['ttj_mg.wNonQQbar.tw.%s','ttj_mg.wTopAsymP00.tw.%s']),
@@ -109,7 +109,7 @@ class topAsymm(supy.analysis) :
 
     @staticmethod
     def single_top() :
-        return ['top_s_ph','top_t_ph','top_tW_ph','tbar_s_ph','tbar_t_ph','tbar_tW_ph'][:0]
+        return ['top_s_ph','top_t_ph','top_tW_ph','tbar_s_ph','tbar_t_ph','tbar_tW_ph']
 
     def listOfSamples(self,pars) :
         rw = pars['reweights']['abbr']
@@ -164,20 +164,15 @@ class topAsymm(supy.analysis) :
         calcs += [
             calculables.jet.IndicesBtagged(obj["jet"],pars["bVar"]),
             calculables.jet.Indices(       obj["jet"],      ptMin = 20, etaMax = 3.5, flagName = "JetIDloose"),
-            #calculables.photon.Indices(    obj["photon"],   ptMin = 25, flagName = "photonIDLooseFromTwikiPat"),
             calculables.electron.Indices(  obj["electron"], ptMin = 10, simpleEleID = "80", useCombinedIso = True),
             calculables.muon.Indices(      obj["muon"],     ptMin = 10, combinedRelIsoMax = 0.15),
             calculables.muon.IndicesTriggering(lepton),
             calculables.muon.IndicesAnyIsoIsoOrder(lepton, pars["lepton"]["iso"]),
+            calculables.xclean.xcJet_SingleLepton( obj["jet"], leptons = lepton, indices = "IndicesAnyIsoIsoOrder" ),
 
+            #calculables.photon.Indices(    obj["photon"],   ptMin = 25, flagName = "photonIDLooseFromTwikiPat"),
             #calculables.xclean.IndicesUnmatched(collection = obj["photon"], xcjets = obj["jet"], DR = 0.5),
             #calculables.xclean.IndicesUnmatched(collection = obj["electron"], xcjets = obj["jet"], DR = 0.5),
-            #calculables.xclean.xcJet(obj["jet"], applyResidualCorrectionsToData = False,
-            #                         gamma    = obj["photon"],      gammaDR = 0.5,
-            #                         electron = obj["electron"], electronDR = 0.5,
-            #                         muon     = obj["muon"],         muonDR = 0.5, correctForMuons = not obj["muonsInJets"]),
-            calculables.xclean.xcJet_SingleLepton( obj["jet"], lepton = lepton, indices = "" )
-
 
             calculables.vertex.ID(),
             calculables.vertex.Indices(),
@@ -220,8 +215,9 @@ class topAsymm(supy.analysis) :
         #lEtaMax = pars["lepton"]["etaMax"]
         lIndices = 'IndicesAnyIsoIsoOrder'.join(lepton)
         lIso = pars['lepton']['iso'].join(lepton)
+        lIsoMinMax = pars["lepton"][pars['selection']['iso']]
         topTag = pars['tag'].replace("Wlv","top").replace("QCD","top")
-        bVar = pars["bVar"].join((calculables.jet.xcStrip(obj["jet"]))
+        bVar = pars["bVar"].join(obj["jet"])[2:]
         rw = pars['reweights']['abbr']
         
         ssteps = supy.steps
@@ -252,12 +248,13 @@ class topAsymm(supy.analysis) :
              
              ####################################
              , ssteps.filters.label('1-lepton cross-cleaning'),
-             ssteps.filters.OR([ ssteps.filters.multiplicity( max=1, var = lIndices )
+             ssteps.filters.OR([ ssteps.filters.multiplicity( max=1, var = lIndices ),
                                  ssteps.filters.value( var = lIso, min = 0.25, indices = lIndices, index=1)]), #FIXME hardcoded min
-             ssteps.filters.multiplicity( max=0, var = "Indices".join(obj['electron' if lepton=='muon' else 'muon']))
+             ssteps.filters.multiplicity( max=0, var = "Indices".join(obj['electron' if pars['lepton']['name']=='muon' else 'muon'])),
              # jet-crossclean here
+             ssteps.filters.assertNotYetCalculated("CorrectedP4".join(obj['jet'])),
              ssteps.filters.multiplicity( max=0, var = "IndicesOther".join(obj['jet'])), #this is too harsh ; veto on fail ID; do not veto on threshold after 3.5
-             steps.jet.forwardFailedJetVeto( obj["jet"], ptAbove = 50, etaAbove = 3.5),
+             steps.jet.forwardFailedJetVeto( obj["jet"], ptAbove = 50, etaAbove = 3.5)
 
              #ssteps.filters.multiplicity( max=0, var = "IndicesOther".join(obj['muon'])),
              #ssteps.filters.multiplicity( max=0, var = "IndicesUnmatched".join(obj['photon'])),
@@ -265,20 +262,20 @@ class topAsymm(supy.analysis) :
              #ssteps.filters.multiplicity( max=0, var = "Indices".join(obj['photon'])),
              
              ####################################
-             , ssteps.filters.label('selection'),
+             , ssteps.filters.label('selection')
 
              , ssteps.histos.pt("P4".join(lepton), 200,0,200, indices = lIndices, index = 0),
-             ssteps.filters.pt("P4".join(lepton), min = lPtMin, indices = lIndices, index = 0),
+             ssteps.filters.pt("P4".join(lepton), min = lPtMin, indices = lIndices, index = 0)
              #ssteps.filters.absEta("P4".join(lepton), max = lEtaMax, indices = lIndices, index = 0)
 
-             , ssteps.histos.multiplicity("Indices".join(%obj["jet"])),
+             , ssteps.histos.multiplicity("Indices".join(obj["jet"])),
              ssteps.filters.multiplicity("Indices".join(obj["jet"]), **pars["nJets"])
 
              , ssteps.histos.pt("mixedSumP4",100,0,300),
              ssteps.filters.pt("mixedSumP4",min=20)
 
              , ssteps.histos.value( lIso, 55,0,1.1, indices = lIndices, index=0),
-             ssteps.filters.value( lIso, indices = lIndices, index = 0, **lIsoMinMax),
+             ssteps.filters.value( lIso, indices = lIndices, index = 0, **lIsoMinMax)
 
              , ssteps.histos.value(bVar, 60,0,15, indices = "IndicesBtagged".join(obj["jet"]), index = 0)
              , ssteps.histos.value(bVar, 60,0,15, indices = "IndicesBtagged".join(obj["jet"]), index = 1)
