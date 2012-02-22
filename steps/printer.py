@@ -15,6 +15,24 @@ class eventPrinter(analysisStep) :
         outString+="  bx %4d"%eventVars["bunch"]
         print outString
 #####################################
+class muons(analysisStep) :
+    def __init__(self,cs) :
+        self.cs = cs
+    def uponAcceptance(self,ev) :
+        p4 = ev["%sP4%s"%self.cs]
+        indices = ev["%sIndices%s"%self.cs]
+        indicesOther = ev["%sIndicesOther%s"%self.cs]
+        iso = ev['%sCombinedRelativeIso%s'%self.cs]
+        
+        for i in range(len(p4)) :
+            symbol = ("-" if i in indicesOther else "*" if i in indices else " ")
+            print '\t'.join([symbol,
+                             '%.1f'%p4[i].pt(),
+                             '%+.1f'%p4[i].eta(),
+                             '%+.1f'%p4[i].phi(),
+                             '%.2f'%iso[i]])
+            
+#####################################
 class electronPrinter(analysisStep) :
     def __init__(self,cs, id=None) :
         self.cs = cs
