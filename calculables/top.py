@@ -479,7 +479,7 @@ class TopReconstruction(wrappedChain.calculable) :
         self.epsilon = 1e-7
 
     def update(self,_) :
-
+        
         jets = dict( (item, self.source[item.join(self.source["TopJets"]["fixes"])] )
                      for item in ["CorrectedP4","IndicesBtagged","Indices","Resolution","CovariantResolution2","ComboPQBDeltaRawMassWTop"] )
 
@@ -488,8 +488,9 @@ class TopReconstruction(wrappedChain.calculable) :
 
         topP = self.source["TopComboQQBBProbability"]
         maxP = self.source["TopComboQQBBMaxProbability"]
-
         bIndices = jets["IndicesBtagged"][:5] #consider only the first few b-tagged jets as possible b-candidates
+        ntrk = self.source["CountwithPrimaryHighPurityTracks".join(self.source["TopJets"]["fixesStripped"])]
+        
         recos = []        
         for iPQH in itertools.permutations(jets["Indices"],3) :
             if iPQH[0]>iPQH[1] : continue
@@ -505,6 +506,11 @@ class TopReconstruction(wrappedChain.calculable) :
                 if iL in iPQH : continue
                 iPQHL = iPQH+(iL,)
                 iQQBB = iPQHL[:2]+tuple(sorted(iPQHL[2:]))
+
+                #if sorted([ntrk[i] for i in iPQHL])[1]<4 : continue
+                #if sorted([ntrk[i] for i in iPQHL])[0]<3 : continue
+                #if sorted([ntrk[i] for i in iPQHL])[1]<3 : continue
+
                 for zPlus in [0,1] :
                     lepFit = utils.fitKinematic.leastsqLeptonicTop( jets["CorrectedP4"][iL], jets["Resolution"][iL], lepton["P4"], nuXY, nuErr-jets["CovariantResolution2"][iL], zPlus = zPlus )
                     tt = hadFit.fitT + lepFit.fitT
@@ -608,7 +614,7 @@ class IndicesGenTopExtra(wrappedChain.calculable) :
     def __init__(self, jets=None, rMax = 0.6) :
         self.rMax = rMax
         self.fixes = jets
-        self.stash(['Indices','CorrectedP4','IndicesGenTopPQHL'])
+        self.stash(['Indices','CorrectedP4'])
 
     def update(self,_) :
         imom = self.source['genMotherIndex']
