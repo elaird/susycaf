@@ -392,8 +392,6 @@ class fitTopLeptonCharge(wrappedChain.calculable) :
 ######################################
 ######################################
 
-
-
 class genTopTTbar(wrappedChain.calculable) :
     def update(self,_) :
         self.value = tuple(list(self.source['genPdgId']).index(i) for i in [6,-6]) if \
@@ -405,6 +403,22 @@ class genTopIndicesX(wrappedChain.calculable) :
         ids = self.source['genPdgId']
         self.value = [i for i in range(len(moms)) if abs(ids[i])!=6 and moms[i]==4 ]
 ######################################
+class ttDecayChannel(wrappedChain.calculable) :
+    def update(self,_) :
+        pdg = self.source['genPdgId']
+        mom = self.source['genMotherPdgId']
+        debris = [abs(pdg[i]) for i in range(len(pdg)) if abs(mom[i])==24]
+        self.value = ('' if not self.source['genTopTTbar'] else
+                      'ee' if debris.count(11) == 2 else
+                      'mm' if debris.count(13) == 2 else
+                      'tt' if debris.count(15) == 2 else
+                      'em' if 11 in debris and 13 in debris else
+                      'et' if 11 in debris and 15 in debris else
+                      'mt' if 13 in debris and 15 in debris else
+                      'ej' if debris.count(11) else
+                      'mj' if debris.count(13) else
+                      'tj' if debris.count(15) else
+                      'jj')
 ######################################
 class genTTbarIndices(wrappedChain.calculable) :
     def update(self,_) :

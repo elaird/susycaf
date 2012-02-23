@@ -2,6 +2,16 @@ import math,itertools,ROOT as r, numpy as np
 from supy import analysisStep,steps
 #####################################
 
+class channelClassification(analysisStep) :
+    labels = ['','ee','mm','tt','em','et','mt','ej','mj','tj','jj']
+    nbins = len(labels)
+
+    def uponAcceptance(self,ev) :
+        iBin = self.labels.index(ev['ttDecayChannel'])
+        if iBin :
+            self.book.fill( iBin, 'ttDecayChannel', self.nbins, 0, self.nbins, xAxisLabels = self.labels )
+
+#####################################
 class jetPrinter(analysisStep) :
     def uponAcceptance(self,ev) :
         jets = ev['TopJets']['fixes']

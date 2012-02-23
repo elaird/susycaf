@@ -218,7 +218,7 @@ class topAsymm(supy.analysis) :
             [ssteps.printer.progressPrinter()
              , ssteps.histos.value("genpthat",200,0,1000,xtitle="#hat{p_{T}} (GeV)").onlySim()
              , ssteps.histos.value("genQ",200,0,1000,xtitle="#hat{Q} (GeV)").onlySim()
-             
+             , steps.top.channelClassification().onlySim()
              ####################################
              , ssteps.filters.label('data cleanup'),
              ssteps.filters.multiplicity("vertexIndices",min=1),
@@ -226,6 +226,7 @@ class topAsymm(supy.analysis) :
              ssteps.filters.value('hbheNoiseFilterResult',min=1).onlyData(),
              steps.trigger.l1Filter("L1Tech_BPTX_plus_AND_minus.v0").onlyData(),
              steps.filters.monster()
+             , steps.top.channelClassification().onlySim()
 
              ####################################
 
@@ -239,27 +240,34 @@ class topAsymm(supy.analysis) :
              , steps.trigger.lowestUnPrescaledTriggerHistogrammer().onlyData()
              
              ####################################
-             , ssteps.filters.label('selection'),
+             , ssteps.filters.label('selection')
+             , steps.top.channelClassification().onlySim(),
              ssteps.filters.OR([ ssteps.filters.multiplicity( max=1, var = lIndices ),
                                  ssteps.filters.value( var = lIso, min = 0.25, indices = lIndices, index=1)]), #FIXME hardcoded min
              ssteps.filters.multiplicity( max=0, var = "Indices".join(obj['electron' if pars['lepton']['name']=='muon' else 'muon']))
-             #ssteps.filters.multiplicity( max=0, var = "IndicesOther".join(obj['muon'])),
+             , steps.top.channelClassification().onlySim(),
+             ssteps.filters.multiplicity( max=0, var = "IndicesOther".join(obj['muon']))
+             , steps.top.channelClassification().onlySim()
              
              , ssteps.histos.pt("mixedSumP4",100,0,300),
              ssteps.filters.pt("mixedSumP4",min=20)
+             , steps.top.channelClassification().onlySim()
 
              , ssteps.histos.absEta("P4".join(lepton), 100,0,4, indices = lIndices, index = 0)
              , ssteps.histos.pt("P4".join(lepton), 200,0,200, indices = lIndices, index = 0),
              ssteps.filters.pt("P4".join(lepton), min = lPtMin, indices = lIndices, index = 0)
              #ssteps.filters.absEta("P4".join(lepton), max = lEtaMax, indices = lIndices, index = 0)
+             , steps.top.channelClassification().onlySim()
 
              , ssteps.histos.multiplicity("Indices".join(obj["jet"])),
              ssteps.filters.multiplicity("Indices".join(obj["jet"]), **pars["nJets"]),
              steps.jet.forwardFailedJetVeto( obj["jet"], ptAbove = 50, etaAbove = 3.5),
              ssteps.filters.multiplicity( max=0, var = "IndicesOther".join(obj['jet'])) #this is too harsh ; veto on fail ID; do not veto on threshold after 3.5
+             , steps.top.channelClassification().onlySim()
 
              , ssteps.histos.value( lIso, 55,0,1.1, indices = lIndices, index=0),
              ssteps.filters.value( lIso, indices = lIndices, index = 0, **lIsoMinMax)
+             , steps.top.channelClassification().onlySim()
 
              , calculables.jet.ProbabilityGivenBQN(obj["jet"], pars['bVar'], binning=(64,-1,15), samples = (pars['topBsamples'][0],[s%rw for s in pars['topBsamples'][1]]), tag = topTag)
              , ssteps.histos.value("TopRatherThanWProbability", 100,0,1)
@@ -268,6 +276,7 @@ class topAsymm(supy.analysis) :
              , ssteps.histos.value(bVar, 60,0,15, indices = "IndicesBtagged".join(obj["jet"]), index = 2),
              ssteps.filters.value(bVar, indices = "IndicesBtagged".join(obj["jet"]), index = 1, min = 0.0),
              ssteps.filters.value(bVar, indices = "IndicesBtagged".join(obj["jet"]), **pars["selection"]["bCut"])
+             , steps.top.channelClassification().onlySim()
              
              , steps.top.pileupJets().onlySim()
 
@@ -279,6 +288,7 @@ class topAsymm(supy.analysis) :
              #, steps.gen.genParticlePrinter()
              , ssteps.filters.label('top reco'),#.invert(),
              ssteps.filters.multiplicity("TopReconstruction",min=1)
+             , steps.top.channelClassification().onlySim()
              , steps.top.combinatorialFrequency(obj["jet"])
 
               ####################################
