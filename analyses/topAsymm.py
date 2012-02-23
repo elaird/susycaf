@@ -138,7 +138,7 @@ class topAsymm(supy.analysis) :
         def ttbar_mg(eL = None) :
             return (supy.samples.specify(names = "ttj_mg", effectiveLumi = eL, color = r.kBlue, weights = ["wNonQQbar",'tw',rw], nFilesMax = 100) +
                     sum( [supy.samples.specify( names = "ttj_mg", effectiveLumi = eL, 
-                                                color = color, weights = [ calculables.top.wTopAsym(asym, R_sm = -0.05), 'tw',rw ], nFilesMax = 80 )
+                                                color = color, weights = [ calculables.top.wTopAsym(asym, R_sm = -0.05), 'tw',rw ], nFilesMax = 200 )
                           for asym,color in [(0.0,r.kOrange),
                                              (-0.3,r.kGreen),(0.3,r.kRed),
                                              #(-0.6,r.kYellow),(0.6,r.kYellow),
@@ -270,13 +270,14 @@ class topAsymm(supy.analysis) :
              ssteps.filters.value(bVar, indices = "IndicesBtagged".join(obj["jet"]), **pars["selection"]["bCut"])
              
              , steps.top.pileupJets().onlySim()
-             , ssteps.filters.pt("%sCorrectedP4%s"%obj['jet'], min = 100, indices = "%sIndicesGenPileup%s"%obj['jet'], index = 0)
-             ,
+
+             , ssteps.histos.multiplicity("IndicesGenPileup".join(obj['jet']))
+             #ssteps.filters.pt("CorrectedP4".join(obj['jet']), indices="IndicesGenPileup".join(obj['jet']), index=0, min=100)
              #, steps.printer.muons(obj['muon'])
              #, steps.top.jetPrinter()
              #, steps.gen.genJetPrinter('genak5','')
              #, steps.gen.genParticlePrinter()
-             #, ssteps.filters.label('top reco'),#.invert(),
+             , ssteps.filters.label('top reco'),#.invert(),
              ssteps.filters.multiplicity("TopReconstruction",min=1)
              , steps.top.combinatorialFrequency(obj["jet"])
 
