@@ -619,8 +619,10 @@ class IndicesGenTopExtra(wrappedChain.calculable) :
     def update(self,_) :
         imom = self.source['genMotherIndex']
         p4 = self.source['genP4']
+        pdg = self.source['genPdgId']
+        status = self.source['genStatus']
 
-        extraP4 = [p4[i] for i in range(8,len(imom)) if 2<imom[i]<6 ]
+        extraP4 = [p4[i] for i in range(8,len(imom)) if 2<imom[i]<6 and abs(pdg[i]) in [1,2,3,4,5,11,13,15,21] and status[i]==3]
 
         indices = self.source[self.Indices]
         jet = self.source[self.CorrectedP4]

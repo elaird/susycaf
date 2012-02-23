@@ -204,7 +204,8 @@ class IndicesGenPrimary(wrappedChain.calculable) :
         gen = self.source['genP4']
         pdg = self.source['genPdgId']
         imom = self.source['genMotherIndex']
-        jgen = [j for j in range(len(gen)) if imom[j]>5 and abs(pdg[j] in [1,2,3,4,5,15,21]) ]
+        status = self.source['genStatus']
+        jgen = [j for j in range(len(gen)) if imom[j]>3 and abs(pdg[j]) in [1,2,3,4,5,11,13,15,21] and status[j]==3 ]
         self.value = [i for i in self.source[self.Indices] if
                       any(r.Math.VectorUtil.DeltaR(p4[i],gen[j])<0.5 for j in jgen)]
 ###################################
@@ -212,7 +213,8 @@ class IndicesGenPileup(wrappedChain.calculable) :
     def __init__(self,collection) :
         self.fixes = collection
         self.stash(["Indices","IndicesGenPrimary"])
-    def update(self,_) : self.value = [i for i in self.source[self.Indices] if i not in self.source[self.IndicesGenPrimary]]
+    def update(self,_) :
+        self.value = [i for i in self.source[self.Indices] if i not in self.source[self.IndicesGenPrimary]]
 ###################################
 class NMuonsMatched(wrappedChain.calculable) :
     def __init__(self, collection = None) :
