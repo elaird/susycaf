@@ -18,6 +18,7 @@ class jetPrinter(analysisStep) :
         fPU = ev['%sPileUpPtFraction%s'%jets]
         for i in ev['%sIndices%s'%jets] :
             p4 = ev['%sCorrectedP4%s'%jets][i]
+            print i, '\t',
             print 'b' if i in ev['%sIndicesGenB%s'%jets] else '',
             print 'q' if i in ev['%sIndicesGenWqq%s'%jets] else '',
             print ("\t%.0f\t%+.1f\t%+.1f")%(p4.pt(),p4.eta(),p4.phi()),
