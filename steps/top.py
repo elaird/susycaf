@@ -31,7 +31,7 @@ class jetPrinter(analysisStep) :
         for i in ev['%sIndicesOther%s'%jets] :
             p4 = ev['%sCorrectedP4%s'%jets][i]
             print ("\t%.0f\t%+.1f\t%+.1f")%(p4.pt(),p4.eta(),p4.phi())
-            print
+        print
 #####################################
 class pileupJets(analysisStep) :
     def uponAcceptance(self,ev) :

@@ -182,6 +182,7 @@ class topAsymm(supy.analysis) :
             calculables.top.TopRatherThanWProbability( priorTop = 0.5 ),
             calculables.top.IndicesGenTopPQHL( obj['jet'] ),
             calculables.top.IndicesGenTopExtra (obj['jet'] ),
+            calculables.top.genTopRecoIndex(),
 
             calculables.other.Mt( lepton, "mixedSumP4", allowNonIso = True, isSumP4 = True),
             calculables.other.Covariance(('met','PF')),
@@ -270,16 +271,17 @@ class topAsymm(supy.analysis) :
              
              , steps.top.pileupJets().onlySim()
              , ssteps.filters.pt("%sCorrectedP4%s"%obj['jet'], min = 100, indices = "%sIndicesGenPileup%s"%obj['jet'], index = 0)
+             ,
              #, steps.printer.muons(obj['muon'])
              #, steps.top.jetPrinter()
              #, steps.gen.genJetPrinter('genak5','')
              #, steps.gen.genParticlePrinter()
-             , ssteps.filters.label('top reco'),#.invert(),
+             #, ssteps.filters.label('top reco'),#.invert(),
              ssteps.filters.multiplicity("TopReconstruction",min=1)
-             #, steps.top.combinatorialFrequency(obj["jet"])
+             , steps.top.combinatorialFrequency(obj["jet"])
 
               ####################################
-             , ssteps.filters.label("selection complete")
+             , ssteps.filters.label("selection complete").invert()
 
              , ssteps.histos.multiplicity("Indices".join(obj["jet"]))
              , ssteps.histos.value("M3".join(obj['jet']), 20,0,800)
