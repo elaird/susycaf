@@ -16,13 +16,10 @@ class ttbar(analysisStep) :
             setattr(self,item,eval(item))
 
         self.etaBE = configuration.detectorSpecs()["cms"]["etaBE"]
-        
         self.jetRadius = 0.7 if "7" in self.jets[0] else 0.5
         self.genJets = "gen%sGenJetsP4"%(self.jets[0].replace("xc","")[:3])
         self.genMet  = "genmetP4True"
-
         self.titleSizeFactor = 1.0
-        
         self.legendDict = collections.defaultdict(int)
         self.legendList = []
         
@@ -43,6 +40,7 @@ class ttbar(analysisStep) :
         self.keep = []
 
         r.gStyle.SetOptStat(110011)
+        self.preparePads(eV)
         self.drawRhoPhiPlot(eV)
         self.drawEtaPhiPlot(eV)
         self.drawLegend()
@@ -82,9 +80,6 @@ class ttbar(analysisStep) :
         self.legendPad = r.TPad("legendPad", "legendPad", legendCorners["x1"], legendCorners["y1"], legendCorners["x2"], legendCorners["y2"] )
         self.narrowPad = r.TPad("narrowPad", "narrowPad", narrowCorners["x1"], narrowCorners["y1"], narrowCorners["x2"], narrowCorners["y2"] )
 
-    def endFunc(self, chains) :
-        self.outputFile.Write(); self.outputFile.Close(); del self.canvas
-
     def prepareText(self, params, coords) :
         self.text.SetTextSize(params["size"])
         self.text.SetTextFont(params["font"])
@@ -110,7 +105,8 @@ class ttbar(analysisStep) :
             if message : self.printText(message)
         
     
-    def drawSkeleton(self, coords, color) :
+    def drawSkeleton(self, color) :
+        coords = self.rhoPhiCoords
         r.gPad.AbsCoordinates(False)
         
         self.ellipse.SetLineColor(color)
@@ -122,6 +118,8 @@ class ttbar(analysisStep) :
         self.line.SetLineColor(color)
         self.line.DrawLine(coords["x0"]-coords["radius"], coords["y0"]                 , coords["x0"]+coords["radius"], coords["y0"]                 )
         self.line.DrawLine(coords["x0"]                 , coords["y0"]-coords["radius"], coords["x0"]                 , coords["y0"]+coords["radius"])
+
+        self.drawScale(color = color, size = 0.03, scale = coords["scale"], point = {"x":0.03, "y":coords["radius"]+coords["y0"]+0.03})
 
     def drawScale(self, color, size, scale, point) :
         self.latex.SetTextSize(size)
@@ -145,16 +143,6 @@ class ttbar(analysisStep) :
         self.ellipse.SetLineWidth(lineWidth)
         self.ellipse.SetLineStyle(lineStyle)
         self.ellipse.DrawEllipse(p4.eta(), p4.phi(), circleRadius, circleRadius, 0.0, 360.0, 0.0, "")
-
-    def renamedDesc(self, desc) :
-        if not self.prettyMode : return desc
-        elif desc in self.prettyReName : return self.prettyReName[desc]
-        else : return desc
-        
-    def legendFunc(self, color, name, desc) :
-        if not self.legendDict[name] :
-            self.legendDict[name] = True
-            self.legendList.append( (color, self.renamedDesc(desc), "l") )
             
     def drawGenParticles(self, eV, coords, color, lineWidth, arrowSize, statusList = [], pdgIdList = [], motherList = [], label = "", circleRadius = None) :
         self.legendFunc(color, name = "genParticle"+label, desc = label)
@@ -182,7 +170,7 @@ class ttbar(analysisStep) :
         self.legendFunc(color, name = "met%s"%self.met, desc = "MET (%s)"%self.met)
         if plot :
             self.line.SetLineColor(color)
-            self.line.DrawLine( plot.GetXaxis().GetXmin(), eV[self.met].phi(), plot.GetXaxis().GetXmax(), eV[self.met].phi(),  )
+            self.line.DrawLine( -3, eV[self.met].phi(), 3, eV[self.met].phi(),  )
         else : self.drawP4(coords, eV[self.met], color, lineWidth, arrowSize)
         
     def drawGenMet(self, eV, coords, color, lineWidth, arrowSize) :
@@ -202,17 +190,29 @@ class ttbar(analysisStep) :
         for i in range(len(p4Vector)) :
             self.drawP4(coords, p4Vector.at(i), color, lineWidth, arrowSize)
             
-    def drawEtaPhiPlot (self, eV) :
-        self.etaPhiPad.Clear(); self.etaPhiPad.cd(); self.etaPhiPad.SetTickx(); self.etaPhiPad.SetTicky()
+    def preparePads(self, eV) :
+        self.legendPad.Clear();
+        self.rhoPhiPad.Clear();
+        self.etaPhiPad.Clear();
+        
+        self.rhoPhiPad.cd()
+        self.drawSkeleton(r.kYellow+1)
 
+        self.etaPhiPad.cd(); 
+        self.etaPhiPad.SetTickx(); self.etaPhiPad.SetTicky()
         etaPhiPlot = r.TH2D("etaPhi",";#eta;#phi;",1, -3.0, 3.0, 1, -r.TMath.Pi(), r.TMath.Pi() )
         etaPhiPlot.SetStats(False); etaPhiPlot.SetTitle(""); etaPhiPlot.Draw()
+        self.keep.append(etaPhiPlot)
 
         self.line.SetLineColor(r.kBlack)
         self.line.DrawLine(-self.etaBE, etaPhiPlot.GetYaxis().GetXmin(), -self.etaBE, etaPhiPlot.GetYaxis().GetXmax() )
         self.line.DrawLine( self.etaBE, etaPhiPlot.GetYaxis().GetXmin(),  self.etaBE, etaPhiPlot.GetYaxis().GetXmax() )
-        if self.met :       self.drawMet        (eV, None,r.kRed   , None, None, plot = etaPhiPlot)
+
+    def drawEtaPhiPlot (self, eV) :
+        self.etaPhiPad.cd()
         
+        if self.met :       self.drawMet        (eV, None,r.kRed   , None, None, plot = 1)        
+
         if not eV["isRealData"] :
             self.drawGenParticles( eV, None,            9, lineWidth = 3, arrowSize = -1, statusList=[3],  circleRadius=0.08, pdgIdList = [5,-5],                 motherList = [6,-6], label = "b quark from top decay")
             self.drawGenParticles( eV, None,            7, lineWidth = 3, arrowSize = -1, statusList=[3],  circleRadius=0.08, pdgIdList = [-4,-3,-2,-1,1,2,3,4],  motherList = [24,-24], label = "light quark from W decay")
@@ -230,17 +230,12 @@ class ttbar(analysisStep) :
         
         self.canvas.cd()
         self.etaPhiPad.Draw()
-        self.keep.append(etaPhiPlot)
 
     def drawRhoPhiPlot(self, eV):
-        self.rhoPhiPad.Clear(); self.rhoPhiPad.cd()
         coords = self.rhoPhiCoords
 
-        skeletonColor = r.kYellow+1
-        self.drawSkeleton(coords, skeletonColor)
-        self.drawScale(color = skeletonColor, size = 0.03, scale = coords["scale"], point = {"x":0.03, "y":coords["radius"]+coords["y0"]+0.03})
-
-        defArrowSize=self.arrow.GetDefaultArrowSize() * 2/3.
+        self.rhoPhiPad.cd()
+        defArrowSize = self.arrow.GetDefaultArrowSize() * 2/3.
         defWidth=1
 
         if self.jets :      self.drawCleanJets  (eV, coords, self.jets, r.kBlue  , defWidth, defArrowSize)
@@ -259,7 +254,7 @@ class ttbar(analysisStep) :
         self.rhoPhiPad.Draw()
 
     def drawLegend(self) :
-        self.legendPad.Clear(); self.legendPad.cd();
+        self.legendPad.cd();
         
         legend = r.TLegend(0.0, 0.0, 1.0, 1.0)
         for item in self.legendList :
@@ -270,6 +265,16 @@ class ttbar(analysisStep) :
         self.canvas.cd()
         self.legendPad.Draw()
         self.keep.append(legend)
+
+    def renamedDesc(self, desc) :
+        if not self.prettyMode : return desc
+        elif desc in self.prettyReName : return self.prettyReName[desc]
+        else : return desc
+        
+    def legendFunc(self, color, name, desc) :
+        if not self.legendDict[name] :
+            self.legendDict[name] = True
+            self.legendList.append( (color, self.renamedDesc(desc), "l") )
 
     def printAllText(self, eV, corners) :
         pad = r.TPad("textPad", "textPad", corners["x1"], corners["y1"], corners["x2"], corners["y2"])
@@ -490,4 +495,7 @@ class ttbar(analysisStep) :
         
         psFromRoot(products["outputFileName"], self.outputFileName.replace(".root", ".pdf"))
         print utils.hyphens
+
+    def endFunc(self, chains) :
+        self.outputFile.Write(); self.outputFile.Close(); del self.canvas
 
