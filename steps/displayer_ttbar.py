@@ -44,10 +44,14 @@ class ttbar(analysisStep) :
         self.preparePads(eV)
         self.drawMet(eV, r.kRed, 1 )
         self.drawJets(eV, r.kBlue, 1 )
+        self.drawLeptons(eV, r.kGreen+3, 1, kind = "muon" , desc = 'charged lepton')
+        self.drawLeptons(eV, r.kGreen+3, 1, kind = "electron", desc = 'charged lepton' )
         self.drawGenTTdecay(eV)
 
-        self.drawRhoPhiPlot(eV)
-        self.drawEtaPhiPlot(eV)
+        self.canvas.cd()
+        self.etaPhiPad.Draw()
+        self.rhoPhiPad.Draw()
+
         self.drawLegend()
         self.printNarrowText(eV)
         
@@ -166,11 +170,11 @@ class ttbar(analysisStep) :
             arrow = {"width":1, "size":0.5*self.arrow.GetDefaultArrowSize()}
             circle = {"width":3, "radius":0.08}
             status = [3]
-            self.drawGenParticles( eV,            9, arrow, circle, status, pdgs = [5,-5],                 moms = [6,-6],           label = "b from top")
-            self.drawGenParticles( eV,            7, arrow, circle, status, pdgs = [-4,-3,-2,-1,1,2,3,4],  moms = [24,-24],         label = "quark from W")
-            self.drawGenParticles( eV,    r.kSpring, arrow, circle, status, pdgs = [-15,-13,-11,11,13,15], moms = [24,-24],         label = "lepton from W")
-            self.drawGenParticles( eV, r.kOrange+1,  arrow, circle, status, pdgs = [-16,-14,-12,12,14,16], moms = [24,-24],         label = "neutrino from W")
-            self.drawGenParticles( eV,           28, arrow, circle, status, pdgs = [21],                   moms = range(-6,7)+[21], label = "gluon (status 3)")
+            self.drawGenParticles( eV,            9, arrow, circle, status, pdgs = [5,-5],                 moms = [6,-6],           label = "gen b from top")
+            self.drawGenParticles( eV,            7, arrow, circle, status, pdgs = [-4,-3,-2,-1,1,2,3,4],  moms = [24,-24],         label = "gen quark from W")
+            self.drawGenParticles( eV,    r.kSpring, arrow, circle, status, pdgs = [-15,-13,-11,11,13,15], moms = [24,-24],         label = "gen lepton from W")
+            self.drawGenParticles( eV, r.kOrange+1,  arrow, circle, status, pdgs = [-16,-14,-12,12,14,16], moms = [24,-24],         label = "gen neutrino from W")
+            self.drawGenParticles( eV,           28, arrow, circle, status, pdgs = [21],                   moms = range(-6,7)+[21], label = "gen gluon")
 
     def drawMet(self, eV, color, lineWidth) :
         if not self.met: return
@@ -194,18 +198,15 @@ class ttbar(analysisStep) :
                 self.drawCircle(jet, r.kBlue, lineWidth, circleRadius = self.jetRadius*(1 - 0.0005*(jet.pt()-30)), lineStyle=1)
             
                     
-    def drawMuons(self, eV, coords, color, lineWidth, arrowSize) :
-        self.legendFunc(color, name = "%smuon%s"%self.muons, desc = "muons (%s%s)"%self.muons)
-        p4Vector=eV["%sP4%s"%self.muons]
-        for i in range(len(p4Vector)) :
-            self.drawP4(coords, p4Vector.at(i), color, lineWidth, arrowSize)
-            
-    def drawElectrons(self, eV, coords, color, lineWidth, arrowSize) :
-        self.legendFunc(color, name = "%selectron%s"%self.electrons, desc = "electrons (%s%s)"%self.electrons)
-        p4Vector=eV["%sP4%s"%self.electrons]
-        for i in range(len(p4Vector)) :
-            self.drawP4(coords, p4Vector.at(i), color, lineWidth, arrowSize)
-            
+    def drawLeptons(self, eV, color, lineWidth, kind = "muon", desc = "") :
+        lepton = getattr(self,kind+'s')
+        if not lepton : return
+        self.legendFunc(color, name = kind.join(lepton) if not desc else desc, desc = kind + "s (%s%s)"%lepton if not desc else desc)
+        p4 = eV["P4".join(lepton)]
+        self.rhoPhiPad.cd()
+        for i in range(len(p4)) :
+            self.drawP4(self.rhoPhiCoords, p4.at(i), color, lineWidth, self.arrow.GetDefaultArrowSize() )
+                        
     def preparePads(self, eV) :
         self.legendPad.Clear();
         self.rhoPhiPad.Clear();
@@ -224,25 +225,6 @@ class ttbar(analysisStep) :
         self.line.DrawLine(-self.etaBE, etaPhiPlot.GetYaxis().GetXmin(), -self.etaBE, etaPhiPlot.GetYaxis().GetXmax() )
         self.line.DrawLine( self.etaBE, etaPhiPlot.GetYaxis().GetXmin(),  self.etaBE, etaPhiPlot.GetYaxis().GetXmax() )
 
-    def drawEtaPhiPlot (self, eV) :
-        self.etaPhiPad.cd()
-                
-        self.canvas.cd()
-        self.etaPhiPad.Draw()
-
-    def drawRhoPhiPlot(self, eV):
-        coords = self.rhoPhiCoords
-
-        self.rhoPhiPad.cd()
-        defArrowSize = self.arrow.GetDefaultArrowSize()
-        defWidth=1
-
-        #if self.jets :      self.drawCleanJets  (eV, coords, self.jets, r.kBlue  , defWidth, defArrowSize)
-        if self.muons :     self.drawMuons      (eV, coords,            r.kGreen+3 , defWidth, defArrowSize)
-        if self.electrons : self.drawElectrons  (eV, coords,            r.kGreen+3, defWidth, defArrowSize)
-
-        self.canvas.cd()
-        self.rhoPhiPad.Draw()
 
     def drawLegend(self) :
         self.legendPad.cd();
@@ -250,22 +232,25 @@ class ttbar(analysisStep) :
         legend = r.TLegend(0.0, 0.0, 1.0, 1.0)
         for item in self.legendList :
             self.line.SetLineColor(item[0])
-            someLine = self.line.DrawLine(0.0,0.0,0.0,0.0)
-            legend.AddEntry(someLine, item[1], item[2])
+            self.line.SetLineWidth(10)
+            someArrow = self.line.DrawLine(0.0,0.0,0.0,0.0)
+            legend.AddEntry(someArrow, item[1], item[2])
         legend.Draw("same")
         self.canvas.cd()
         self.legendPad.Draw()
         self.keep.append(legend)
+        self.line.SetLineWidth(1)
+
+    def legendFunc(self, color, name, desc) :
+        if not self.legendDict[name] :
+            self.legendDict[name] = True
+            self.legendList.append( (color, self.renamedDesc(desc), "l") )
 
     def renamedDesc(self, desc) :
         if not self.prettyMode : return desc
         elif desc in self.prettyReName : return self.prettyReName[desc]
         else : return desc
         
-    def legendFunc(self, color, name, desc) :
-        if not self.legendDict[name] :
-            self.legendDict[name] = True
-            self.legendList.append( (color, self.renamedDesc(desc), "l") )
 
     def printAllText(self, eV, corners) :
         pad = r.TPad("textPad", "textPad", corners["x1"], corners["y1"], corners["x2"], corners["y2"])
