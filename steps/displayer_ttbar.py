@@ -42,7 +42,8 @@ class ttbar(analysisStep) :
         r.gStyle.SetOptStat(110011)
 
         self.preparePads(eV)
-        self.drawMet(eV, r.kRed, 1, self.arrow.GetDefaultArrowSize() )
+        self.drawMet(eV, r.kRed, 1 )
+        self.drawJets(eV, r.kBlue, 1 )
         self.drawGenTTdecay(eV)
 
         self.drawRhoPhiPlot(eV)
@@ -171,21 +172,27 @@ class ttbar(analysisStep) :
             self.drawGenParticles( eV, r.kOrange+1,  arrow, circle, status, pdgs = [-16,-14,-12,12,14,16], moms = [24,-24],         label = "neutrino from W")
             self.drawGenParticles( eV,           28, arrow, circle, status, pdgs = [21],                   moms = range(-6,7)+[21], label = "gluon (status 3)")
 
-    def drawMet(self, eV, color, lineWidth, arrowSize) :
+    def drawMet(self, eV, color, lineWidth) :
         if not self.met: return
         self.legendFunc(color, name = "met%s"%self.met, desc = "MET (%s)"%self.met)
         self.line.SetLineColor(color)
-        self.rhoPhiPad.cd();  self.drawP4(self.rhoPhiCoords, eV[self.met], color, lineWidth, arrowSize)
+        self.rhoPhiPad.cd();  self.drawP4(self.rhoPhiCoords, eV[self.met], color, lineWidth, self.arrow.GetDefaultArrowSize() )
         self.etaPhiPad.cd();  self.line.DrawLine( -3, eV[self.met].phi(), 3, eV[self.met].phi(),  )
 
-    def drawCleanJets(self, eV, coords, jets, color, lineWidth, arrowSize) :
-        self.legendFunc(color, name = "cleanJet".join(jets), desc = "clean jets (%s%s)"%jets)
+    def drawJets(self, eV, color, lineWidth) :
+        if not self.jets : return
+        self.legendFunc(color, name = "cleanJet".join(self.jets), desc = "clean jets (%s%s)"%self.jets)
         
-        p4s = eV['CorrectedP4'.join(jets)]
+        jets = eV["CorrectedP4".join(self.jets)]
         
-        cleanJetIndices = eV["Indices".join(jets)]
-        for iJet in cleanJetIndices :
-            self.drawP4(coords, p4s.at(iJet), color, lineWidth, arrowSize)
+        for iJet in eV["Indices".join(self.jets)] :
+            jet = jets.at(iJet)
+            self.rhoPhiPad.cd(); self.drawP4(self.rhoPhiCoords, jet, color, lineWidth, self.arrow.GetDefaultArrowSize() )
+            self.etaPhiPad.cd(); self.drawCircle(jet, color, lineWidth, circleRadius = self.jetRadius)
+            if jet.pt()>35 :
+                self.drawCircle(jet, r.kBlue, lineWidth, circleRadius = self.jetRadius*(1 + 0.0005*(jet.pt()-30)), lineStyle=1)
+                self.drawCircle(jet, r.kBlue, lineWidth, circleRadius = self.jetRadius*(1 - 0.0005*(jet.pt()-30)), lineStyle=1)
+            
                     
     def drawMuons(self, eV, coords, color, lineWidth, arrowSize) :
         self.legendFunc(color, name = "%smuon%s"%self.muons, desc = "muons (%s%s)"%self.muons)
@@ -219,15 +226,7 @@ class ttbar(analysisStep) :
 
     def drawEtaPhiPlot (self, eV) :
         self.etaPhiPad.cd()
-        
-        jets = eV["CorrectedP4".join(self.jets)]
-        for index in eV["Indices".join(self.jets)] :
-            jet = jets.at(index)
-            self.drawCircle(jet, r.kBlue, lineWidth = 1, circleRadius = self.jetRadius)
-            if jet.pt()>35 :
-                self.drawCircle(jet, r.kBlue, lineWidth = 1, circleRadius = self.jetRadius*(1 + 0.0005*(jet.pt()-30)), lineStyle=1)
-                self.drawCircle(jet, r.kBlue, lineWidth = 1, circleRadius = self.jetRadius*(1 - 0.0005*(jet.pt()-30)), lineStyle=1)
-        
+                
         self.canvas.cd()
         self.etaPhiPad.Draw()
 
@@ -238,7 +237,7 @@ class ttbar(analysisStep) :
         defArrowSize = self.arrow.GetDefaultArrowSize()
         defWidth=1
 
-        if self.jets :      self.drawCleanJets  (eV, coords, self.jets, r.kBlue  , defWidth, defArrowSize)
+        #if self.jets :      self.drawCleanJets  (eV, coords, self.jets, r.kBlue  , defWidth, defArrowSize)
         if self.muons :     self.drawMuons      (eV, coords,            r.kGreen+3 , defWidth, defArrowSize)
         if self.electrons : self.drawElectrons  (eV, coords,            r.kGreen+3, defWidth, defArrowSize)
 
