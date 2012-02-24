@@ -138,7 +138,7 @@ class topAsymm(supy.analysis) :
         def ttbar_mg(eL = None) :
             return (supy.samples.specify(names = "ttj_mg", effectiveLumi = eL, color = r.kBlue, weights = ["wNonQQbar",'tw',rw], nFilesMax = 100) +
                     sum( [supy.samples.specify( names = "ttj_mg", effectiveLumi = eL, 
-                                                color = color, weights = [ calculables.top.wTopAsym(asym, R_sm = -0.05), 'tw',rw ], nFilesMax = 1, nEventsMax = 1000 )
+                                                color = color, weights = [ calculables.top.wTopAsym(asym, R_sm = -0.05), 'tw',rw ], nFilesMax = 1, nEventsMax = 10000 )
                           for asym,color in [(0.0,r.kOrange),
                                              (-0.3,r.kGreen),(0.3,r.kRed),
                                              #(-0.6,r.kYellow),(0.6,r.kYellow),

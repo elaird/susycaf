@@ -188,14 +188,16 @@ class ttbar(analysisStep) :
         self.legendFunc(color, name = "cleanJet".join(self.jets), desc = "clean jets (%s%s)"%self.jets)
         
         jets = eV["CorrectedP4".join(self.jets)]
+        fPU = eV["PileUpPtFraction".join(self.jets)]
         
         for iJet in eV["Indices".join(self.jets)] :
             jet = jets.at(iJet)
-            self.rhoPhiPad.cd(); self.drawP4(self.rhoPhiCoords, jet, color, lineWidth, self.arrow.GetDefaultArrowSize() )
-            self.etaPhiPad.cd(); self.drawCircle(jet, color, lineWidth, circleRadius = self.jetRadius)
+            icolor = r.kGray if fPU[iJet] > 0.7 else color
+            self.rhoPhiPad.cd(); self.drawP4(self.rhoPhiCoords, jet, icolor, lineWidth, self.arrow.GetDefaultArrowSize() )
+            self.etaPhiPad.cd(); self.drawCircle(jet, icolor, lineWidth, circleRadius = self.jetRadius)
             if jet.pt()>35 :
-                self.drawCircle(jet, r.kBlue, lineWidth, circleRadius = self.jetRadius*(1 + 0.0005*(jet.pt()-30)), lineStyle=1)
-                self.drawCircle(jet, r.kBlue, lineWidth, circleRadius = self.jetRadius*(1 - 0.0005*(jet.pt()-30)), lineStyle=1)
+                self.drawCircle(jet, icolor, lineWidth, circleRadius = self.jetRadius*(1 + 0.0005*(jet.pt()-30)), lineStyle=1)
+                self.drawCircle(jet, icolor, lineWidth, circleRadius = self.jetRadius*(1 - 0.0005*(jet.pt()-30)), lineStyle=1)
             
                     
     def drawLeptons(self, eV, color, lineWidth, kind = "muon", desc = "") :
