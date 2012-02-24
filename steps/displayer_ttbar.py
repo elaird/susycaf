@@ -40,7 +40,11 @@ class ttbar(analysisStep) :
         self.keep = []
 
         r.gStyle.SetOptStat(110011)
+
         self.preparePads(eV)
+        self.drawMet(eV, r.kRed, 1, self.arrow.GetDefaultArrowSize() )
+        self.drawGenTTdecay(eV)
+
         self.drawRhoPhiPlot(eV)
         self.drawEtaPhiPlot(eV)
         self.drawLegend()
@@ -58,7 +62,7 @@ class ttbar(analysisStep) :
         
         self.ellipse = r.TEllipse(); self.ellipse.SetFillStyle(0)
         self.line = r.TLine()
-        self.arrow = r.TArrow()
+        self.arrow = r.TArrow(); self.arrow.SetDefaultArrowSize( 0.6 * self.arrow.GetDefaultArrowSize() )
         self.text = r.TText()
         self.latex = r.TLatex()
         self.canvas = utils.canvas("canvas"); self.canvas.SetFixedAspectRatio(); self.canvasIndex = 0
@@ -144,19 +148,36 @@ class ttbar(analysisStep) :
         self.ellipse.SetLineStyle(lineStyle)
         self.ellipse.DrawEllipse(p4.eta(), p4.phi(), circleRadius, circleRadius, 0.0, 360.0, 0.0, "")
             
-    def drawGenParticles(self, eV, coords, color, lineWidth, arrowSize, statusList = [], pdgIdList = [], motherList = [], label = "", circleRadius = None) :
+    def drawGenParticles(self, eV, color, arrow, circle,  status = [], pdgs = [], moms = [], label = "") :
         self.legendFunc(color, name = "genParticle"+label, desc = label)
         p4 = eV["genP4"]
         for iParticle in range(6,len(p4)) :
             particle = p4[iParticle]
-            if eV["genStatus"].at(iParticle) not in statusList : continue
-            if eV["genPdgId"].at(iParticle) not in pdgIdList : continue
-            if eV["genMotherPdgId"][iParticle] not in motherList : continue
-            if not circleRadius :
-                self.drawP4(coords, particle, color, lineWidth, arrowSize)
-            else:
-                self.drawCircle(particle, color, lineWidth, circleRadius)
+            if ( eV["genStatus"].at(iParticle)   not in status or
+                 eV["genPdgId"].at(iParticle)    not in pdgs or
+                 eV["genMotherPdgId"][iParticle] not in moms) : continue
+
+            self.rhoPhiPad.cd(); self.drawP4(self.rhoPhiCoords, particle, color, arrow['width'], arrow['size'])
+            self.etaPhiPad.cd(); self.drawCircle( particle, color, circle['width'], circle['radius'])
             
+    def drawGenTTdecay(self, eV) :
+        if not eV["isRealData"] :
+            arrow = {"width":1, "size":0.5*self.arrow.GetDefaultArrowSize()}
+            circle = {"width":3, "radius":0.08}
+            status = [3]
+            self.drawGenParticles( eV,            9, arrow, circle, status, pdgs = [5,-5],                 moms = [6,-6],           label = "b from top")
+            self.drawGenParticles( eV,            7, arrow, circle, status, pdgs = [-4,-3,-2,-1,1,2,3,4],  moms = [24,-24],         label = "quark from W")
+            self.drawGenParticles( eV,    r.kSpring, arrow, circle, status, pdgs = [-15,-13,-11,11,13,15], moms = [24,-24],         label = "lepton from W")
+            self.drawGenParticles( eV, r.kOrange+1,  arrow, circle, status, pdgs = [-16,-14,-12,12,14,16], moms = [24,-24],         label = "neutrino from W")
+            self.drawGenParticles( eV,           28, arrow, circle, status, pdgs = [21],                   moms = range(-6,7)+[21], label = "gluon (status 3)")
+
+    def drawMet(self, eV, color, lineWidth, arrowSize) :
+        if not self.met: return
+        self.legendFunc(color, name = "met%s"%self.met, desc = "MET (%s)"%self.met)
+        self.line.SetLineColor(color)
+        self.rhoPhiPad.cd();  self.drawP4(self.rhoPhiCoords, eV[self.met], color, lineWidth, arrowSize)
+        self.etaPhiPad.cd();  self.line.DrawLine( -3, eV[self.met].phi(), 3, eV[self.met].phi(),  )
+
     def drawCleanJets(self, eV, coords, jets, color, lineWidth, arrowSize) :
         self.legendFunc(color, name = "cleanJet".join(jets), desc = "clean jets (%s%s)"%jets)
         
@@ -165,19 +186,7 @@ class ttbar(analysisStep) :
         cleanJetIndices = eV["Indices".join(jets)]
         for iJet in cleanJetIndices :
             self.drawP4(coords, p4s.at(iJet), color, lineWidth, arrowSize)
-            
-    def drawMet(self, eV, coords, color, lineWidth, arrowSize, plot = None) :
-        self.legendFunc(color, name = "met%s"%self.met, desc = "MET (%s)"%self.met)
-        if plot :
-            self.line.SetLineColor(color)
-            self.line.DrawLine( -3, eV[self.met].phi(), 3, eV[self.met].phi(),  )
-        else : self.drawP4(coords, eV[self.met], color, lineWidth, arrowSize)
-        
-    def drawGenMet(self, eV, coords, color, lineWidth, arrowSize) :
-        if self.genMet==None : return
-        self.legendFunc(color, name = "genMet", desc = "GEN MET (%s)"%self.genMet)
-        self.drawP4(coords, eV[self.genMet], color, lineWidth, arrowSize)
-            
+                    
     def drawMuons(self, eV, coords, color, lineWidth, arrowSize) :
         self.legendFunc(color, name = "%smuon%s"%self.muons, desc = "muons (%s%s)"%self.muons)
         p4Vector=eV["%sP4%s"%self.muons]
@@ -211,15 +220,6 @@ class ttbar(analysisStep) :
     def drawEtaPhiPlot (self, eV) :
         self.etaPhiPad.cd()
         
-        if self.met :       self.drawMet        (eV, None,r.kRed   , None, None, plot = 1)        
-
-        if not eV["isRealData"] :
-            self.drawGenParticles( eV, None,            9, lineWidth = 3, arrowSize = -1, statusList=[3],  circleRadius=0.08, pdgIdList = [5,-5],                 motherList = [6,-6], label = "b quark from top decay")
-            self.drawGenParticles( eV, None,            7, lineWidth = 3, arrowSize = -1, statusList=[3],  circleRadius=0.08, pdgIdList = [-4,-3,-2,-1,1,2,3,4],  motherList = [24,-24], label = "light quark from W decay")
-            self.drawGenParticles( eV, None,    r.kSpring, lineWidth = 3, arrowSize = -1, statusList=[3],  circleRadius=0.08, pdgIdList = [-15,-13,-11,11,13,15], motherList = [24,-24], label = "charged lepton from W decay")
-            self.drawGenParticles( eV, None, r.kOrange+1,  lineWidth = 3, arrowSize = -1, statusList=[3],  circleRadius=0.08, pdgIdList = [-16,-14,-12,12,14,16], motherList = [24,-24], label = "neutrino from W decay")
-            self.drawGenParticles( eV, None,           28, lineWidth = 3, arrowSize = -1, statusList=[3],  circleRadius=0.08, pdgIdList = [21],                     motherList = range(-6,7)+[21], label = "gluon (status 3)")
-
         jets = eV["CorrectedP4".join(self.jets)]
         for index in eV["Indices".join(self.jets)] :
             jet = jets.at(index)
@@ -235,21 +235,13 @@ class ttbar(analysisStep) :
         coords = self.rhoPhiCoords
 
         self.rhoPhiPad.cd()
-        defArrowSize = self.arrow.GetDefaultArrowSize() * 2/3.
+        defArrowSize = self.arrow.GetDefaultArrowSize()
         defWidth=1
 
         if self.jets :      self.drawCleanJets  (eV, coords, self.jets, r.kBlue  , defWidth, defArrowSize)
-        if self.met :       self.drawMet        (eV, coords,            r.kRed   , defWidth, defArrowSize)
         if self.muons :     self.drawMuons      (eV, coords,            r.kGreen+3 , defWidth, defArrowSize)
         if self.electrons : self.drawElectrons  (eV, coords,            r.kGreen+3, defWidth, defArrowSize)
 
-        if not eV["isRealData"] :
-            self.drawGenParticles( eV, coords,           9, lineWidth = 1, arrowSize = 0.5*defArrowSize, statusList=[3],   pdgIdList = [5,-5], motherList = [6,-6], label = "b quark from top decay")
-            self.drawGenParticles( eV, coords,           7, lineWidth = 1, arrowSize = 0.5*defArrowSize, statusList=[3],   pdgIdList = [-4,-3,-2,-1,1,2,3,4], motherList = [24,-24], label = "light quark from W decay")
-            self.drawGenParticles( eV, coords,   r.kSpring, lineWidth = 1, arrowSize = 0.5*defArrowSize, statusList=[3],   pdgIdList = [-15,-13,-11,11,13,15], motherList = [24,-24], label = "charged lepton from W decay")
-            self.drawGenParticles( eV, coords,r.kOrange+1, lineWidth = 1, arrowSize = 0.5*defArrowSize, statusList=[3],   pdgIdList = [-16,-14,-12,12,14,16], motherList = [24,-24], label = "neutrino from W decay")
-            self.drawGenParticles( eV, coords,          28, lineWidth = 1, arrowSize = 0.5*defArrowSize, statusList=[3],   pdgIdList = [21],                   motherList = range(-6,7)+[21], label = "gluon (status 3)")
-            
         self.canvas.cd()
         self.rhoPhiPad.Draw()
 
