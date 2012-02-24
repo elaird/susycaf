@@ -1,4 +1,4 @@
-import os,collections,copy,ROOT as r
+import os,collections,ROOT as r
 from supy import analysisStep,utils,configuration
 #####################################
 pdgLookupExists = False
@@ -265,7 +265,7 @@ class ttbar(analysisStep) :
         defaults["slope"] = 0.017
         s = defaults["slope"]
 
-        smaller = copy.copy(defaults)
+        smaller = dict(defaults)
         smaller["size"] = 0.034
         
         yy = 0.98
