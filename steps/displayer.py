@@ -8,7 +8,9 @@ try:
 except ImportError:
     pass
 #####################################
-class displayer(analysisStep) :
+from displayer_ttbar import ttbar
+#####################################
+class RA1(analysisStep) :
     
     def __init__(self, jets = None, met = None, muons = None, electrons = None, photons = None, taus = None,
                  recHits = None, recHitPtThreshold = -100.0, scale = 200.0, etRatherThanPt = False, doGenParticles = False, doGenJets = False,
@@ -1013,3 +1015,5 @@ class displayer(analysisStep) :
         
         psFromRoot(products["outputFileName"], self.outputFileName.replace(".root", ".ps"))
         print utils.hyphens
+
+

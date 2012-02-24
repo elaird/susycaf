@@ -138,7 +138,7 @@ class topAsymm(supy.analysis) :
         def ttbar_mg(eL = None) :
             return (supy.samples.specify(names = "ttj_mg", effectiveLumi = eL, color = r.kBlue, weights = ["wNonQQbar",'tw',rw], nFilesMax = 100) +
                     sum( [supy.samples.specify( names = "ttj_mg", effectiveLumi = eL, 
-                                                color = color, weights = [ calculables.top.wTopAsym(asym, R_sm = -0.05), 'tw',rw ], nFilesMax = 200 )
+                                                color = color, weights = [ calculables.top.wTopAsym(asym, R_sm = -0.05), 'tw',rw ], nFilesMax = 1, nEventsMax = 1000 )
                           for asym,color in [(0.0,r.kOrange),
                                              (-0.3,r.kGreen),(0.3,r.kRed),
                                              #(-0.6,r.kYellow),(0.6,r.kYellow),
@@ -149,7 +149,7 @@ class topAsymm(supy.analysis) :
                                              ]], [])
                     )[: 2 if "QCD" in pars['tag'] else 2 if 'Wlv' in pars['tag'] else None]
         
-        return  ( self.data(pars) + qcd_py6_mu() + ewk() + ttbar_mg(5e4) + single_top() )
+        return  ( self.data(pars) + qcd_py6_mu() + ewk() + ttbar_mg() + single_top() )
 
 
     ########################################################################################
@@ -292,6 +292,7 @@ class topAsymm(supy.analysis) :
              , steps.top.combinatorialFrequency(obj["jet"])
 
               ####################################
+             , steps.displayer.ttbar(jets=obj["jet"], met=obj['met'], muons = obj['muon'], electrons = obj['electron'])
              , ssteps.filters.label("selection complete").invert()
 
              , ssteps.histos.multiplicity("Indices".join(obj["jet"]))
@@ -452,7 +453,7 @@ class topAsymm(supy.analysis) :
     ########################################################################################
     def concludeAll(self) :
         self.rowcolors = 2*[13] + 2*[45]
-        super(topAsymm,self).concludeAll()
+        #super(topAsymm,self).concludeAll()
         #self.meldWpartitions()
         #self.meldQCDpartitions()
         for rw in set([pars['reweights']['abbr'] for pars in self.readyConfs]) :
