@@ -1,4 +1,4 @@
-import os,collections,ROOT as r
+import math,os,collections,ROOT as r
 from supy import analysisStep,utils,configuration
 #####################################
 pdgLookupExists = False
@@ -42,10 +42,11 @@ class ttbar(analysisStep) :
         r.gStyle.SetOptStat(110011)
 
         self.preparePads(eV)
-        self.drawMet(eV, r.kRed, 1 )
-        self.drawJets(eV, r.kBlue, 1 )
+        self.drawMet(eV, r.kRed+1, 1 )
+        self.drawJets(eV, r.kBlue+3, 1 )
         self.drawLeptons(eV, r.kGreen+3, 1, kind = "muon" , desc = 'charged lepton')
         self.drawLeptons(eV, r.kGreen+3, 1, kind = "electron", desc = 'charged lepton' )
+        self.drawTopReco(eV)
         self.drawGenTTdecay(eV)
 
         self.canvas.cd()
@@ -68,6 +69,7 @@ class ttbar(analysisStep) :
         self.ellipse = r.TEllipse(); self.ellipse.SetFillStyle(0)
         self.line = r.TLine()
         self.arrow = r.TArrow(); self.arrow.SetDefaultArrowSize( 0.6 * self.arrow.GetDefaultArrowSize() )
+        self.marker = r.TMarker();
         self.text = r.TText()
         self.latex = r.TLatex()
         self.canvas = utils.canvas("canvas"); self.canvas.SetFixedAspectRatio(); self.canvasIndex = 0
@@ -136,6 +138,7 @@ class ttbar(analysisStep) :
         self.latex.DrawLatex(point["x"], point["y"],"radius = "+str(scale)+" GeV p_{T}")
 
     def drawP4(self, c, p4, color, lineWidth, arrowSize, p4Initial = None) :
+        self.rhoPhiPad.cd()
         x0 = c["x0"]+p4Initial.px()*c["radius"]/c["scale"] if p4Initial else c["x0"]
         y0 = c["y0"]+p4Initial.py()*c["radius"]/c["scale"] if p4Initial else c["y0"]
         x1 = x0+p4.px()*c["radius"]/c["scale"]
@@ -148,10 +151,19 @@ class ttbar(analysisStep) :
         self.arrow.DrawArrow(x0,y0,x1,y1)
         
     def drawCircle(self, p4, color, lineWidth, circleRadius, lineStyle = 1) :
+        self.etaPhiPad.cd()
         self.ellipse.SetLineColor(color)
         self.ellipse.SetLineWidth(lineWidth)
         self.ellipse.SetLineStyle(lineStyle)
         self.ellipse.DrawEllipse(p4.eta(), p4.phi(), circleRadius, circleRadius, 0.0, 360.0, 0.0, "")
+
+    def drawMarker(self, p4, color, size, style) :
+        self.etaPhiPad.cd();
+        self.marker.SetMarkerColor(color)
+        self.marker.SetMarkerSize(size)
+        self.marker.SetMarkerStyle(style)
+        phi = p4.phi()
+        self.marker.DrawMarker(p4.eta(), phi)
             
     def drawGenParticles(self, eV, color, arrow, circle,  status = [], pdgs = [], moms = [], label = "") :
         self.legendFunc(color, name = "genParticle"+label, desc = label)
@@ -162,26 +174,66 @@ class ttbar(analysisStep) :
                  eV["genPdgId"].at(iParticle)    not in pdgs or
                  eV["genMotherPdgId"][iParticle] not in moms) : continue
 
-            self.rhoPhiPad.cd(); self.drawP4(self.rhoPhiCoords, particle, color, arrow['width'], arrow['size'])
-            self.etaPhiPad.cd(); self.drawCircle( particle, color, circle['width'], circle['radius'])
+            self.drawP4(self.rhoPhiCoords, particle, color, arrow['width'], arrow['size'])
+            self.drawMarker( particle, color, 0.5, r.kFullCircle if eV["genPdgId"].at(iParticle)>0 else r.kOpenCircle )
             
     def drawGenTTdecay(self, eV) :
         if not eV["isRealData"] :
+            lSign = -1 if any( eV["genPdgId"][i] in [11,13,15] for i in range(len(eV["genPdgId"])) if eV["genMotherPdgId"][i]==-24 ) else 1
             arrow = {"width":1, "size":0.5*self.arrow.GetDefaultArrowSize()}
             circle = {"width":3, "radius":0.08}
             status = [3]
-            self.drawGenParticles( eV,            9, arrow, circle, status, pdgs = [5,-5],                 moms = [6,-6],           label = "gen b from top")
-            self.drawGenParticles( eV,            7, arrow, circle, status, pdgs = [-4,-3,-2,-1,1,2,3,4],  moms = [24,-24],         label = "gen quark from W")
-            self.drawGenParticles( eV,    r.kSpring, arrow, circle, status, pdgs = [-15,-13,-11,11,13,15], moms = [24,-24],         label = "gen lepton from W")
-            self.drawGenParticles( eV, r.kOrange+1,  arrow, circle, status, pdgs = [-16,-14,-12,12,14,16], moms = [24,-24],         label = "gen neutrino from W")
-            self.drawGenParticles( eV,           28, arrow, circle, status, pdgs = [21],                   moms = range(-6,7)+[21], label = "gen gluon")
+            
+            self.drawGenParticles( eV, r.kMagenta-6, arrow, circle, status, pdgs = [+lSign*5],              moms = [6,-6],         label = "gen b from top (blv)")
+            self.drawGenParticles( eV,    r.kBlue-6, arrow, circle, status, pdgs = [-lSign*5],              moms = [6,-6],         label = "gen b from top (bpq)")
+            self.drawGenParticles( eV,            7, arrow, circle, status, pdgs = [-4,-3,-2,-1,1,2,3,4],  moms = [24,-24],        label = "gen quark from W")
+            self.drawGenParticles( eV,    r.kSpring, arrow, circle, status, pdgs = [-15,-13,-11,11,13,15], moms = [24,-24],        label = "gen lepton from W")
+            self.drawGenParticles( eV,    r.kOrange, arrow, circle, status, pdgs = [-16,-14,-12,12,14,16], moms = [24,-24],        label = "gen neutrino from W")
+            self.drawGenParticles( eV,           28, arrow, circle, status, pdgs = [21],                   moms = range(-6,7)+[21],label = "gen gluon")
+            self.etaPhiPad.cd()
+            p4 = eV['genP4']
+            pdg = eV['genPdgId']
+            top = next((p4[i] for i in range(len(p4)) if pdg[i] == +6 ), None)
+            bar = next((p4[i] for i in range(len(p4)) if pdg[i] == -6 ), None)
+            if top : self.drawMarker( top, r.kBlack, 1, r.kFullStar)
+            if bar : self.drawMarker( bar, r.kBlack, 1, r.kOpenStar)
+            if top and bar :
+                self.etaPhiPad.cd()
+                self.line.SetLineColor(r.kBlack)
+                self.line.DrawLine( 0, -3.5, top.eta()-bar.eta(), -3.5  )
+                
+            iMin,iMax = sorted([4,5], key = lambda i : abs(p4[i].pz()))
+            scale = 0.001
+            pzMin = p4[iMin].pz()
+            self.line.SetLineWidth(4); self.line.SetLineColor(r.kOrange if pdg[iMax]>0 else r.kGray+3);  self.line.DrawLine( pzMin * scale, 3.7, (p4[iMax].pz() + pzMin)* scale, 3.7 )
+            self.line.SetLineWidth(2); self.line.SetLineColor(r.kOrange if pdg[iMin]>0 else r.kGray+3);  self.line.DrawLine(             0, 3.7,                   pzMin* scale, 3.7 )
+
+    def drawTopReco(self, eV) :
+        def draw(p4, color) :
+            self.rhoPhiPad.cd(); self.drawP4(self.rhoPhiCoords, p4, color, 1, self.arrow.GetDefaultArrowSize()*0.6)
+            self.etaPhiPad.cd(); self.drawCircle(p4, color, 1, 0.2)
+        reco = eV["TopReconstruction"][0]
+        draw(reco['lep'], r.kGreen+2)
+        draw(reco['nu'], r.kOrange+2)
+        draw(reco['hadP'], r.kCyan+2)
+        draw(reco['hadQ'], r.kCyan+2)
+        draw(reco['hadB'], r.kBlue+2)
+        draw(reco['lepB'], r.kMagenta+2)
+        self.etaPhiPad.cd()
+        self.drawMarker(reco['top'], 40, 1.5, r.kFullStar)
+        self.drawMarker(reco['tbar'], 40, 1.5, r.kOpenStar)
+        self.etaPhiPad.cd()
+        self.line.SetLineColor(40)
+        self.line.DrawLine( 0, -3.6, reco['top'].eta() - reco['tbar'].eta(), -3.6 )
+        
+
 
     def drawMet(self, eV, color, lineWidth) :
         if not self.met: return
         self.legendFunc(color, name = "met%s"%self.met, desc = "MET (%s)"%self.met)
         self.line.SetLineColor(color)
         self.rhoPhiPad.cd();  self.drawP4(self.rhoPhiCoords, eV[self.met], color, lineWidth, self.arrow.GetDefaultArrowSize() )
-        self.etaPhiPad.cd();  self.line.DrawLine( -3, eV[self.met].phi(), 3, eV[self.met].phi(),  )
+        self.etaPhiPad.cd();  self.line.DrawLine( -3, eV[self.met].phi(), 3, eV[self.met].phi()  )
 
     def drawJets(self, eV, color, lineWidth) :
         if not self.jets : return
