@@ -1,4 +1,4 @@
-import math,os,collections,ROOT as r
+import math,os,collections,ROOT as r,numpy as np
 from supy import analysisStep,utils,configuration
 #####################################
 pdgLookupExists = False
@@ -67,6 +67,7 @@ class ttbar(analysisStep) :
         someDir.cd()
         
         self.ellipse = r.TEllipse(); self.ellipse.SetFillStyle(0)
+        self.metunc= r.TEllipse(); self.metunc.SetFillStyle(0); self.metunc.SetLineStyle(3); self.metunc.SetLineColor(r.kRed+1)
         self.line = r.TLine()
         self.arrow = r.TArrow(); self.arrow.SetDefaultArrowSize( 0.6 * self.arrow.GetDefaultArrowSize() )
         self.marker = r.TMarker();
@@ -235,8 +236,16 @@ class ttbar(analysisStep) :
         if not self.met: return
         self.legendFunc(color, name = "met%s"%self.met, desc = "MET (%s)"%self.met)
         self.line.SetLineColor(color)
-        self.rhoPhiPad.cd();  self.drawP4(self.rhoPhiCoords, eV[self.met], color, lineWidth, self.arrow.GetDefaultArrowSize() )
         self.etaPhiPad.cd();  self.line.DrawLine( -3, eV[self.met].phi(), 3, eV[self.met].phi()  )
+        self.rhoPhiPad.cd();  self.drawP4(self.rhoPhiCoords, eV[self.met], color, lineWidth, self.arrow.GetDefaultArrowSize() )
+
+        coords=self.rhoPhiCoords
+        factor = coords['radius']/coords['scale']
+        x0 = coords['x0']+factor*eV[self.met].px()
+        y0 = coords['x0']+factor*eV[self.met].py()
+        eig,Rinv = np.linalg.eig(eV["metCovariancePF"])
+        self.metunc.DrawEllipse(x0,y0,factor*math.sqrt(eig[0]),factor*math.sqrt(eig[1]),0,360, 360*math.acos(Rinv[0][0])/math.pi)
+
 
     def drawJets(self, eV, color, lineWidth) :
         if not self.jets : return
