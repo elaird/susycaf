@@ -199,14 +199,14 @@ class ttbar(analysisStep) :
             if bar : self.drawMarker( bar, r.kBlack, 1, r.kOpenStar)
             if top and bar :
                 self.etaPhiPad.cd()
+                self.line.SetLineWidth(1)
                 self.line.SetLineColor(r.kBlack)
                 self.line.DrawLine( 0, -3.5, top.eta()-bar.eta(), -3.5  )
-                
-            iMin,iMax = sorted([4,5], key = lambda i : abs(p4[i].pz()))
+
             scale = 0.001
-            pzMin = p4[iMin].pz()
-            self.line.SetLineWidth(4); self.line.SetLineColor(r.kOrange if pdg[iMax]>0 else r.kGray+3);  self.line.DrawLine( pzMin * scale, 3.7, (p4[iMax].pz() + pzMin)* scale, 3.7 )
-            self.line.SetLineWidth(2); self.line.SetLineColor(r.kOrange if pdg[iMin]>0 else r.kGray+3);  self.line.DrawLine(             0, 3.7,                   pzMin* scale, 3.7 )
+            self.line.SetLineWidth(5); self.line.SetLineColor(r.kBlack);  self.line.DrawLine( p4[4].pz() * scale, 3.8, p4[5].pz() * scale, 3.8 )
+            self.line.SetLineWidth(2); self.line.SetLineColor(r.kWhite);  self.line.DrawLine(             0, 3.8,      p4[4 if pdg[4]<0 else 5].pz() * scale, 3.8 )
+            self.line.SetLineWidth(1); self.line.SetLineColor(r.kBlack);  self.line.DrawLine( 0, 3.8, 0, 3.5)
 
     def drawTopReco(self, eV) :
         def draw(p4, color) :
@@ -223,9 +223,12 @@ class ttbar(analysisStep) :
         self.drawMarker(reco['top'], 40, 1.5, r.kFullStar)
         self.drawMarker(reco['tbar'], 40, 1.5, r.kOpenStar)
         self.etaPhiPad.cd()
+        self.line.SetLineWidth(1)
         self.line.SetLineColor(40)
         self.line.DrawLine( 0, -3.6, reco['top'].eta() - reco['tbar'].eta(), -3.6 )
-        
+        xp,xm = eV["fitTopPartonXplusminus"]
+        scale = 3.5
+        self.line.SetLineWidth(2); self.line.SetLineColor(r.kGray);  self.line.DrawLine( scale * xm, 3.6, scale * xp, 3.6 )
 
 
     def drawMet(self, eV, color, lineWidth) :
