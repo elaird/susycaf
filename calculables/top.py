@@ -88,26 +88,25 @@ class JetPtMin(wrappedChain.calculable) :
         p4 = self.source["CorrectedP4".join(self.source["TopJets"]["fixes"])]
         self.value = min([abs(p4[i].pt()) for i in iPQHL])
 ######################################
-class PartonX12(wrappedChain.calculable) :
+class PartonXplusminus(wrappedChain.calculable) :
     def __init__(self, collection = None) :
         self.fixes = collection
         self.stash(['TtxMass','TtxPz'])
     def update(self,_) :
-        self.source[self.TtxMass] - self.source[self.TtxPz]
-        self.value = ( (self.source[self.TtxMass] + self.source[self.TtxPz]) / 7000 ,
-                       (self.source[self.TtxMass] - self.source[self.TtxPz]) / 7000 )
+        self.value = ( (self.source[self.TtxPz] + self.source[self.TtxMass] ) / 7000 ,
+                       (self.source[self.TtxPz] - self.source[self.TtxMass] ) / 7000 )
 ######################################
 class PartonXhi(wrappedChain.calculable) :
     def __init__(self, collection = None) :
         self.fixes = collection
-        self.stash(['PartonX12'])
-    def update(self,_) : self.value = max(self.source[self.PartonX12])
+        self.stash(['PartonXplusminus'])
+    def update(self,_) : self.value = max(self.source[self.PartonXplusminus], key = lambda i: abs(i))
 ######################################
 class PartonXlo(wrappedChain.calculable) :
     def __init__(self, collection = None) :
         self.fixes = collection
-        self.stash(['PartonX12'])
-    def update(self,_) : self.value = min(self.source[self.PartonX12])
+        self.stash(['PartonXplusminus'])
+    def update(self,_) : self.value = min(self.source[self.PartonXplusminus], key = lambda i: abs(i))
 ######################################
 class Pt(wrappedChain.calculable) :
     def __init__(self,collection = None) :
