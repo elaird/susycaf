@@ -138,7 +138,7 @@ class topAsymm(supy.analysis) :
         def ttbar_mg(eL = None) :
             return (supy.samples.specify(names = "ttj_mg", effectiveLumi = eL, color = r.kBlue, weights = ["wNonQQbar",'tw',rw], nFilesMax = 100) +
                     sum( [supy.samples.specify( names = "ttj_mg", effectiveLumi = eL, 
-                                                color = color, weights = [ calculables.top.wTopAsym(asym, R_sm = -0.05), 'tw',rw ], nFilesMax = 1, nEventsMax = 10000 )
+                                                color = color, weights = [ calculables.top.wTopAsym(asym, R_sm = -0.05), 'tw',rw ], nFilesMax = 1 )
                           for asym,color in [(0.0,r.kOrange),
                                              (-0.3,r.kGreen),(0.3,r.kRed),
                                              #(-0.6,r.kYellow),(0.6,r.kYellow),
@@ -162,7 +162,7 @@ class topAsymm(supy.analysis) :
         calcs += supy.calculables.fromCollections(calculables.top,[('genTop',""),('fitTop',"")])
         calcs += [
             calculables.jet.IndicesBtagged(obj["jet"],pars["bVar"]),
-            calculables.jet.Indices(       obj["jet"],      ptMin = 20, etaMax = 3.5, flagName = "JetIDloose"),
+            calculables.jet.Indices(       obj["jet"],      ptMin = 20, etaMax = 3.1, flagName = "JetIDloose"),
             calculables.electron.Indices(  obj["electron"], ptMin = 10, simpleEleID = "80", useCombinedIso = True),
             calculables.muon.Indices(      obj["muon"],     ptMin = 10, combinedRelIsoMax = 0.15),
             calculables.muon.IndicesTriggering(lepton),
@@ -286,6 +286,7 @@ class topAsymm(supy.analysis) :
              #, steps.top.jetPrinter()
              #, steps.gen.genJetPrinter('genak5','')
              #, steps.gen.genParticlePrinter()
+             #ssteps.filters.value("MaxAbsEta".join(obj['jet']), min=3.1)
              , ssteps.filters.label('top reco'),#.invert(),
              ssteps.filters.multiplicity("TopReconstruction",min=1)
              , steps.top.channelClassification().onlySim()
