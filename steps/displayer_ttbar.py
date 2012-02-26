@@ -92,30 +92,6 @@ class ttbar(analysisStep) :
         self.legendPad = r.TPad("legendPad", "legendPad", legendCorners["x1"], legendCorners["y1"], legendCorners["x2"], legendCorners["y2"] )
         self.narrowPad = r.TPad("narrowPad", "narrowPad", narrowCorners["x1"], narrowCorners["y1"], narrowCorners["x2"], narrowCorners["y2"] )
 
-    def prepareText(self, params, coords) :
-        self.text.SetTextSize(params["size"])
-        self.text.SetTextFont(params["font"])
-        self.text.SetTextColor(params["color"])
-        self.textSlope = params["slope"]
-
-        self.textX = coords["x"]
-        self.textY = coords["y"]
-        self.textCounter = 0
-
-    def printText(self, message) :
-        self.text.DrawText(self.textX, self.textY - self.textCounter * self.textSlope, message)
-        self.textCounter += 1
-
-    def printEvent(self, eV, params, coords) :
-        self.prepareText(params, coords)
-        for message in ["Run   %#10d"%eV["run"],
-                        "Ls    %#10d"%eV["lumiSection"],
-                        "Event %#10d"%eV["event"],
-                        "genQ (GeV) %#5.1f"%eV["genQ"] if not eV["isRealData"] else "",
-                        "ttDecayMode:  %s"%eV["ttDecayChannel"],
-                        ] :
-            if message : self.printText(message)
-        
     
     def drawSkeleton(self, color) :
         coords = self.rhoPhiCoords
@@ -138,12 +114,16 @@ class ttbar(analysisStep) :
         self.latex.SetTextColor(color)
         self.latex.DrawLatex(point["x"], point["y"],"radius = "+str(scale)+" GeV p_{T}")
 
+    def scaleRho(self,gev,coords=None) :
+        if coords==None : coords = self.rhoPhiCoords
+        return gev * coords['radius']/coords['scale']
+
     def drawP4(self, c, p4, color, lineWidth, arrowSize, p4Initial = None) :
         self.rhoPhiPad.cd()
-        x0 = c["x0"]+p4Initial.px()*c["radius"]/c["scale"] if p4Initial else c["x0"]
-        y0 = c["y0"]+p4Initial.py()*c["radius"]/c["scale"] if p4Initial else c["y0"]
-        x1 = x0+p4.px()*c["radius"]/c["scale"]
-        y1 = y0+p4.py()*c["radius"]/c["scale"]
+        x0 = c["x0"]+self.scaleRho(p4Initial.px()) if p4Initial else c["x0"]
+        y0 = c["y0"]+self.scaleRho(p4Initial.py()) if p4Initial else c["y0"]
+        x1 = x0+self.scaleRho(p4.px())
+        y1 = y0+self.scaleRho(p4.py())
 
         self.arrow.SetLineColor(color)
         self.arrow.SetLineWidth(lineWidth)
@@ -158,13 +138,18 @@ class ttbar(analysisStep) :
         self.ellipse.SetLineStyle(lineStyle)
         self.ellipse.DrawEllipse(p4.eta(), p4.phi(), circleRadius, circleRadius, 0.0, 360.0, 0.0, "")
 
-    def drawMarker(self, p4, color, size, style) :
-        self.etaPhiPad.cd();
+    def drawMarker(self, p4, color, size, style, ptMode=False) :
         self.marker.SetMarkerColor(color)
         self.marker.SetMarkerSize(size)
         self.marker.SetMarkerStyle(style)
         phi = p4.phi()
-        self.marker.DrawMarker(p4.eta(), phi)
+        if not ptMode :
+            self.etaPhiPad.cd()
+            self.marker.DrawMarker(p4.eta(), phi)
+        else :
+            self.rhoPhiPad.cd()
+            N = 1 if p4.pt()<200 else 200/p4.pt()
+            self.marker.DrawMarker(self.rhoPhiCoords['x0'] + N*self.scaleRho(p4.x()), self.rhoPhiCoords['y0'] + N*self.scaleRho(p4.y()))
             
     def drawGenParticles(self, eV, color, arrow, circle,  status = [], pdgs = [], moms = [], label = "") :
         self.legendFunc(color, name = "genParticle"+label, desc = label)
@@ -191,23 +176,26 @@ class ttbar(analysisStep) :
             self.drawGenParticles( eV,    r.kSpring, arrow, circle, status, pdgs = [-15,-13,-11,11,13,15], moms = [24,-24],        label = "gen lepton from W")
             self.drawGenParticles( eV,    r.kOrange, arrow, circle, status, pdgs = [-16,-14,-12,12,14,16], moms = [24,-24],        label = "gen neutrino from W")
             self.drawGenParticles( eV,           28, arrow, circle, status, pdgs = [21],                   moms = range(-6,7)+[21],label = "gen gluon")
-            self.etaPhiPad.cd()
             p4 = eV['genP4']
             pdg = eV['genPdgId']
             top = next((p4[i] for i in range(len(p4)) if pdg[i] == +6 ), None)
             bar = next((p4[i] for i in range(len(p4)) if pdg[i] == -6 ), None)
-            if top : self.drawMarker( top, r.kBlack, 1, r.kFullStar)
-            if bar : self.drawMarker( bar, r.kBlack, 1, r.kOpenStar)
             if top and bar :
+                self.drawMarker( top, r.kBlack, 1, r.kFullStar)
+                self.drawMarker( top, r.kBlack, 1, r.kFullStar, ptMode = True)
+                self.drawMarker( bar, r.kBlack, 1, r.kOpenStar)
+                self.drawMarker( bar, r.kBlack, 1, r.kOpenStar, ptMode = True)
                 self.etaPhiPad.cd()
                 self.line.SetLineWidth(1)
                 self.line.SetLineColor(r.kBlack)
                 self.line.DrawLine( 0, -3.5, top.eta()-bar.eta(), -3.5  )
 
+
             scale = 0.001
             self.line.SetLineWidth(5); self.line.SetLineColor(r.kBlack);  self.line.DrawLine( p4[4].pz() * scale, 3.8, p4[5].pz() * scale, 3.8 )
             self.line.SetLineWidth(2); self.line.SetLineColor(r.kWhite);  self.line.DrawLine(             0, 3.8,      p4[4 if pdg[4]<0 else 5].pz() * scale, 3.8 )
             self.line.SetLineWidth(1); self.line.SetLineColor(r.kBlack);  self.line.DrawLine( 0, 3.8, 0, 3.5)
+
 
     def drawTopReco(self, eV) :
         def draw(p4, color) :
@@ -220,9 +208,12 @@ class ttbar(analysisStep) :
         draw(reco['hadQ'], r.kCyan+2)
         draw(reco['hadB'], r.kBlue+2)
         draw(reco['lepB'], r.kMagenta+2)
+        if reco['iX']!=None : self.etaPhiPad.cd(); self.drawCircle(eV["CorrectedP4".join(self.jets)][reco['iX']], 48, 1, 0.2)
         self.etaPhiPad.cd()
         self.drawMarker(reco['top'], 40, 1.5, r.kFullStar)
+        self.drawMarker(reco['top'], 40, 1.5, r.kFullStar, ptMode = True)
         self.drawMarker(reco['tbar'], 40, 1.5, r.kOpenStar)
+        self.drawMarker(reco['tbar'], 40, 1.5, r.kOpenStar, ptMode = True)
         self.etaPhiPad.cd()
         self.line.SetLineWidth(1)
         self.line.SetLineColor(40)
@@ -230,7 +221,6 @@ class ttbar(analysisStep) :
         xp,xm = eV["fitTopPartonXplusminus"]
         scale = 3.5
         self.line.SetLineWidth(2); self.line.SetLineColor(r.kGray);  self.line.DrawLine( scale * xm, 3.6, scale * xp, 3.6 )
-
 
     def drawMet(self, eV, color, lineWidth) :
         if not self.met: return
@@ -240,11 +230,10 @@ class ttbar(analysisStep) :
         self.rhoPhiPad.cd();  self.drawP4(self.rhoPhiCoords, eV[self.met], color, lineWidth, self.arrow.GetDefaultArrowSize() )
 
         coords=self.rhoPhiCoords
-        factor = coords['radius']/coords['scale']
-        x0 = coords['x0']+factor*eV[self.met].px()
-        y0 = coords['x0']+factor*eV[self.met].py()
+        x0 = coords['x0']+self.scaleRho(eV[self.met].px())
+        y0 = coords['x0']+self.scaleRho(eV[self.met].py())
         eig,Rinv = np.linalg.eig(eV["metCovariancePF"])
-        self.metunc.DrawEllipse(x0,y0,factor*math.sqrt(eig[0]),factor*math.sqrt(eig[1]),0,360, 360*math.acos(Rinv[0][0])/math.pi)
+        self.metunc.DrawEllipse(x0,y0,self.scaleRho(math.sqrt(eig[0])),self.scaleRho(math.sqrt(eig[1])),0,360, 360*math.acos(Rinv[0][0])/math.pi)
 
 
     def drawJets(self, eV, color, lineWidth) :
@@ -270,7 +259,7 @@ class ttbar(analysisStep) :
         self.legendFunc(color, name = kind.join(lepton) if not desc else desc, desc = kind + "s (%s%s)"%lepton if not desc else desc)
         p4 = eV["P4".join(lepton)]
         self.rhoPhiPad.cd()
-        for i in range(len(p4)) :
+        for i in eV["IndicesAnyIso".join(lepton)] :
             self.drawP4(self.rhoPhiCoords, p4.at(i), color, lineWidth, self.arrow.GetDefaultArrowSize() )
                         
     def preparePads(self, eV) :
@@ -318,203 +307,50 @@ class ttbar(analysisStep) :
         else : return desc
         
 
-    def printAllText(self, eV, corners) :
-        pad = r.TPad("textPad", "textPad", corners["x1"], corners["y1"], corners["x2"], corners["y2"])
-        pad.cd()
+    def prepareText(self, params, coords) :
+        self.text.SetTextSize(params["size"])
+        self.text.SetTextFont(params["font"])
+        self.text.SetTextColor(params["color"])
+        self.textSlope = params["slope"]
 
-        defaults = {}
-        defaults["size"] = 0.035
-        defaults["font"] = 80
-        defaults["color"] = r.kBlack
-        defaults["slope"] = 0.017
-        s = defaults["slope"]
+        self.textX = coords["x"]
+        self.textY = coords["y"]
+        self.textCounter = 0
 
-        smaller = dict(defaults)
-        smaller["size"] = 0.034
+    def printText(self, message, color = None) :
+        if color != None : self.text.SetTextColor(color)
+        self.text.DrawText(self.textX, self.textY - self.textCounter * self.textSlope, message)
+        self.textCounter += 1
+
+    def printEvent(self, eV, params, coords) :
+        self.prepareText(params, coords)
+        for message in ["Run   %#10d"%eV["run"],
+                        "Ls    %#10d"%eV["lumiSection"],
+                        "Event %#10d"%eV["event"],
+                        "genQ (GeV) %#5.1f"%eV["genQ"] if not eV["isRealData"] else "",
+                        ] :
+            if message : self.printText(message)
         
-        yy = 0.98
-        x0 = 0.01
-        x1 = 0.45
+    def printDiagnosis(self, eV, params, coords) :
+        mode = eV["kinfitFailureModes"]
+        self.prepareText(params, coords)
+        self.printText(eV["ttDecayMode"], r.kGreen if eV['ttDecayMode'] in ['ej','mj'] else r.kRed)
+        for item in ['met','jet','','blep','nu','','had','bhad','glu'] :
+            if item not in mode:
+                coords.update({"x":coords['x']+0.3})
+                self.prepareText(params, coords)
+                continue
+            self.printText(item if item in mode else '', r.kGreen if item in mode and mode[item] else r.kRed)
+        
 
-        if self.printExtraText :
-            self.printVertices(eV, params = defaults, coords = {"x":x1, "y":yy}, nMax = 3)
-            self.printJets(    eV, params = defaults, coords = {"x":x0, "y":yy-7*s}, jets = self.jets, nMax = 7)
-
-            if self.doGenJets :
-                self.printGenJets(  eV, params = defaults, coords = {"x":x0,      "y":yy-18*s}, nMax = 7)
-                self.printGenParticles(eV,params=defaults, coords = {"x":x0+0.40, "y":yy-18*s}, nMax = 7)
-            if self.photons :
-                self.printPhotons(  eV, params = defaults, coords = {"x":x0,      "y":yy-40*s}, photons = self.photons, nMax = 3)
-            if self.electrons :
-                self.printElectrons(eV, params = defaults, coords = {"x":x0+0.50, "y":yy-40*s}, electrons = self.electrons, nMax = 3)
-            if self.muons :
-                muonPars = defaults if self.prettyMode else smaller
-                self.printMuons(    eV, params = muonPars, coords = {"x":x0,      "y":yy-47*s}, muons = self.muons, nMax = 3)
-
-        self.canvas.cd()
-        pad.Draw()
-        return [pad]
 
     def printNarrowText(self, eV) :
         self.narrowPad.Clear(); self.narrowPad.cd()
         defaults = {"size":0.085, "font":80, "color":r.kBlack, "slope":0.026}
         self.printEvent(   eV, params = defaults, coords = {"x":0.01, "y":0.98})
+        if not eV['isRealData']: self.printDiagnosis(   eV, params = defaults, coords = {"x":0.01, "y":0.85})
         self.canvas.cd()
         self.narrowPad.Draw()
-
-    def printVertices(self, eV, params, coords, nMax) :
-        self.prepareText(params, coords)
-        self.printText("Vertices")
-        self.printText("ID   Z(cm)%s"%(" sumPt(GeV)" if not self.prettyMode else ""))
-        self.printText("----------%s"%("-----------" if not self.prettyMode else ""))
-
-        nVertices = eV["vertexNdof"].size()
-        for i in range(nVertices) :
-            if nMax<=i :
-                self.printText("[%d more not listed]"%(nVertices-nMax))
-                break
-            
-            out = "%2s  %6.2f"%("G " if i in eV["vertexIndices"] else "  ", eV["vertexPosition"].at(i).z())
-            if not self.prettyMode : out += " %5.0f"%eV["vertexSumPt"].at(i)
-            self.printText(out)
-
-    def printElectrons(self, eV, params, coords, electrons, nMax) :
-        self.prepareText(params, coords)
-        p4Vector = eV["%sP4%s"        %electrons]
-        cIso = eV["%sIsoCombined%s"%electrons]
-        ninetyFive = eV["%sID95%s"%electrons]
-     
-        self.printText(self.renamedDesc(electrons[0]+electrons[1]))
-        self.printText("ID   pT  eta  phi  cIso")
-        self.printText("-----------------------")
-
-        nElectrons = p4Vector.size()
-        for iElectron in range(nElectrons) :
-            if nMax<=iElectron :
-                self.printText("[%d more not listed]"%(nElectrons-nMax))
-                break
-            electron=p4Vector[iElectron]
-
-            outString = "%2s"%("95" if ninetyFive[iElectron] else "  ")
-            outString+="%5.0f %4.1f %4.1f"%(electron.pt(), electron.eta(), electron.phi())
-            outString+=" %5.2f"%cIso[iElectron] if cIso[iElectron]!=None else " %5s"%"-"
-            self.printText(outString)
-
-    def printMuons(self, eV, params, coords, muons, nMax) :
-        self.prepareText(params, coords)
-        p4Vector = eV["%sP4%s"     %muons]
-        tight    = eV["%sIDtight%s"%muons]
-        iso      = eV["%sCombinedRelativeIso%s"%muons]
-        tr       = eV["%sIsTrackerMuon%s"%muons]
-        gl       = eV["%sIsGlobalMuon%s"%muons]
-        glpt     = eV["%sIDGlobalMuonPromptTight%s"%muons]
-        
-        self.printText(self.renamedDesc(muons[0]+muons[1]))
-        self.printText("ID   pT  eta  phi  cIso cat")
-        self.printText("---------------------------")
-
-        nMuons = p4Vector.size()
-        for iMuon in range(nMuons) :
-            if nMax<=iMuon :
-                self.printText("[%d more not listed]"%(nMuons-nMax))
-                break
-            muon=p4Vector[iMuon]
-
-            outString = "%1s%1s"% (" ","T" if tight[iMuon] else " ")
-            outString+= "%5.0f %4.1f %4.1f"%(muon.pt(), muon.eta(), muon.phi())
-            outString+= " %5.2f"%(iso[iMuon]) if iso[iMuon]<100.0 else ">100".rjust(6)
-            outString+= " %s%s%s"%("T" if tr[iMuon] else " ", "G" if gl[iMuon] else " ","P" if glpt[iMuon] else " ")
-
-            self.printText(outString)
-
-    def printJets(self, eV, params, coords, jets, nMax) :
-        self.prepareText(params, coords)
-        jets2 = (jets[0].replace("xc",""),jets[1])
-        isPf = "PF" in jets[0]
-        
-        p4Vector         = eV['%sCorrectedP4%s'%jets]
-        corrVector       = eV['%sCorrFactor%s'      %jets2]
-
-        if not isPf :
-            jetEmfVector  = eV['%sEmEnergyFraction%s'%jets2]
-            jetFHpdVector = eV['%sJetIDFHPD%s'       %jets2]
-            jetFRbxVector = eV['%sJetIDFRBX%s'       %jets2]
-            jetN90Vector  = eV['%sJetIDN90Hits%s'    %jets2]
-            
-            loose = eV["%sJetIDloose%s"%jets2]
-            tight = eV["%sJetIDtight%s"%jets2]
-            
-        else :
-            chf = eV["%sFchargedHad%s"%jets2]
-            nhf = eV["%sFneutralHad%s"%jets2]
-
-            cef = eV["%sFchargedEm%s"%jets2]
-            nef = eV["%sFneutralEm%s"%jets2]
-
-            cm  = eV["%sNcharged%s"%jets2]
-            nm  = eV["%sNneutral%s"%jets2]
-            
-            loose = eV["%sPFJetIDloose%s"%jets2]
-            tight = eV["%sPFJetIDtight%s"%jets2]
-            
-        self.printText(self.renamedDesc(jets[0]+jets[1]))
-        self.printText("ID   pT  eta  phi%s"%("   EMF  fHPD  fRBX N90 corr" if not isPf else "   CHF  NHF  CEF  NEF CM corr"))
-        self.printText("-----------------%s"%("---------------------------" if not isPf else "-----------------------------"))
-
-        nJets = p4Vector.size()
-        for iJet in range(nJets) :
-            if nMax<=iJet :
-                self.printText("[%d more not listed]"%(nJets-nMax))
-                break
-            jet=p4Vector[iJet]
-
-            outString = "%1s%1s"% ("L" if loose[iJet] else " ", "T" if tight[iJet] else " ")
-            outString+="%5.0f %4.1f %4.1f"%(jet.pt(), jet.eta(), jet.phi())
-
-            if not isPf :
-                outString+=" %5.2f %5.2f %5.2f %3d %4.2f"%(jetEmfVector.at(iJet), jetFHpdVector.at(iJet), jetFRbxVector.at(iJet), jetN90Vector.at(iJet), corrVector.at(iJet))
-            else :
-                outString+=" %5.3f %4.2f %4.2f %4.2f%3d %4.2f"%(chf.at(iJet), nhf.at(iJet), cef.at(iJet), nef.at(iJet), cm.at(iJet), corrVector.at(iJet))
-            self.printText(outString)
-
-    def printGenJets(self, eV, params, coords, nMax) :
-        self.prepareText(params, coords)
-        p4Vector = eV[self.genJets]
-            
-        self.printText(self.renamedDesc(self.genJets))
-        self.printText("   pT  eta  phi")
-        self.printText("---------------")
-
-        nJets = p4Vector.size()
-        for iJet in range(nJets) :
-            if nMax<=iJet :
-                self.printText("[%d more not listed]"%(nJets-nMax))
-                break
-            jet = p4Vector[iJet]
-            self.printText("%5.0f %4.1f %4.1f"%(jet.pt(), jet.eta(), jet.phi()))
-
-    def printGenParticles(self, eV, params, coords, nMax) :
-        self.prepareText(params, coords)
-        p4s    = eV["genP4"]
-        status = eV["genStatus"]
-        ids    = eV["genPdgId"]
-        
-        self.printText("Status 1 Gen Particles")
-        self.printText("  name  pdgId   pT  eta  phi")
-        self.printText("----------------------------")
-
-        particles = reversed(sorted([(i, p4s[i]) for i in range(p4s.size())], key = lambda x:x[1].pt()))
-        nStatus1 = sum([status[i]==1 for i in range(status.size())])
-        iPrint = 0
-        for iParticle,p4 in particles :
-            if status.at(iParticle)!=1 : continue
-            if nMax<=iPrint :
-                self.printText("[%d more not listed]"%(nStatus1-nMax))
-                break
-            pdgId = ids.at(iParticle)
-            self.printText("%6s %6d%5.0f %4.1f %4.1f"%(pdgLookup.pdgid_to_name(pdgId) if pdgLookupExists else "", pdgId, p4.pt(), p4.eta(), p4.phi()))
-            iPrint += 1
-        return
 
 
     def mergeFunc(self, products) :
