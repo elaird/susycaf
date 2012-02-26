@@ -222,6 +222,25 @@ class ttbar(analysisStep) :
         scale = 3.5
         self.line.SetLineWidth(2); self.line.SetLineColor(r.kGray);  self.line.DrawLine( scale * xm, 3.6, scale * xp, 3.6 )
 
+        if reco['lepBound'] : self.drawLepBoundCurve(reco['lep'])
+
+    def drawLepBoundCurve(self, lep) :
+        self.rhoPhiPad.cd()
+        self.marker.SetMarkerColor(r.kGreen)
+        self.marker.SetMarkerSize(0.2)
+        self.marker.SetMarkerStyle(6)
+        lPt = lep.pt()
+        lPhi = lep.phi()
+        def draw(pt,phi) :
+            self.marker.DrawMarker(self.rhoPhiCoords['x0']+self.scaleRho(pt) * math.cos(phi),
+                                   self.rhoPhiCoords['y0']+self.scaleRho(pt) * math.sin(phi))
+        for i in range(100) :
+            dphi = math.pi - 0.1*i
+            nuPt = 80.4**2 / (2*lPt*(1-math.cos(dphi)))
+            draw( nuPt, lPhi+dphi)
+            draw( nuPt, lPhi-dphi)
+            
+
     def drawMet(self, eV, color, lineWidth) :
         if not self.met: return
         self.legendFunc(color, name = "met%s"%self.met, desc = "MET (%s)"%self.met)
