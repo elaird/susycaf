@@ -169,7 +169,7 @@ class kinFitLook(analysisStep) :
 class combinatorialFiltering(analysisStep) :
     def __init__(self,jets=None) :
         for item in ["IndicesBtagged","CorrectedP4","IndicesGenTopPQHL","ComboPQBDeltaRawMassWTop"] :
-            setattr(self, item, ("%s"+item+"%s")%jets )
+            setattr(self, item, item.join(jets) )
         theta = math.pi/6
         self.ellipseR = np.array([[math.cos(theta),-math.sin(theta)],[math.sin(theta), math.cos(theta)]])
         
@@ -200,6 +200,7 @@ class combinatorialFrequency(analysisStep) :
         self.IndicesGenTopPQHL = "%sIndicesGenTopPQHL%s"%jets
 
     def uponAcceptance(self,ev) :
+        if not ev['genTopTTbar'] : return
         recos = ev['TopReconstruction']
         iP,iQ,iH,iL = ev[self.IndicesGenTopPQHL]
 
