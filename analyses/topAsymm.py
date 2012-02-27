@@ -7,7 +7,7 @@ class topAsymm(supy.analysis) :
     This analysis contains several secondary calculables, which need
     to be primed in the following order:
     
-    1. Reweightings: run all samples in both tags, inverting label "cross-cleaning";  --update
+    1. Reweightings: run all samples in both tags, inverting label "selection";  --update
     2. Prime the b-tagging variable for [BQN]-type jets: top samples only, inverting label "top reco"; --update
     3. Prime the discriminants: [ top.tt, top.w_jet, QCD.SingleMu ] samples only, inverting after discriminants if at all; --update
     4. Run the analysis, all samples, no label inversion
@@ -266,7 +266,7 @@ class topAsymm(supy.analysis) :
              ssteps.filters.value(bVar, indices = "IndicesBtagged".join(obj["jet"]), index = 1, min = 0.0),
              ssteps.filters.value(bVar, indices = "IndicesBtagged".join(obj["jet"]), **pars["selection"]["bCut"])
              
-             , ssteps.histos.multiplicity("IndicesGenPileup".join(obj['jet']))
+             , ssteps.histos.multiplicity("IndicesGenPileup".join(obj['jet'])).onlySim()
              , steps.top.pileupJets().onlySim()
              , ssteps.filters.label('top reco'),
              ssteps.filters.multiplicity("TopReconstruction",min=1)
