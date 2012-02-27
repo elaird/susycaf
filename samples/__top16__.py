@@ -7,6 +7,7 @@ singleT = srm_burt + '/2012_02_17_17_53_18/%s_TuneZ2_%s_7TeV-powheg-tauola.Fall1
 
 # Fall2011 reprocessing of Summer 2011
 top16.add("ttj_mg", '%s/2012_02_14_20_57_14/")'%srm_burt , xs = {"LO":94.76, "guessNLO":157.5 }['guessNLO'] )
+top16.add("ttj_ph", '%s/2012_02_24_06_31_07/")'%srm_burt , xs = 149.6 )
 top16.add("top_s_ph", singleT%('T','s-channel'), xs = 2.341 )
 top16.add("top_t_ph", singleT%('T','t-channel'), xs = 35.72 )
 top16.add("top_tW_ph", singleT%('T','tW-channel-DS'), xs = 7.104 )
