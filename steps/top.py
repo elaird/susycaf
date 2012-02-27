@@ -7,9 +7,9 @@ class channelClassification(analysisStep) :
     nbins = len(labels)
 
     def uponAcceptance(self,ev) :
-        iBin = self.labels.index(ev['ttDecayChannel'])
+        iBin = self.labels.index(ev['ttDecayMode'])
         if iBin :
-            self.book.fill( iBin, 'ttDecayChannel', self.nbins, 0, self.nbins, xAxisLabels = self.labels )
+            self.book.fill( iBin, 'ttDecayMode', self.nbins, 0, self.nbins, xAxisLabels = self.labels )
 
 #####################################
 class jetPrinter(analysisStep) :

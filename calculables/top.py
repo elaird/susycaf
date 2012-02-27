@@ -88,26 +88,25 @@ class JetPtMin(wrappedChain.calculable) :
         p4 = self.source["CorrectedP4".join(self.source["TopJets"]["fixes"])]
         self.value = min([abs(p4[i].pt()) for i in iPQHL])
 ######################################
-class PartonX12(wrappedChain.calculable) :
+class PartonXplusminus(wrappedChain.calculable) :
     def __init__(self, collection = None) :
         self.fixes = collection
         self.stash(['TtxMass','TtxPz'])
     def update(self,_) :
-        self.source[self.TtxMass] - self.source[self.TtxPz]
-        self.value = ( (self.source[self.TtxMass] + self.source[self.TtxPz]) / 7000 ,
-                       (self.source[self.TtxMass] - self.source[self.TtxPz]) / 7000 )
+        self.value = ( (self.source[self.TtxPz] + self.source[self.TtxMass] ) / 7000 ,
+                       (self.source[self.TtxPz] - self.source[self.TtxMass] ) / 7000 )
 ######################################
 class PartonXhi(wrappedChain.calculable) :
     def __init__(self, collection = None) :
         self.fixes = collection
-        self.stash(['PartonX12'])
-    def update(self,_) : self.value = max(self.source[self.PartonX12])
+        self.stash(['PartonXplusminus'])
+    def update(self,_) : self.value = max(self.source[self.PartonXplusminus], key = lambda i: abs(i))
 ######################################
 class PartonXlo(wrappedChain.calculable) :
     def __init__(self, collection = None) :
         self.fixes = collection
-        self.stash(['PartonX12'])
-    def update(self,_) : self.value = min(self.source[self.PartonX12])
+        self.stash(['PartonXplusminus'])
+    def update(self,_) : self.value = min(self.source[self.PartonXplusminus], key = lambda i: abs(i))
 ######################################
 class Pt(wrappedChain.calculable) :
     def __init__(self,collection = None) :
@@ -403,7 +402,7 @@ class genTopIndicesX(wrappedChain.calculable) :
         ids = self.source['genPdgId']
         self.value = [i for i in range(len(moms)) if abs(ids[i])!=6 and moms[i]==4 ]
 ######################################
-class ttDecayChannel(wrappedChain.calculable) :
+class ttDecayMode(wrappedChain.calculable) :
     def update(self,_) :
         pdg = self.source['genPdgId']
         mom = self.source['genMotherPdgId']
@@ -520,7 +519,7 @@ class TopReconstruction(wrappedChain.calculable) :
                 if iL in iPQH : continue
                 iPQHL = iPQH+(iL,)
                 iQQBB = iPQHL[:2]+tuple(sorted(iPQHL[2:]))
-
+                
                 #if sorted([ntrk[i] for i in iPQHL])[1]<4 : continue
                 #if sorted([ntrk[i] for i in iPQHL])[0]<3 : continue
                 #if sorted([ntrk[i] for i in iPQHL])[1]<3 : continue
@@ -555,7 +554,31 @@ class TopReconstruction(wrappedChain.calculable) :
                     
         self.value = sorted( recos,  key = lambda x: x["key"] )
         
-        
+######################################
+class kinfitFailureModes(wrappedChain.calculable) :
+    def update(self,_) : 
+        reco =  self.source["TopReconstruction"][0]
+        genP4 = self.source["genP4"]
+        pdg = self.source["genPdgId"]
+        mom = self.source["genMotherPdgId"]
+        status = self.source["genStatus"]
+        jets = self.source["TopJets"]['fixes']
+        p4 = self.source["CorrectedP4".join(jets)]
+        indices = self.source["Indices".join(jets)]
+        igenTT = self.source["genTTbarIndices"]
+
+        self.value = {}
+        if self.source["ttDecayMode"] not in ["ej","mj"] : return
+        self.value["met"] = (abs(r.Math.VectorUtil.DeltaPhi( -self.source["mixedSumP4"], genP4[igenTT['nu']])) < 0.7)
+        self.value["nu"] = r.Math.VectorUtil.DeltaR( genP4[igenTT['nu']], reco['nu']) < 0.7
+
+        self.value["jet"] = all( any(r.Math.VectorUtil.DeltaR( p4[iJet],genP4[igen]) < 0.5 for iJet in indices )          for igen in [igenTT['q'][0], igenTT['q'][1], igenTT['bhad'], igenTT['blep']])
+        self.value["had"] = all( any(r.Math.VectorUtil.DeltaR( p4[iJet],genP4[igen]) < 0.5 for iJet in reco['iPQHL'][:3]) for igen in [igenTT['q'][0], igenTT['q'][1], igenTT['bhad'] ])
+        self.value["blep"] = r.Math.VectorUtil.DeltaR( genP4[igenTT['blep']],p4[reco['iPQHL'][3]]) < 0.5
+        self.value["bhad"] = r.Math.VectorUtil.DeltaR( genP4[igenTT['bhad']],p4[reco['iPQHL'][2]]) < 0.5
+        glu = next( (genP4[i] for i in range(6,len(genP4)) if pdg[i]==21 and status[i]==3), None)
+        if glu or reco['iX']!=None :
+            self.value["glu"] = bool(glu) and (reco['iX'] != None) and (r.Math.VectorUtil.DeltaR( glu, p4[reco['iX']] ) < 0.5)
 ######################################
 class lepDeltaRTopRecoGen(wrappedChain.calculable) :
     def update(self,_):
