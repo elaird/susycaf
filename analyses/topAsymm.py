@@ -99,12 +99,10 @@ class topAsymm(supy.analysis) :
     def listOfSampleDictionaries(self) : return [getattr(samples,item) for item in ['muon16', 'top16', 'ewk16', 'qcd16']]
 
     def data(self,pars) :
-        return { "muon" : supy.samples.specify( names = ['SingleMu.2011A.1',
-                                                         'SingleMu.2011A.2',
+        return { "muon" : supy.samples.specify( names = ['SingleMu.2011A',
                                                          'SingleMu.2011B'], weights = 'tw'),
-                 "electron" : supy.samples.specify( names = ['SingleEl.Run2011A.1',
-                                                             'SingleEl.Run2011A.2',
-                                                             'SingleEl.Run2011B'], weights = 'tw')
+                 "electron" : supy.samples.specify( names = ['SingleEl.2011A',
+                                                             'SingleEl.2011B'], weights = 'tw')
                  }[pars['lepton']['name']]
 
     @staticmethod
