@@ -106,21 +106,24 @@ class jetPtVetoer(analysisStep) :
         if p4s.size() <= self.jetIndex : return True
         return p4s.at(self.jetIndex).pt() < self.jetPtThreshold
 #####################################
-class forwardFailedJetVeto(analysisStep) :
-    def __init__(self,cs, ptAbove=None, etaAbove=None) :
-        self.cs = cs
-        self.pt = ptAbove
-        self.eta = etaAbove
-        self.indices= "%sIndicesOther%s"%self.cs
-        self.jetP4s = "%sCorrectedP4%s"%self.cs
-        self.moreName = "%s%s indicesOther with pt>%.1f and |eta|>%.2f"%(cs+(self.pt,self.eta))
-    def select(self,eventVars) :
-        indices = eventVars[self.indices]
-        p4s = eventVars[self.jetP4s]
-        for i in indices:
-            p4= p4s.at(i)
-            if p4.pt() > self.pt and abs(p4.eta()) > self.eta : return False
-        return True
+class failedJetVeto(analysisStep):
+    def __init__(self, jets = None, ptMin = 20, id = '' ) :
+        self.jets = jets
+        self.ptMin = ptMin
+        self.id = id.join(jets)[2:]
+        self.p4 = "CorrectedP4".join(jets)
+        self.moreName = "any %s%s pt> %.1f failing %s"%(jets+(ptMin,id))
+    def select(self,EV) :
+        return all( id for id,p4 in zip(EV[self.id],EV[self.p4]) if p4.pt() > self.ptMin)
+#####################################
+class forwardJetVeto(analysisStep) :
+    def __init__(self, jets = None, ptMax = 50, etaMin = 3.1 ) :
+        for item in ['jets','ptMax','etaMin'] : setattr(self,item,eval(item))
+        self.moreName = "any %s%s indices,other with pt>%.1f and |eta|>%.2f"%(jets+(ptMax,etaMin))
+    def select(self,EV) :
+        p4 = EV["CorrectedP4".join(self.jets)]
+        indices = EV["Indices".join(self.jets)] + EV["IndicesOther".join(self.jets)]
+        return all( p4[i].pt() < self.ptMax for i in indices if abs(p4[i].eta()) > self.etaMin )
 #####################################
 class leadingUnCorrJetPtSelector(analysisStep) :
 
