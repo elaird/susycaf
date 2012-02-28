@@ -27,18 +27,19 @@ bins,xss = zip(*tuple(
 #           xs = xs)
 
 #### QCD mu enriched ####
-bins,xss,forms = zip(*tuple(
-    [(15,  5.792e+08 * 0.00254, 0), # xs * filter efficiency
-     (20,  2.363e+08 * 0.00518, 0),
-     (30,  5.307e+07 * 0.01090, 0),
-     (50,  6.351e+06 * 0.02274, 1),
-     (80,  7.851e+05 * 0.03700, 1),
-     (120, 9.295e+04 * 0.04777, 1),
-     (150, 4.758e+04 * 0.05964, 1),
+bins,xss,corrupt = zip(*tuple(
+    [(15,  5.792e+08 * 0.00254, []), # xs * filter efficiency
+     (20,  2.363e+08 * 0.00518, []),
+     (30,  5.307e+07 * 0.01090, []),
+     (50,  6.351e+06 * 0.02274, []),
+     (80,  7.851e+05 * 0.03700, []),
+     (120, 9.295e+04 * 0.04777, []),
+     (150, 4.758e+04 * 0.05964, [41]),
      (None,None,None)]))
-loc = '/bbetchar/ICF/automated/2012_02_09_02_26_32/'
-form = 'QCD_Pt-%s_MuPt5Enriched_TuneZ2_7TeV-pythia6.Fall11-PU_S6_START44_V9B-v1.AODSIM")'
-for low,high,xs,_ in zip(bins[:-1],bins[1:],xss[:-1],forms[:-1]) :
+loc = '/bbetchar/ICF/automated/2012_02_27_01_45_05/'
+form = 'QCD_Pt-%s_MuPt5Enriched_TuneZ2_7TeV-pythia6.Fall11-PU_S6_START44_V9B-v1.AODSIM", itemsToSkip = %s)'
+for low,high,xs,cor in zip(bins[:-1],bins[1:],xss[:-1],corrupt[:-1]) :
+    cstr = ','.join('"SusyCAF_Tree_%d"'%d for d in cor).join(['[',']'])
     qcd16.add("qcd_mu_%s"%("%d_%d"%(low,high) if high else str(low)),
-              srm+loc+form%(('%dto%d'%(low,high)) if high else str(low)),
+              srm+loc+form%(('%dto%d'%(low,high),cstr) if high else (str(low),cstr)),
               xs = xs)
