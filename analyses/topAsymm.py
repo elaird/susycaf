@@ -44,16 +44,16 @@ class topAsymm(supy.analysis) :
             'isoInvert': [{"min":0.015, "max":1.0}, {'min':0.07, 'max':1.0}] #check inverted iso max for electron
             }
 
-        bCut = {"normal"   : {"index":1, "min":2.0},
-                "inverted" : {"index":1, "max":2.0}}
+        bCut = {"normal"   : {"index":0, "min":3.0},
+                "inverted" : {"index":0, "max":3.0}}
 
         return { "vary" : ['selection','lepton','objects','reweights'],
                  "discriminant2DPlots": True,
                  "nJets" :  {"min":4,"max":None},
                  "unreliable": self.unreliableTriggers(),
-                 "bVar" : "NTrkHiEff", # "TrkCountingHighEffBJetTags"
+                 "bVar" : "TCHE", # "TrkCountingHighEffBJetTags"
                  "objects": self.vary([ ( objects['label'][index], dict((key,val[index]) for key,val in objects.iteritems())) for index in range(2) if objects['label'][index] in ['pf']]),
-                 "lepton" : self.vary([ ( leptons['name'][index], dict((key,val[index]) for key,val in leptons.iteritems())) for index in range(2) if leptons['name'][index] in ['muon']]),
+                 "lepton" : self.vary([ ( leptons['name'][index], dict((key,val[index]) for key,val in leptons.iteritems())) for index in range(2) if leptons['name'][index] in ['muon','electron']]),
                  "reweights" : self.vary([ ( reweights['label'][index], dict((key,val[index]) for key,val in reweights.iteritems())) for index in range(3) if reweights['label'][index] in ['pu']]),
                  "selection" : self.vary({"top" : {"bCut":bCut["normal"],  "iso":"isoNormal"},
                                           "QCD" : {"bCut":bCut["normal"],  "iso":"isoInvert"}
@@ -192,7 +192,7 @@ class topAsymm(supy.analysis) :
 
             supy.calculables.other.pt( "mixedSumP4" ),
             supy.calculables.other.size( "Indices".join(obj['jet']) ),
-            supy.calculables.other.abbreviation( "TrkCountingHighEffBJetTags", "NTrkHiEff", fixes = calculables.jet.xcStrip(obj['jet']) ),
+            supy.calculables.other.abbreviation( "TrkCountingHighEffBJetTags", "TCHE", fixes = calculables.jet.xcStrip(obj['jet']) ),
             supy.calculables.other.abbreviation( pars['reweights']['var'], pars['reweights']['abbr'] ),
             supy.calculables.other.abbreviation( 'muonTriggerWeightPF', 'tw' ),
             ]
@@ -267,6 +267,8 @@ class topAsymm(supy.analysis) :
              ssteps.filters.value(bVar, indices = "IndicesBtagged".join(obj["jet"]), **pars["selection"]["bCut"])
              
              , ssteps.histos.multiplicity("IndicesGenPileup".join(obj['jet'])).onlySim()
+             , ssteps.histos.value( 'vertexDzSeparation', 100,0,10)
+             , ssteps.histos.value( 'vertexTrackPurity',  100,0,1 )
              , steps.top.pileupJets().onlySim()
              , ssteps.filters.label('top reco'),
              ssteps.filters.multiplicity("TopReconstruction",min=1)
@@ -279,7 +281,6 @@ class topAsymm(supy.analysis) :
 
              , ssteps.histos.multiplicity("Indices".join(obj["jet"]))
              , ssteps.histos.value("M3".join(obj['jet']), 20,0,800)
-             , ssteps.histos.value("fitTopRadiativeCoherence", 100,-1,1)
              
              ####################################
              , ssteps.filters.label('discriminants')
@@ -435,14 +436,14 @@ class topAsymm(supy.analysis) :
     ########################################################################################
     def concludeAll(self) :
         self.rowcolors = 2*[13] + 2*[45]
-        #super(topAsymm,self).concludeAll()
+        super(topAsymm,self).concludeAll()
         #self.meldWpartitions()
         #self.meldQCDpartitions()
         for rw in set([pars['reweights']['abbr'] for pars in self.readyConfs]) :
             self.meldScale(rw)
             self.plotMeldScale(rw)
         #self.ensembleTest()
-        #self.PEcurves()
+        self.PEcurves()
 
     def conclude(self,pars) :
         rw = pars['reweights']['abbr']
@@ -614,7 +615,7 @@ class topAsymm(supy.analysis) :
 
     def PEcurves(self) :
         if not hasattr(self, 'orgMelded') : return
-        specs = ([{'var' : "ak5JetPFNTrkHiEffPat[i[%d]]:xcak5JetPFIndicesBtaggedPat"%bIndex, 'left':True, 'right':False} for bIndex in [0,1,2]] +
+        specs = ([{'var' : "ak5JetPFTCHEPat[i[%d]]:xcak5JetPFIndicesBtaggedPat"%bIndex, 'left':True, 'right':False} for bIndex in [0,1,2]] +
                  [{'var' : "TopRatherThanWProbability",                                      'left':True, 'right':False},
                   {'var' : "TriDiscriminant",                                                'left':True, 'right':True}])
         pes = {}
