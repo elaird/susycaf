@@ -53,7 +53,7 @@ class topAsymm(supy.analysis) :
                  "unreliable": self.unreliableTriggers(),
                  "bVar" : "TCHE", # "TrkCountingHighEffBJetTags"
                  "objects": self.vary([ ( objects['label'][index], dict((key,val[index]) for key,val in objects.iteritems())) for index in range(2) if objects['label'][index] in ['pf']]),
-                 "lepton" : self.vary([ ( leptons['name'][index], dict((key,val[index]) for key,val in leptons.iteritems())) for index in range(2) if leptons['name'][index] in ['muon','electron']]),
+                 "lepton" : self.vary([ ( leptons['name'][index], dict((key,val[index]) for key,val in leptons.iteritems())) for index in range(2) if leptons['name'][index] in ['muon','electron'][:1]]),
                  "reweights" : self.vary([ ( reweights['label'][index], dict((key,val[index]) for key,val in reweights.iteritems())) for index in range(3) if reweights['label'][index] in ['pu']]),
                  "selection" : self.vary({"top" : {"bCut":bCut["normal"],  "iso":"isoNormal"},
                                           "QCD" : {"bCut":bCut["normal"],  "iso":"isoInvert"}
@@ -220,7 +220,10 @@ class topAsymm(supy.analysis) :
              , ssteps.filters.label('data cleanup'),
              ssteps.filters.multiplicity("vertexIndices",min=1),
              ssteps.filters.value('physicsDeclared',min=1).onlyData(),
-             ssteps.filters.value('hbheNoiseFilterResult',min=1).onlyData(),
+             ssteps.filters.value('trackingFailureFilterFlag',min=1),
+             ssteps.filters.value('beamHaloCSCTightHaloId', max=0),
+             ssteps.filters.value('hbheNoiseFilterResult',min=1),
+             ssteps.filters.value('hcalLaserEventFilterFlag', min=1).onlyData(),
              steps.trigger.l1Filter("L1Tech_BPTX_plus_AND_minus.v0").onlyData(),
              steps.filters.monster()
 
@@ -237,23 +240,26 @@ class topAsymm(supy.analysis) :
              
              ####################################
              , ssteps.filters.label('selection'),
+             ssteps.histos.value( lIso, 100, 0, 1, indices = lIndices, index = 1),
              ssteps.filters.OR([ ssteps.filters.multiplicity( max=1, var = lIndices ),
                                  ssteps.filters.value( var = lIso, min = 0.25, indices = lIndices, index=1)]), #FIXME hardcoded min
              ssteps.filters.multiplicity( max=0, var = "Indices".join(obj['electron' if pars['lepton']['name']=='muon' else 'muon'])),
              ssteps.filters.multiplicity( max=0, var = "IndicesOther".join(obj['muon']))
              
              , ssteps.histos.pt("mixedSumP4",100,0,300),
+             ssteps.filters.value('ecalDeadCellTPFilterFlag',min=1),
+             steps.jet.failedJetVeto( obj["jet"], ptMin = 20, id = "PFJetIDloose"),
+             steps.jet.forwardJetVeto( obj["jet"], ptMax = 50, etaMin = 3.1)
+             , ssteps.histos.pt("mixedSumP4",100,0,300),
              ssteps.filters.pt("mixedSumP4",min=20)
 
              , ssteps.histos.absEta("P4".join(lepton), 100,0,4, indices = lIndices, index = 0)
              , ssteps.histos.pt("P4".join(lepton), 200,0,200, indices = lIndices, index = 0),
-             ssteps.filters.pt("P4".join(lepton), min = lPtMin, indices = lIndices, index = 0)
-             #ssteps.filters.absEta("P4".join(lepton), max = lEtaMax, indices = lIndices, index = 0)
+             ssteps.filters.pt("P4".join(lepton), min = lPtMin, indices = lIndices, index = 0),
+             ssteps.filters.absEta("P4".join(lepton), max = pars['lepton']['etaMax'], indices = lIndices, index = 0)
 
              , ssteps.histos.multiplicity("Indices".join(obj["jet"])),
-             ssteps.filters.multiplicity("Indices".join(obj["jet"]), **pars["nJets"]),
-             steps.jet.forwardFailedJetVeto( obj["jet"], ptAbove = 50, etaAbove = 3.5),
-             ssteps.filters.multiplicity( max=0, var = "IndicesOther".join(obj['jet'])) #this is too harsh ; veto on fail ID; do not veto on threshold after 3.5
+             ssteps.filters.multiplicity("Indices".join(obj["jet"]), **pars["nJets"])
 
              , ssteps.histos.value( lIso, 55,0,1.1, indices = lIndices, index=0),
              ssteps.filters.value( lIso, indices = lIndices, index = 0, **lIsoMinMax)
@@ -263,7 +269,7 @@ class topAsymm(supy.analysis) :
              , ssteps.histos.value(bVar, 60,0,15, indices = "IndicesBtagged".join(obj["jet"]), index = 0)
              , ssteps.histos.value(bVar, 60,0,15, indices = "IndicesBtagged".join(obj["jet"]), index = 1)
              , ssteps.histos.value(bVar, 60,0,15, indices = "IndicesBtagged".join(obj["jet"]), index = 2),
-             ssteps.filters.value(bVar, indices = "IndicesBtagged".join(obj["jet"]), index = 1, min = 0.0),
+             ssteps.filters.value(bVar, indices = "IndicesBtagged".join(obj["jet"]), index = 0, min = 0.0),
              ssteps.filters.value(bVar, indices = "IndicesBtagged".join(obj["jet"]), **pars["selection"]["bCut"])
              
              , ssteps.histos.multiplicity("IndicesGenPileup".join(obj['jet'])).onlySim()
@@ -299,7 +305,7 @@ class topAsymm(supy.analysis) :
              , ssteps.histos.value('FourJetAbsEtaThreshold'.join(obj['jet']), 40,0,4)
              , ssteps.histos.value('fitTopJetAbsEtaMax', 40,0,4)
              
-             , ssteps.filters.label('signal distributions').invert(), steps.top.Asymmetry(('fitTop',''), bins = 640)
+             , ssteps.filters.label('signal distributions'), steps.top.Asymmetry(('fitTop',''), bins = 64)#640)
              , ssteps.filters.label('spin distributions'),    steps.top.Spin(('fitTop',''))
 
              #steps.histos.value('fitTopSumP4Eta', 12, -6, 6),
