@@ -48,41 +48,22 @@ class pileupJets(analysisStep) :
     def uponAcceptance(self,ev) :
         xcjets = ev['TopJets']['fixes']
         jets = ev['TopJets']['fixesStripped']
-        indices = ev['%sIndices%s'%xcjets]
-        indicesPU = ev['%sIndicesGenPileup%s'%xcjets]
-        p4 = ev['%sCorrectedP4%s'%xcjets]
-        n = ev['%sCountwithPrimaryHighPurityTracks%s'%jets]
-        nPU = ev['%sCountwithPileUpHighPurityTracks%s'%jets]
-        puPtFrac = ev['%sPileUpPtFraction%s'%xcjets]
+        indices = ev['Indices'.join(xcjets)]
+        indicesPU = ev['IndicesGenPileup'.join(xcjets)]
+        p4 = ev['CorrectedP4'.join(xcjets)]
+        n = ev['CountwithPrimaryHighPurityTracks'.join(jets)]
+        nPU = ev['CountwithPileUpHighPurityTracks'.join(jets)]
+        puPtFrac = ev['PileUpPtFraction'.join(xcjets)]
 
-        dz = ev['vertexDzSeparation']
-        vtd = ev['vertexTrackPurity']
-
-        self.book.fill( dz, 'vertexDzSeparation', 100,0,10, title = ";vertexDzSeparation;events / bin")
-        self.book.fill( vtd, 'vertexTrackPurity', 100,0,1.001, title = ";vertexTrackPurity;events / bin")
         for i in indices :
-            rltrkpur = float(n[i])/max(1, n[i]+nPU[i]) - vtd
-            pt = p4[i].pt()
             eta = abs(p4[i].eta())
-
             label = "pileup" if i in indicesPU else "primary"
-            label2 = label + '_' + ('inner' if eta<1.9 else 'middle' if eta<2.6 else 'outer')
+            label2 = ('inner' if eta<1.9 else 'middle' if eta<2.6 else 'outer')  + '_' +  label
             if "outer" in label2 : continue
 
-            self.book.fill( pt, "pT_"+label, 50, 0, 100, title = ';p_{T};jets / bin')
+            self.book.fill( p4[i].pt(), "pT_"+label, 50, 0, 100, title = ';p_{T};jets / bin')
             self.book.fill( n[i], "ntracks_%s"%label2, 30, 0, 30, title = ';ntracks (%s);jets / bin'%label2 )
             self.book.fill( puPtFrac[i], "pileupPtFrac_%s"%label2, 50, 0, 1, title = ';pileup Pt Fraction (%s);jets / bin'%label2)
-            self.book.fill( rltrkpur, "relTrackPurity_%s"%label2, 40, -1, 1, title = ";track dilution (jet-vertex) (%s);jets / bin"%label2 )
-            self.book.fill( pt * n[i] , "trackbypT_"+label2, 50,0, 1000)
-
-            self.book.fill( (min(99,pt),n[i]), "pT_vs_n_"+label2, (50,20), (0,0), (100,20), title = ";pt (%s);ntracks;jets / bin"%label2 )
-            self.book.fill( (min(99,pt),rltrkpur ), "pT_vs_reltrackpur_"+label2, (50,50), (0,-1), (100,1), title = ";pt (%s);rel track pur;jets / bin"%label2 )
-
-            self.book.fill( (min(99,pt),eta), "pt_eta_"+label, (50,30), (0,0), (100,3) , title = ";pt (%s);eta;jets / bin"%label)
-            self.book.fill( (min(19,n[i]),eta), "ntrk_eta"+label, (20,30), (0,0), (20,3) , title = ";ntrk (%s);eta;jets / bin"%label)
-
-            #self.book.fill( abs(p4[i].eta()), "absEta_"+label, 40,0,4, title = ';|#eta|;jets / bin' )
-            #self.book.fill( (n[i],nDijet[i]-n[i]), "ntracks_by_ntracksmatchedjet_"+label2, (20,20), (0,0), (20,20), title = ";ntrk;ntrk dijet (%s);jets / bin"%label2)
 
 #####################################
 class Asymmetry(analysisStep) :
