@@ -352,14 +352,18 @@ class ttbar(analysisStep) :
         
     def printDiagnosis(self, eV, params, coords) :
         mode = eV["kinfitFailureModes"]
+        self.prepareText(params, coords); self.printText('t    ' if 't' in mode else '', r.kGreen if 't' in mode and mode['t'] else r.kRed)
+        self.prepareText(params, coords); self.printText('   /t' if '/t' in mode else '', r.kGreen if '/t' in mode and mode['/t'] else r.kRed)
+        coords.update({"y":coords['y']-1.5*params['slope']});
         self.prepareText(params, coords)
         self.printText(eV["ttDecayMode"], r.kGreen if eV['ttDecayMode'] in ['ej','mj'] else r.kRed)
         for item in ['met','jet','','blep','nu','','had','bhad','glu'] :
             if item not in mode:
-                coords.update({"x":coords['x']+0.3})
+                coords.update({"x":coords['x']+0.27})
                 self.prepareText(params, coords)
                 continue
             self.printText(item if item in mode else '', r.kGreen if item in mode and mode[item] else r.kRed)
+        
         
 
 
