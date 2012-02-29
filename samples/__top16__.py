@@ -6,10 +6,7 @@ srm_burt = srm + '/bbetchar/ICF/automated'
 singleT = srm_burt + '/2012_02_17_17_53_18/%s_TuneZ2_%s_7TeV-powheg-tauola.Fall11-PU_S6_START44_V9B-v1.AODSIM/")'
 
 # Fall2011 reprocessing of Summer 2011
-corrupt = ','.join('"SusyCAF_Tree_%d"'%d for d in
-                   [216,2763,2456,2456,351,2673,1731,243,2292,2663,1956,485,319,2670,449,1199,1934,106,951,271,2268,326,1693,344,2562,
-                    1695,1128,2608,439,484,1936,2404,2756,2843,889,12,2150,1697,794,875,299,2108,1614,2392,2392,1986,2817,20,2429,2953,48]).join(['[',']'])
-top16.add("ttj_mg", '%s/2012_02_14_20_57_14/", itemsToSkip=%s)'%(srm_burt,corrupt) , xs = {"LO":94.76, "guessNLO":157.5 }['guessNLO'] )
+top16.add("ttj_mg", '%s/2012_02_14_20_57_14/")'%srm_burt, xs = {"LO":94.76, "guessNLO":157.5 }['guessNLO'] )
 top16.add("ttj_ph", '%s/2012_02_24_06_31_07/")'%srm_burt , xs = 149.6 )
 top16.add("top_s_ph", singleT%('T','s-channel'), xs = 2.341 )
 top16.add("top_t_ph", singleT%('T','t-channel'), xs = 35.72 )
