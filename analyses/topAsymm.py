@@ -41,7 +41,7 @@ class topAsymm(supy.analysis) :
             'iso'      : [   'CombinedRelativeIso',           'IsoCombined'],
             'triggers' : [       self.mutriggers(),                   None ],
             'isoNormal': [            {"max":0.15},            {'max':0.07}],#0.06 for endcap electron !!!!!
-            'isoInvert': [{"min":0.015, "max":1.0}, {'min':0.07, 'max':1.0}] #check inverted iso max for electron
+            'isoInvert': [ {"min":0.15, "max":1.0}, {'min':0.07, 'max':1.0}] #check inverted iso max for electron
             }
 
         bCut = {"normal"   : {"index":0, "min":3.0},
@@ -442,28 +442,28 @@ class topAsymm(supy.analysis) :
     ########################################################################################
     def concludeAll(self) :
         self.rowcolors = 2*[13] + 2*[45]
-        super(topAsymm,self).concludeAll()
+        #super(topAsymm,self).concludeAll()
         #self.meldWpartitions()
         #self.meldQCDpartitions()
         for rw in set([pars['reweights']['abbr'] for pars in self.readyConfs]) :
             self.meldScale(rw)
             self.plotMeldScale(rw)
         #self.ensembleTest()
-        self.PEcurves()
+        #self.PEcurves()
 
     def conclude(self,pars) :
         rw = pars['reweights']['abbr']
         org = self.organizer(pars, verbose = True )
-        org.mergeSamples(targetSpec = {"name":"Data 2011", "color":r.kBlack, "markerStyle":20}, allWithPrefix="SingleMu")
-        org.mergeSamples(targetSpec = {"name":"qcd_mu", "color":r.kBlue}, allWithPrefix="qcd_mu")
+        org.mergeSamples(targetSpec = {"name":"SingleMu.2011", "color":r.kBlack, "markerStyle":20}, allWithPrefix="SingleMu")
+        org.mergeSamples(targetSpec = {"name":"multijet", "color":r.kBlue}, allWithPrefix="qcd_mu")
         org.mergeSamples(targetSpec = {"name":"t#bar{t}", "color":r.kViolet}, sources=["ttj_mg.wNonQQbar.tw.%s"%rw,"ttj_mg.wTopAsymP00.tw.%s"%rw], keepSources = True)
-        org.mergeSamples(targetSpec = {"name":"t#bar{t}.q#bar{q}.N30", "color":r.kRed}, sources = ["ttj_mg.wTopAsymN30.tw.%s"%rw,"ttj_mg.wNonQQbar.tw.%s"%rw][:1])
-        org.mergeSamples(targetSpec = {"name":"t#bar{t}.q#bar{q}.P30", "color":r.kGreen}, sources = ["ttj_mg.wTopAsymP30.tw.%s"%rw,"ttj_mg.wNonQQbar.tw.%s"%rw][:1])
-        org.mergeSamples(targetSpec = {"name":"w_jets", "color":28}, allWithPrefix="wj_lv_mg", keepSources = False )
-        org.mergeSamples(targetSpec = {"name":"dy_jets", "color":r.kYellow}, allWithPrefix="dyj_ll_mg", keepSources = False )
-        org.mergeSamples(targetSpec = {"name":"single_top", "color":r.kGray}, sources = ["%s.tw.%s"%(s,rw) for s in self.single_top()], keepSources = False )
-        org.mergeSamples(targetSpec = {"name":"standard_model", "color":r.kGreen+2}, sources = ["qcd_mu","t#bar{t}","w_jets","dy_jets","single_top"], keepSources = True)
-        #for ss in filter(lambda ss: 'ttj_mg' in ss['name'],org.samples) : org.drop(ss['name'])
+        #org.mergeSamples(targetSpec = {"name":"t#bar{t}.q#bar{q}.N30", "color":r.kRed}, sources = ["ttj_mg.wTopAsymN30.tw.%s"%rw,"ttj_mg.wNonQQbar.tw.%s"%rw][:1])
+        #org.mergeSamples(targetSpec = {"name":"t#bar{t}.q#bar{q}.P30", "color":r.kGreen}, sources = ["ttj_mg.wTopAsymP30.tw.%s"%rw,"ttj_mg.wNonQQbar.tw.%s"%rw][:1])
+        org.mergeSamples(targetSpec = {"name":"W+jets", "color":28}, allWithPrefix="wj_lv_mg", keepSources = False )
+        org.mergeSamples(targetSpec = {"name":"DY+jets", "color":r.kYellow}, allWithPrefix="dyj_ll_mg", keepSources = False )
+        org.mergeSamples(targetSpec = {"name":"Single top", "color":r.kGray}, sources = ["%s.tw.%s"%(s,rw) for s in self.single_top()], keepSources = False )
+        org.mergeSamples(targetSpec = {"name":"Standard Model", "color":r.kGreen+2}, sources = ["multijet","t#bar{t}","W+jets","DY+jets","Single top"], keepSources = True)
+        for ss in filter(lambda ss: 'ttj_mg' in ss['name'],org.samples) : org.drop(ss['name'])
 
         orgpdf = copy.deepcopy(org)
         orgpdf.scale( toPdf = True )
@@ -472,7 +472,7 @@ class topAsymm(supy.analysis) :
         names = [ss["name"] for ss in org.samples]
         kwargs = {"detailedCalculables": False,
                   "blackList":["lumiHisto","xsHisto","nJobsHisto"],
-                  "samplesForRatios" : next(iter(filter(lambda x: x[0] in names and x[1] in names, [("Data 2011","standard_model")])), ("","")),
+                  "samplesForRatios" : next(iter(filter(lambda x: x[0] in names and x[1] in names, [("SingleMu.2011","Standard Model")])), ("","")),
                   "sampleLabelsForRatios" : ("data","s.m."),
                   "detailedCalculables" : True,
                   "rowColors" : self.rowcolors,
@@ -545,6 +545,7 @@ class topAsymm(supy.analysis) :
                           sampleLabelsForRatios = ('data','s.m.'),
                           rowCycle = 100,
                           omit2D = True,
+                          pageNumbers = False,
                           ).plotAll()
         
     def meldScale(self,rw) :
@@ -557,9 +558,9 @@ class topAsymm(supy.analysis) :
         if len(organizers) < len(meldSamples) : return
         for org in organizers :
             org.mergeSamples(targetSpec = {"name":"t#bar{t}", "color":r.kViolet}, sources=["ttj_mg.wNonQQbar.tw.%s"%rw,"ttj_mg.wTopAsymP00.tw.%s"%rw], keepSources = True)
-            org.mergeSamples(targetSpec = {"name":"w_jets", "color":r.kRed}, allWithPrefix = "wj_lv_mg")
-            org.mergeSamples(targetSpec = {"name":"dy_jets", "color":28}, allWithPrefix = "dyj_ll_mg")
-            org.mergeSamples(targetSpec = {"name":"single", "color":r.kGray}, sources = ["%s.tw.%s"%(s,rw) for s in self.single_top()], keepSources = False )
+            org.mergeSamples(targetSpec = {"name":"W", "color":r.kRed}, allWithPrefix = "wj_lv_mg")
+            org.mergeSamples(targetSpec = {"name":"DY", "color":28}, allWithPrefix = "dyj_ll_mg")
+            org.mergeSamples(targetSpec = {"name":"Single", "color":r.kGray}, sources = ["%s.tw.%s"%(s,rw) for s in self.single_top()], keepSources = False )
             org.mergeSamples(targetSpec = {"name":"Data 2011",
                                            "color":r.kBlue if "QCD_" in org.tag else r.kBlack,
                                            "markerStyle":(20 if "top" in org.tag else 1)}, allWithPrefix="SingleMu")
@@ -567,10 +568,17 @@ class topAsymm(supy.analysis) :
 
         self.orgMelded = supy.organizer.meld(organizers = organizers)
 
-        templateSamples = ['top.t#bar{t}','top.w_jets','QCD.Data 2011']
-        baseSamples = ['top.single','top.dy_jets']
+        templateSamples = ['top.t#bar{t}','top.W','QCD.Data 2011']
+        baseSamples = ['top.Single','top.DY']
 
-        def measureFractions(dist) :
+        mfCanvas = r.TCanvas()
+        def printMF(open = False, close = False) :
+            name = "%s/measuredFractions.pdf"%self.globalStem
+            mfCanvas.Print(name + ("[" if open else "]" if close else ""), "pdf" if open else "")
+            if close : print supy.utils.hyphens, '\n', name, " has been written."
+        printMF(open=True)
+        
+        def measureFractions(dist, rebin = 1) :
             before = next(self.orgMelded.indicesOfStep("label","selection complete"))
             distTup = self.orgMelded.steps[next(iter(filter(lambda i: before<i, self.orgMelded.indicesOfStepsWithKey(dist))))][dist]
 
@@ -578,6 +586,7 @@ class topAsymm(supy.analysis) :
             bases = []
             for ss,hist in zip(self.orgMelded.samples,distTup) :
                 contents = [hist.GetBinContent(i) for i in range(hist.GetNbinsX()+2)]
+                if rebin!=1 : contents = contents[:1] + [sum(bins) for bins in zip(*[contents[1:-1][i::rebin] for i in range(rebin)])] + contents[-1:]
                 if ss['name'] == "top.Data 2011" :
                     observed = contents
                     nEventsObserved = sum(observed)
@@ -586,18 +595,17 @@ class topAsymm(supy.analysis) :
                 elif ss['name'] in baseSamples :
                     bases.append(contents)
                 else : pass
-        
+
             from supy.utils.fractions import componentSolver,drawComponentSolver
             cs = componentSolver(observed, templates, 1e4, base = np.sum(bases, axis=0) )
-            csCanvas = drawComponentSolver(cs)
-            name = "measuredFractions_%s"%dist
-            supy.utils.tCanvasPrintPdf(csCanvas[0], "%s/%s"%(self.globalStem,name))
-            with open(self.globalStem+"/%s.txt"%name,"w") as file :
-                print >> file, cs
-                print >> file, cs.components
+            stuff = drawComponentSolver( cs, mfCanvas, distName = dist,
+                                        templateNames = [t.replace("top.ttj_mg.wTopAsymP00.tw.%s"%rw,"q#bar{q}-->t#bar{t}").replace("top.ttj_mg.wNonQQbar.tw.%s"%rw,"gg-->t#bar{t}").replace("QCD.Data 2011","Multijet").replace("top.W","W+jets").replace('top.',"") for t in  templateSamples])
+            printMF()
             return distTup,cs
 
-        distTup,cs = map(measureFractions,["KarlsruheDiscriminant","TriDiscriminant"])[-1]
+        def mf2(dist) : return measureFractions(dist,2)
+
+        distTup,cs = map(mf2,["TriDiscriminant","KarlsruheDiscriminant"])[0]
 
         fractions = dict(zip(templateSamples,cs.fractions))        
         for iSample,ss in enumerate(self.orgMelded.samples) :
@@ -606,19 +614,23 @@ class topAsymm(supy.analysis) :
         self.orgMelded.mergeSamples(targetSpec = {"name":"bg", "color":r.kWhite}, sources = set(baseSamples + templateSamples) - set(['top.t#bar{t}']), keepSources = True, force = True)
         templateSamples = ['top.ttj_mg.wTopAsymP00.tw.%s'%rw,'top.ttj_mg.wNonQQbar.tw.%s'%rw]
         baseSamples = ['bg']
-        distTup,cs = map(measureFractions,["tracksCountwithPrimaryHighPurityTracks","fitTopNtracksExtra","fitTopFifthJet","fitTopPartonXlo","xcak5JetPFM3Pat","fitTopAbsSumRapidities","DiscriminantQQgg",
-                                           "xcak5JetPFFourJetPtThresholdPat","xcak5JetPFFourJetAbsEtaThresholdPat","DiscriminantQQgg4Jet"])[-1]
+        distTup,cs = map(measureFractions,["tracksCountwithPrimaryHighPurityTracks","fitTopNtracksExtra","fitTopFifthJet","xcak5JetPFM3Pat","fitTopAbsSumRapidities"])[0]
+                                           #"xcak5JetPFFourJetPtThresholdPat","xcak5JetPFFourJetAbsEtaThresholdPat","fitTopPartonXlo"])[0]
+        printMF(close=True)
 
-        fractions = dict(zip(templateSamples,cs.fractions))        
-        for iSample,ss in enumerate(self.orgMelded.samples) :
-            if ss['name'] in fractions : self.orgMelded.scaleOneRaw(iSample, fractions[ss['name']] * sum(cs.observed) / distTup[iSample].Integral(0,distTup[iSample].GetNbinsX()+1))
+        #fractions = dict(zip(templateSamples,cs.fractions))
+        #for iSample,ss in enumerate(self.orgMelded.samples) :
+        #    if ss['name'] in fractions : self.orgMelded.scaleOneRaw(iSample, fractions[ss['name']] * sum(cs.observed) / distTup[iSample].Integral(0,distTup[iSample].GetNbinsX()+1))
 
-        self.orgMelded.drop("top.t#bar{t}")
-        self.orgMelded.mergeSamples(targetSpec = {"name":"top.t#bar{t}", "color":r.kViolet}, sources = templateSamples, keepSources = True, force = True)
+        #self.orgMelded.drop("top.t#bar{t}")
+        #self.orgMelded.mergeSamples(targetSpec = {"name":"top.t#bar{t}", "color":r.kViolet}, sources = templateSamples, keepSources = True, force = True)
         
 
+        templateSamples = ['top.t#bar{t}'] # hack !!
         self.orgMelded.mergeSamples(targetSpec = {"name":"S.M.", "color":r.kGreen+2}, sources = templateSamples + baseSamples , keepSources = True, force = True)
-
+        for ss in filter(lambda ss: 'ttj_mg' in ss['name'],self.orgMelded.samples) : self.orgMelded.drop(ss['name'])
+        self.orgMelded.drop('bg')
+        
     def PEcurves(self) :
         if not hasattr(self, 'orgMelded') : return
         specs = ([{'var' : "ak5JetPFTCHEPat[i[%d]]:xcak5JetPFIndicesBtaggedPat"%bIndex, 'left':True, 'right':False} for bIndex in [0,1,2]] +
