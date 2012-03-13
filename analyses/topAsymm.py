@@ -278,12 +278,17 @@ class topAsymm(supy.analysis) :
              , steps.top.pileupJets().onlySim()
              , ssteps.filters.label('top reco'),
              ssteps.filters.multiplicity("TopReconstruction",min=1)
+             , ssteps.filters.label("selection complete")
              , steps.top.channelClassification().onlySim()
-             , steps.top.combinatorialFrequency(obj["jet"]).onlySim()
-
+             , steps.top.combinatorialFrequency().onlySim()
+             , ssteps.filters.label('gen top kinfit ')
+             , steps.top.kinFitLook('genTopRecoIndex')
+             , steps.top.resolutions('genTopRecoIndex')
+             , ssteps.filters.label('reco top kinfit ')
+             , steps.top.kinFitLook('fitTopRecoIndex')
+             , steps.top.resolutions('fitTopRecoIndex')
              ####################################
              #, steps.displayer.ttbar(jets=obj["jet"], met=obj['met'], muons = obj['muon'], electrons = obj['electron'])
-             , ssteps.filters.label("selection complete")
 
              , ssteps.histos.multiplicity("Indices".join(obj["jet"]))
              , ssteps.histos.value("M3".join(obj['jet']), 20,0,800)
@@ -442,7 +447,7 @@ class topAsymm(supy.analysis) :
     ########################################################################################
     def concludeAll(self) :
         self.rowcolors = 2*[13] + 2*[45]
-        #super(topAsymm,self).concludeAll()
+        super(topAsymm,self).concludeAll()
         #self.meldWpartitions()
         #self.meldQCDpartitions()
         for rw in set([pars['reweights']['abbr'] for pars in self.readyConfs]) :
