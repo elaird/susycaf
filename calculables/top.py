@@ -511,7 +511,7 @@ class TopReconstruction(wrappedChain.calculable) :
             if iPQH[2] not in bIndices : continue
             if np.dot(*(2*[self.ellipseR.dot(jets["ComboPQBDeltaRawMassWTop"][iPQH]) / [35,70]])) > 1 : continue # elliptical window on raw masses
 
-            hadFit = utils.fitKinematic.leastsqHadronicTop(*zip(*((jets["CorrectedP4"][i]*(self.bscale if i==2 else 1), jets["Resolution"][i]) for i in iPQH)))
+            hadFit = utils.fitKinematic.leastsqHadronicTop(*zip(*((jets["CorrectedP4"][i]*(self.bscale if i==2 else 1), jets["Resolution"][i]) for i in iPQH)), widthW = 4./2 ) #tuned w width
             sumP4 = self.source["mixedSumP4"] - hadFit.rawT + hadFit.fitT
             nuErr = self.source["metCovariancePF"] - sum( jets["CovariantResolution2"][i] for i in iPQH )
             nuXY = -np.array([sumP4.x(), sumP4.y()])
