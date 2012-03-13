@@ -490,6 +490,7 @@ class TopReconstruction(wrappedChain.calculable) :
         theta = math.pi/6
         self.ellipseR = np.array([[math.cos(theta),-math.sin(theta)],[math.sin(theta), math.cos(theta)]])
         self.epsilon = 1e-7
+        self.bscale = 1.1
 
     def update(self,_) :
         
@@ -510,7 +511,7 @@ class TopReconstruction(wrappedChain.calculable) :
             if iPQH[2] not in bIndices : continue
             if np.dot(*(2*[self.ellipseR.dot(jets["ComboPQBDeltaRawMassWTop"][iPQH]) / [35,70]])) > 1 : continue # elliptical window on raw masses
 
-            hadFit = utils.fitKinematic.leastsqHadronicTop(*zip(*((jets["CorrectedP4"][i], jets["Resolution"][i]) for i in iPQH)))
+            hadFit = utils.fitKinematic.leastsqHadronicTop(*zip(*((jets["CorrectedP4"][i]*(self.bscale if i==2 else 1), jets["Resolution"][i]) for i in iPQH)))
             sumP4 = self.source["mixedSumP4"] - hadFit.rawT + hadFit.fitT
             nuErr = self.source["metCovariancePF"] - sum( jets["CovariantResolution2"][i] for i in iPQH )
             nuXY = -np.array([sumP4.x(), sumP4.y()])
@@ -525,7 +526,7 @@ class TopReconstruction(wrappedChain.calculable) :
                 #if sorted([ntrk[i] for i in iPQHL])[1]<3 : continue
 
                 for zPlus in [0,1] :
-                    lepFit = utils.fitKinematic.leastsqLeptonicTop( jets["CorrectedP4"][iL], jets["Resolution"][iL], lepton["P4"], nuXY, nuErr-jets["CovariantResolution2"][iL], zPlus = zPlus )
+                    lepFit = utils.fitKinematic.leastsqLeptonicTop( jets["CorrectedP4"][iL]*self.bscale, jets["Resolution"][iL], lepton["P4"], nuXY, nuErr-jets["CovariantResolution2"][iL], zPlus = zPlus )
                     tt = hadFit.fitT + lepFit.fitT
                     iX,ttx = min( [(None,tt)]+[(i,tt+jets["CorrectedP4"][i]) for i in jets["Indices"] if i not in iPQHL], key = lambda lv : lv[1].pt() )
                     recos.append( {"nu"   : lepFit.fitNu,       "hadP" : hadFit.fitJ[0],
@@ -623,6 +624,7 @@ class genTopRecoIndex(wrappedChain.calculable) :
         self.moreName = "deltaR[lep,b,b,q,q] <%0.1f; deltaRnum<%0.1f"%(rMax,rMaxNu)
     def update(self,_) :
         self.value = -1
+        if not self.source['genTopTTbar'] : return
         iPQHL = self.source['IndicesGenTopPQHL'.join(self.source['TopJets']['fixes'])]
         iPass = [ i for i,R in enumerate(self.source['TopReconstruction'])
                   if R['iPQHL']==iPQHL and all( self.source["%sDeltaRTopRecoGen"%s][i]<getattr(self,"rMax%s"%s)
