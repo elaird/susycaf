@@ -44,14 +44,15 @@ class topAsymm(supy.analysis) :
             'isoInvert': [ {"min":0.15, "max":1.0}, {'min':0.07, 'max':1.0}] #check inverted iso max for electron
             }
 
-        bCut = {"normal"   : {"index":0, "min":3.0},
-                "inverted" : {"index":0, "max":3.0}}
+        bCut = {"normal"   : {"index":0, "min":0.7},#3.0},
+                "inverted" : {"index":0, "max":0.7}}#3.0}}
 
         return { "vary" : ['selection','lepton','objects','reweights'],
                  "discriminant2DPlots": True,
                  "nJets" :  {"min":4,"max":None},
                  "unreliable": self.unreliableTriggers(),
-                 "bVar" : "TCHE", # "TrkCountingHighEffBJetTags"
+                 #"bVar" : "TCHE", # "TrkCountingHighEffBJetTags"
+                 "bVar" : "CSV", # "Combined Secondary Vertex"
                  "objects": self.vary([ ( objects['label'][index], dict((key,val[index]) for key,val in objects.iteritems())) for index in range(2) if objects['label'][index] in ['pf']]),
                  "lepton" : self.vary([ ( leptons['name'][index], dict((key,val[index]) for key,val in leptons.iteritems())) for index in range(2) if leptons['name'][index] in ['muon','electron'][:1]]),
                  "reweights" : self.vary([ ( reweights['label'][index], dict((key,val[index]) for key,val in reweights.iteritems())) for index in range(3) if reweights['label'][index] in ['pu']]),
@@ -193,6 +194,7 @@ class topAsymm(supy.analysis) :
             supy.calculables.other.pt( "mixedSumP4" ),
             supy.calculables.other.size( "Indices".join(obj['jet']) ),
             supy.calculables.other.abbreviation( "TrkCountingHighEffBJetTags", "TCHE", fixes = calculables.jet.xcStrip(obj['jet']) ),
+            supy.calculables.other.abbreviation( "CombinedSecondaryVertexBJetTags", "CSV", fixes = calculables.jet.xcStrip(obj['jet']) ),
             supy.calculables.other.abbreviation( pars['reweights']['var'], pars['reweights']['abbr'] ),
             supy.calculables.other.abbreviation( 'muonTriggerWeightPF', 'tw' ),
             ]
@@ -264,11 +266,11 @@ class topAsymm(supy.analysis) :
              , ssteps.histos.value( lIso, 55,0,1.1, indices = lIndices, index=0),
              ssteps.filters.value( lIso, indices = lIndices, index = 0, **lIsoMinMax)
 
-             , calculables.jet.ProbabilityGivenBQN(obj["jet"], pars['bVar'], binning=(64,-1,15), samples = (pars['topBsamples'][0],[s%rw for s in pars['topBsamples'][1]]), tag = topTag)
+             , calculables.jet.ProbabilityGivenBQN(obj["jet"], pars['bVar'], binning=(51,-0.02,1), samples = (pars['topBsamples'][0],[s%rw for s in pars['topBsamples'][1]]), tag = topTag)
              , ssteps.histos.value("TopRatherThanWProbability", 100,0,1)
-             , ssteps.histos.value(bVar, 60,0,15, indices = "IndicesBtagged".join(obj["jet"]), index = 0)
-             , ssteps.histos.value(bVar, 60,0,15, indices = "IndicesBtagged".join(obj["jet"]), index = 1)
-             , ssteps.histos.value(bVar, 60,0,15, indices = "IndicesBtagged".join(obj["jet"]), index = 2),
+             , ssteps.histos.value(bVar, 51,-0.02,1, indices = "IndicesBtagged".join(obj["jet"]), index = 0)
+             , ssteps.histos.value(bVar, 51,-0.02,1, indices = "IndicesBtagged".join(obj["jet"]), index = 1)
+             , ssteps.histos.value(bVar, 51,-0.02,1, indices = "IndicesBtagged".join(obj["jet"]), index = 2),
              ssteps.filters.value(bVar, indices = "IndicesBtagged".join(obj["jet"]), index = 0, min = 0.0),
              ssteps.filters.value(bVar, indices = "IndicesBtagged".join(obj["jet"]), **pars["selection"]["bCut"])
              
@@ -454,7 +456,7 @@ class topAsymm(supy.analysis) :
             self.meldScale(rw)
             self.plotMeldScale(rw)
         #self.ensembleTest()
-        #self.PEcurves()
+        self.PEcurves()
 
     def conclude(self,pars) :
         rw = pars['reweights']['abbr']
@@ -638,7 +640,8 @@ class topAsymm(supy.analysis) :
         
     def PEcurves(self) :
         if not hasattr(self, 'orgMelded') : return
-        specs = ([{'var' : "ak5JetPFTCHEPat[i[%d]]:xcak5JetPFIndicesBtaggedPat"%bIndex, 'left':True, 'right':False} for bIndex in [0,1,2]] +
+        #specs = ([{'var' : "ak5JetPFTCHEPat[i[%d]]:xcak5JetPFIndicesBtaggedPat"%bIndex, 'left':True, 'right':False} for bIndex in [0,1,2]] +
+        specs = ([{'var' : "ak5JetPFCSVPat[i[%d]]:xcak5JetPFIndicesBtaggedPat"%bIndex, 'left':True, 'right':False} for bIndex in [0,1,2]] +
                  [{'var' : "TopRatherThanWProbability",                                      'left':True, 'right':False},
                   {'var' : "TriDiscriminant",                                                'left':True, 'right':True}])
         pes = {}
@@ -646,7 +649,7 @@ class topAsymm(supy.analysis) :
             dists = dict(zip([ss['name'] for ss in self.orgMelded.samples ],
                              self.orgMelded.steps[next(self.orgMelded.indicesOfStepsWithKey(spec['var']))][spec['var']] ) )
             contours = supy.utils.optimizationContours( [dists['top.t#bar{t}']],
-                                                        [dists[s] for s in ['QCD.Data 2011','top.w_jets']],
+                                                        [dists[s] for s in ['QCD.Data 2011','top.W','top.Single','top.DY']],
                                                         **spec
                                                         )
             supy.utils.tCanvasPrintPdf(contours[0], "%s/PE_%s"%(self.globalStem,spec['var']))
