@@ -141,7 +141,7 @@ class Indices(wrappedChain.calculable) :
         self.ID = ID.join(collection)
         self.ptMin = ptMin
         self.relIsoMax = combinedRelIsoMax
-        self.moreName = "tight; pt>%.1f GeV; cmbRelIso<%.2f"%( ptMin, combinedRelIsoMax )
+        self.moreName = "%s; pt>%.1f GeV; cmbRelIso<%.2f"%( ID, ptMin, combinedRelIsoMax )
 
     def update(self,ignored) :
         self.value = []
