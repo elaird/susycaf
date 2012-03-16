@@ -294,8 +294,8 @@ class resolutions(analysisStep) :
         reco = (topReco[index]['top'],topReco[index]['tbar'])
         unfit = (topReco[index]['lepTraw'], topReco[index]['hadTraw'])[::topReco[index]["lepCharge"]]
 
-        self.book.fill( (min(0.99,r.Math.VectorUtil.DeltaR(reco[iLep],gen[iLep])),
-                         min(0.99,r.Math.VectorUtil.DeltaR(reco[not iLep],gen[not iLep]))), "deltaR_lepvhad", (50,50), (0,0), (1,1), title = ";lep top #Delta R_{reco gen};had top #Delta R_{reco gen}; events / bin"  ) 
+        self.book.fill( (min(1.99,r.Math.VectorUtil.DeltaR(reco[iLep],gen[iLep])),
+                         min(1.99,r.Math.VectorUtil.DeltaR(reco[not iLep],gen[not iLep]))), "deltaR_lepvhad", (50,50), (0,0), (2,2), title = ";lep top #Delta R_{reco gen};had top #Delta R_{reco gen}; events / bin"  ) 
 
         for func in ['Rapidity','eta'] :
             genFunc = (getattr(gen[0],func)(), getattr(gen[1],func)())
