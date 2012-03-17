@@ -394,9 +394,9 @@ class topAsymm(supy.analysis) :
                                                     dists = {"M3".join(pars["objects"]['jet']) : (20,0,600), # 0.047
                                                              "fitTopNtracksExtra" : (20,0,160),             
                                                              "tracksCountwithPrimaryHighPurityTracks" :  (20,0,250),               # 0.049
-                                                             "fitTopPartonXlo" : (20,0,0.12),              # 0.036
                                                              "fitTopFifthJet": (2,-0.5, 1.5),              # 0.052
                                                              "fitTopAbsSumRapidities" : (20, 0, 4),
+                                                             #"fitTopPartonXlo" : (20,0,0.12),              # 0.036
                                                              #"fitTopBMomentsSum2" : (20,0,0.2),           # 0.004
                                                              #"fitTopPartonXhi" : (20,0.04,0.4),           # 0.003
                                                              },
@@ -433,9 +433,11 @@ class topAsymm(supy.analysis) :
     @staticmethod
     def discriminantTopQCD(pars) :
         rw = pars['reweights']['abbr']
+        tops = ['ttj_mg.%s.tw.%s'%(s,rw) for s in ['wNonQQbar','wTopAsymP00']]
+        lumi = 5008
         return supy.calculables.other.Discriminant( fixes = ("","TopQCD"),
-                                                    left = {"pre":"SingleMu", "tag":"QCD_muon_pf_%s"%rw, "samples":[]},
-                                                    right = {"pre":"ttj_mg", "tag":"top_muon_pf_%s"%rw, "samples": ['ttj_mg.%s.tw.%s'%(s,rw) for s in ['wNonQQbar','wTopAsymP00']]},
+                                                    left = {"pre":"Multijet", "tag":"QCD_muon_pf_%s"%rw, "samples":["SingleMu.2011A.tw","SingleMu.2011B.tw"]+tops, 'sf':[1,1,-lumi,-lumi]},
+                                                    right = {"pre":"ttj_mg", "tag":"top_muon_pf_%s"%rw, "samples": tops},
                                                     correlations = pars['discriminant2DPlots'],
                                                     dists = {"Mt".join(pars['objects']['muon'])+"mixedSumP4" : (30,0,180), # 0.291
                                                              "Kt".join(pars['objects']["jet"]) : (24,0,120),               # 0.072
@@ -449,9 +451,11 @@ class topAsymm(supy.analysis) :
     @staticmethod
     def discriminantWQCD(pars) :
         rw = pars['reweights']['abbr']
+        tops = ['ttj_mg.%s.tw.%s'%(s,rw) for s in ['wNonQQbar','wTopAsymP00']]
+        lumi = 5008
         return supy.calculables.other.Discriminant( fixes = ("","WQCD"),
                                                     left = {"pre":"wj_lv_mg", "tag":"top_muon_pf_%s"%rw, "samples":[]},
-                                                    right = {"pre":"SingleMu", "tag":"QCD_muon_pf_%s"%rw, "samples":[]},
+                                                    right = {"pre":"Multijet", "tag":"QCD_muon_pf_%s"%rw, "samples":["SingleMu.2011A.tw","SingleMu.2011B.tw"]+tops, 'sf':[1,1,-lumi,-lumi]},
                                                     correlations = pars['discriminant2DPlots'],
                                                     dists = {"Mt".join(pars['objects']['muon'])+"mixedSumP4" : (30,0,180), # 0.355
                                                              "B0pt".join(pars['objects']["jet"]) : (30,0,300),             # 0.102
@@ -571,7 +575,7 @@ class topAsymm(supy.analysis) :
     def meldScale(self,rw) :
         meldSamples = {"top_muon_pf_%s"%rw : ["SingleMu","ttj_mg","wj_lv_mg","dyj_ll_mg"]+self.single_top(),
                        #"Wlv_muon_pf_%s"%rw : ["w_jets"],
-                       "QCD_muon_pf_%s"%rw : ["SingleMu"]}
+                       "QCD_muon_pf_%s"%rw : ["SingleMu","ttj_mg"]}
         
         organizers = [supy.organizer(tag, [s for s in self.sampleSpecs(tag) if any(item in s['name'] for item in meldSamples[tag])])
                       for tag in [p['tag'] for p in self.readyConfs if p["tag"] in meldSamples]]
@@ -581,14 +585,13 @@ class topAsymm(supy.analysis) :
             org.mergeSamples(targetSpec = {"name":"W", "color":r.kRed}, allWithPrefix = "wj_lv_mg")
             org.mergeSamples(targetSpec = {"name":"DY", "color":28}, allWithPrefix = "dyj_ll_mg")
             org.mergeSamples(targetSpec = {"name":"Single", "color":r.kGray}, sources = ["%s.tw.%s"%(s,rw) for s in self.single_top()], keepSources = False )
-            org.mergeSamples(targetSpec = {"name":"Data 2011",
-                                           "color":r.kBlue if "QCD_" in org.tag else r.kBlack,
-                                           "markerStyle":(20 if "top" in org.tag else 1)}, allWithPrefix="SingleMu")
+            org.mergeSamples(targetSpec = {"name":"Data 2011", "color":r.kBlack, "markerStyle":20}, allWithPrefix="SingleMu")
             org.scale()
+            if "QCD_" in org.tag : org.mergeSamples(targetSpec = {"name":"multijet","color":r.kBlue}, sources=["Data 2011",'t#bar{t}'], scaleFactors = [1,-1], force=True)
 
         self.orgMelded = supy.organizer.meld(organizers = organizers)
 
-        templateSamples = ['top.t#bar{t}','top.W','QCD.Data 2011']
+        templateSamples = ['top.t#bar{t}','top.W','QCD.multijet']
         baseSamples = ['top.Single','top.DY']
 
         mfCanvas = r.TCanvas()
@@ -653,7 +656,6 @@ class topAsymm(supy.analysis) :
         
     def PEcurves(self) :
         if not hasattr(self, 'orgMelded') : return
-        #specs = ([{'var' : "ak5JetPFTCHEPat[i[%d]]:xcak5JetPFIndicesBtaggedPat"%bIndex, 'left':True, 'right':False} for bIndex in [0,1,2]] +
         specs = ([{'var' : "ak5JetPFCSVPat[i[%d]]:xcak5JetPFIndicesBtaggedPat"%bIndex, 'left':True, 'right':False} for bIndex in [0,1,2]] +
                  [{'var' : "TopRatherThanWProbability",                                      'left':True, 'right':False},
                   {'var' : "TriDiscriminant",                                                'left':True, 'right':True}])
@@ -662,7 +664,7 @@ class topAsymm(supy.analysis) :
             dists = dict(zip([ss['name'] for ss in self.orgMelded.samples ],
                              self.orgMelded.steps[next(self.orgMelded.indicesOfStepsWithKey(spec['var']))][spec['var']] ) )
             contours = supy.utils.optimizationContours( [dists['top.t#bar{t}']],
-                                                        [dists[s] for s in ['QCD.Data 2011','top.W','top.Single','top.DY']],
+                                                        [dists[s] for s in ['QCD.multijet','top.W','top.Single','top.DY']],
                                                         **spec
                                                         )
             supy.utils.tCanvasPrintPdf(contours[0], "%s/PE_%s"%(self.globalStem,spec['var']))
