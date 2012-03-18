@@ -1,4 +1,5 @@
 from supy.defaultConfiguration import *
+from supy import whereami
 
 def mainTree() :
     return ("susyTree","tree")
@@ -16,7 +17,7 @@ def cppFiles() :
     return ["cpp/linkdef.cxx"]
 
 def hadd() :
-    return ['hadd', supy.whereami()+'/run/phaddy'][1]
+    return ['hadd', whereami()+'/run/phaddy'][1]
 
 def dictionariesToGenerate() :
     return [
