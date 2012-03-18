@@ -1,4 +1,4 @@
-from supy.defaultConfiguration import *
+from supy.defaults import *
 from supy import whereami
 
 def mainTree() :
