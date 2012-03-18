@@ -15,8 +15,8 @@ class example(supy.analysis) :
             supy.steps.printer.progressPrinter(),
             steps.trigger.techBitFilter([0],True).onlyData(),
             steps.trigger.physicsDeclaredFilter().onlyData(),
-            supy.steps.histos.multiplicity("vertexIndices"),
-            supy.steps.filters.multiplicity("vertexIndices", min = 1),
+            #supy.steps.histos.multiplicity("vertexIndices"),
+            #supy.steps.filters.multiplicity("vertexIndices", min = 1),
             steps.filters.monster(),
 
             supy.steps.filters.pt("%sCorrectedP4%s"%jets, min = pt, indices = "%sIndices%s"%jets, index = 0),
