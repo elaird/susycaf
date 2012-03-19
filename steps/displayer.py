@@ -1,5 +1,6 @@
 import os,collections,copy,ROOT as r
-from supy import analysisStep,utils,configuration
+from supy import analysisStep,utils
+import configuration
 #####################################
 pdgLookupExists = False
 try:

@@ -1,4 +1,5 @@
-from supy import wrappedChain,utils,configuration
+from supy import wrappedChain,utils
+import configuration
 import math,ROOT as r
 try:
     import numpy as np
