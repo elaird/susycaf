@@ -19,7 +19,7 @@ def cppFiles() :
 def hadd() :
     return ['hadd', whereami()+'/run/phaddy'][1]
 
-def dictionariesToGenerate() :
+def cppROOTDictionariesToGenerate() :
     return [
         ("pair<string,bool>", "string"),
         ("map<std::string,bool>", "string;map"),
