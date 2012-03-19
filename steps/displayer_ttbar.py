@@ -1,5 +1,5 @@
-import math,os,collections,ROOT as r,numpy as np
-from supy import analysisStep,utils,configuration
+import math,os,collections,configuration, ROOT as r,numpy as np
+from supy import analysisStep,utils
 #####################################
 pdgLookupExists = False
 try:

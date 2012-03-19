@@ -1,4 +1,5 @@
-from supy import wrappedChain,calculables,utils,configuration
+from supy import wrappedChain,calculables,utils
+import configuration
 import collections
 ##############################
 class IndicesOther(calculables.IndicesOther) :

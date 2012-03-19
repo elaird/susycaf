@@ -1,4 +1,5 @@
-from supy import wrappedChain,utils,configuration
+from supy import wrappedChain,utils
+import configuration
 from muon import IndicesOther,IndicesNonIso,IndicesAnyIso,IndicesAnyIsoIsoOrder,LeadingPt
 ##############################
 barrelEtaMax = configuration.detectorSpecs()["cms"]["barrelEtaMax"]
