@@ -421,14 +421,13 @@ class topAsymm(supy.analysis) :
                                                     left = {"pre":"wj_lv_mg", "tag":"top_muon_pf_%s"%rw, "samples":[]},
                                                     right = {"pre":"ttj_mg", "tag":"top_muon_pf_%s"%rw, "samples": ['ttj_mg.%s.tw.%s'%(s,rw) for s in ['wNonQQbar','wTopAsymP00']]},
                                                     correlations = pars['discriminant2DPlots'],
-                                                    dists = {"TopRatherThanWProbability" : (20,0.5,1),          # 0.183
-                                                             "B0pt".join(pars['objects']["jet"]) : (20,0,200),  # 0.13
-                                                             "fitTopHadChi2"     : (20,0,40),                # 0.045
-                                                             "mixedSumP4.pt"     : (30,0,180),                # 0.043
-                                                             #"3absEta".join(pars['objects']["jet"]) : (20,0,4),# 0.018
+                                                    dists = {"TopRatherThanWProbability" : (20,0.5,1),          # 0.185
+                                                             "B0pt".join(pars['objects']["jet"]) : (20,0,200),  # 0.128
+                                                             "fitTopHadChi2"     : (20,0,20),                   # 0.049
+                                                             #"mixedSumP4.pt"     : (30,0,180),                 # 0.043
                                                              #"Kt".join(pars['objects']["jet"]) : (25,0,150),   # 0.018
-                                                             #"fitTopDeltaPhiLNu" : (20,0,math.pi),           # 0.019
-                                                             #"fitTopLeptonPt"    : (20,0,180),               # Find out
+                                                             #"fitTopDeltaPhiLNu" : (20,0,math.pi),             # 0.019
+                                                             #"fitTopLeptonPt"    : (20,0,180),                 # Find out
                                                              })
     @staticmethod
     def discriminantTopQCD(pars) :
@@ -439,14 +438,9 @@ class topAsymm(supy.analysis) :
                                                     left = {"pre":"Multijet", "tag":"QCD_muon_pf_%s"%rw, "samples":["SingleMu.2011A.tw","SingleMu.2011B.tw"]+tops, 'sf':[1,1,-lumi,-lumi]},
                                                     right = {"pre":"ttj_mg", "tag":"top_muon_pf_%s"%rw, "samples": tops},
                                                     correlations = pars['discriminant2DPlots'],
-                                                    dists = {"Mt".join(pars['objects']['muon'])+"mixedSumP4" : (30,0,180), # 0.291
-                                                             "Kt".join(pars['objects']["jet"]) : (24,0,120),               # 0.072
-                                                             #"3absEta".join(pars['objects']["jet"]) : (20,0,4),            # 0.004
-                                                             #"DeltaPhiB01".join(pars['objects']["jet"]) : (20,0,math.pi),  # 0.009
-                                                             #"B0pt".join(pars['objects']["jet"]) : (30,0,300),            # 0.010
-                                                             #"mixedSumP4.pt"     : (30,0,180),                          #
-                                                             #"fitTopLeptonPt"    : (30,0,180),                          #
-                                                             #"fitTopDeltaPhiLNu" : (20,0,math.pi),                      #
+                                                    dists = {"Mt".join(pars['objects']['muon'])+"mixedSumP4" : (30,0,180), # 0.329
+                                                             "Kt".join(pars['objects']["jet"]) : (24,0,120),               # 0.079
+                                                             #"B0pt".join(pars['objects']["jet"]) : (30,0,300),
                                                              })
     @staticmethod
     def discriminantWQCD(pars) :
@@ -457,10 +451,8 @@ class topAsymm(supy.analysis) :
                                                     left = {"pre":"wj_lv_mg", "tag":"top_muon_pf_%s"%rw, "samples":[]},
                                                     right = {"pre":"Multijet", "tag":"QCD_muon_pf_%s"%rw, "samples":["SingleMu.2011A.tw","SingleMu.2011B.tw"]+tops, 'sf':[1,1,-lumi,-lumi]},
                                                     correlations = pars['discriminant2DPlots'],
-                                                    dists = {"Mt".join(pars['objects']['muon'])+"mixedSumP4" : (30,0,180), # 0.355
-                                                             "B0pt".join(pars['objects']["jet"]) : (30,0,300),             # 0.102
-                                                             #"fitTopCosHelicityThetaL": (20,-1,1),                         # 0.049
-                                                             #"DeltaPhiB01".join(pars['objects']["jet"]) : (20,0,math.pi),  # 0.018
+                                                    dists = {"Mt".join(pars['objects']['muon'])+"mixedSumP4" : (30,0,180), # 0.395
+                                                             "B0pt".join(pars['objects']["jet"]) : (30,0,300),             # 0.122
                                                              })
     
     ########################################################################################
@@ -509,7 +501,7 @@ class topAsymm(supy.analysis) :
 
         kwargs.update({"samplesForRatios":("",""),
                        "omit2D" : False,
-                       "dependence2D" : False})
+                       "dependence2D" : True})
         supy.plotter(orgpdf, pdfFileName = self.pdfFileName(org.tag+"_pdf"), doLog = False, **kwargs ).plotAll()
 
     def meldWpartitions(self,pars) :
