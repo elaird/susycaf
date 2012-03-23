@@ -296,9 +296,11 @@ class topAsymm(supy.analysis) :
              , steps.top.combinatorialFrequency().onlySim()
              , ssteps.filters.label('gen top kinfit ')
              , steps.top.kinFitLook('genTopRecoIndex')
+             #, steps.top.kinematics('genTop')
              , steps.top.resolutions('genTopRecoIndex')
              , ssteps.filters.label('reco top kinfit ')
              , steps.top.kinFitLook('fitTopRecoIndex')
+             , steps.top.kinematics('fitTop')
              , steps.top.resolutions('fitTopRecoIndex')
              ####################################
              #, steps.displayer.ttbar(jets=obj["jet"], met=obj['met'], muons = obj['muon'], electrons = obj['electron'])

@@ -268,6 +268,16 @@ class topProbLook(analysisStep) :
         self.book.fill(maxProb, "TopComboMaxProbability", 100,0,1, title = ';TopComboMaxProbability;events / bin')
         self.book.fill((maxProb,multiplicity), "TopComboMaxProbabilityLen"+self.indices, (100,10), (0,-0.5), (1,9.5), title = ';TopComboMaxProbability;jet multiplicity;events / bin')
 #####################################
+class kinematics(analysisStep) :
+    def __init__(self,indexName) : self.moreName = indexName
+    def uponAcceptance(self,ev) :
+        index = ev["%sRecoIndex"%self.moreName]
+        if index < 0 : return
+        #topReco = ev["TopReconstruction"][index]
+
+        mass = ev["%sTtxMass"%self.moreName]
+        self.book.fill(mass , "TTX.mass", 70,300,1000, title = ";ttx invariant mass;events / bin")
+#####################################
 class resolutions(analysisStep) :
     def __init__(self,indexName) : self.moreName = indexName
     def uponAcceptance(self,ev) :
