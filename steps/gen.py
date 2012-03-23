@@ -38,7 +38,7 @@ class genJetPrinter(analysisStep) :
         self.moreName+=")"
 
     def uponAcceptance (self,eventVars) :
-        p4Vector        =eventVars[self.jetCollection+'GenJetP4'     +self.jetSuffix]
+        p4Vector        =eventVars[self.jetCollection+'GenJetsP4'     +self.jetSuffix]
         #emEnergy        =eventVars[self.jetCollection+'EmEnergy'        +self.jetSuffix]
         #hadEnergy       =eventVars[self.jetCollection+'HadEnergy'       +self.jetSuffix]
         #invisibleEnergy =eventVars[self.jetCollection+'InvisibleEnergy' +self.jetSuffix]

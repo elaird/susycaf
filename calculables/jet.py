@@ -195,6 +195,27 @@ class IndicesGenWqq(wrappedChain.calculable) :
         return False
     def update(self,ignored) : self.value = filter(self.matchesGenWqq, self.source[self.Indices])
 ###################################
+class IndicesGenPrimary(wrappedChain.calculable) :
+    def __init__(self,collection) :
+        self.fixes = collection
+        self.stash(["Indices","CorrectedP4"])
+    def update(self,_) :
+        p4 = self.source[self.CorrectedP4]
+        gen = self.source['genP4']
+        pdg = self.source['genPdgId']
+        imom = self.source['genMotherIndex']
+        status = self.source['genStatus']
+        jgen = [j for j in range(len(gen)) if imom[j]>3 and abs(pdg[j]) in [1,2,3,4,5,11,13,15,21] and status[j]==3 ]
+        self.value = [i for i in self.source[self.Indices] if
+                      any(r.Math.VectorUtil.DeltaR(p4[i],gen[j])<0.5 for j in jgen)]
+###################################
+class IndicesGenPileup(wrappedChain.calculable) :
+    def __init__(self,collection) :
+        self.fixes = collection
+        self.stash(["Indices","IndicesGenPrimary"])
+    def update(self,_) :
+        self.value = [i for i in self.source[self.Indices] if i not in self.source[self.IndicesGenPrimary]]
+###################################
 class NMuonsMatched(wrappedChain.calculable) :
     def __init__(self, collection = None) :
         self.fixes = collection
@@ -987,3 +1008,47 @@ class FourJetAbsEtaThreshold(wrappedChain.calculable) :
         indices = self.source[self.Indices]
         idAbsEta = sorted([abs(p4.at(i).eta()) for i in indices])
         self.value = 0 if len(idAbsEta)<4 else idAbsEta[3]
+######################################
+class MaxAbsEta(wrappedChain.calculable) :
+    def __init__(self, collection = None) :
+        self.fixes = collection
+        self.stash(['CorrectedP4', 'Indices'])
+    def update(self,_):
+        p4 = self.source[self.CorrectedP4]
+        indices = self.source[self.Indices]
+        self.value = max(abs(p4.at(i).eta()) for i in indices)
+######################################
+class PileUpPtFraction(wrappedChain.calculable) :
+    def __init__(self, collection = None ) :
+        self.fixes = collection
+        self.stash(['SumP3withPrimaryHighPurityTracks',
+                    'SumP3withPileUpHighPurityTracks'], xcStrip(collection))
+    def update(self,_) :
+        pri = self.source[self.SumP3withPrimaryHighPurityTracks]
+        pu = self.source[self.SumP3withPileUpHighPurityTracks]
+        self.value = [pu[i].rho()/max(0.001,pu[i].rho()+pri[i].rho()) for i in range(len(pri))]
+######################################
+class DijetMHTOverHT(wrappedChain.calculable) :
+    def __init__(self, collection = None ) :
+        self.fixes = collection
+        self.stash(['CorrectedP4'])
+        self.moreName = "Dictionary of MHT/HT for jet pairs, indexed by jet indices (i,j)"
+        
+    def update(self,_) :
+        p4 = self.source[self.CorrectedP4]
+        def f(p,q) : return (p+q).pt() / ( p.pt() + q.pt() )
+        self.value = dict([((i,j),f(p4[i],p4[j])) for i,j in itertools.combinations(range(len(p4)), 2)])
+######################################
+class IndexBestDijet(wrappedChain.calculable) :
+    def __init__(self, collection = None ) :
+        self.fixes = collection
+        self.stash(['DijetMHTOverHT','CorrectedP4'])
+
+    def update(self,_) :
+        indices = range(len(self.source[self.CorrectedP4]))
+        mhtht = self.source[self.DijetMHTOverHT]
+        self.value = [ min( (j for j in indices if j!=i),
+                            key = lambda j : mhtht[tuple(sorted([i,j]))])
+                       for i in indices]
+######################################
+

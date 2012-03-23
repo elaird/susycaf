@@ -32,12 +32,8 @@ class monster(analysisStep) :
         self.moreName = "<=%d tracks or >%.2f good fraction" % (maxNumTracks, minGoodTrackFraction)
 
     def select (self,eventVars) :
-        nTracks = sum(map(eventVars.__getitem__, ["tracksNEtaLT0p9AllTracks",
-                                                  "tracksNEta0p9to1p5AllTracks",
-                                                  "tracksNEtaGT1p5AllTracks"]))
-        nGoodTracks = sum(map(eventVars.__getitem__, ["tracksNEtaLT0p9HighPurityTracks",
-                                                      "tracksNEta0p9to1p5HighPurityTracks",
-                                                      "tracksNEtaGT1p5HighPurityTracks"]))
+        nTracks = eventVars['nTracksAll']
+        nGoodTracks = eventVars['nTracksHighPurity']
         return (nTracks <= self.maxNumTracks or nGoodTracks > self.minGoodTrackFraction*nTracks)
 #####################################
 class DeltaRGreaterSelector(analysisStep) :
