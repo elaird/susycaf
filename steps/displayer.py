@@ -1,5 +1,6 @@
 import os,collections,copy,ROOT as r
-from supy import analysisStep,utils
+from supy import utils
+import supy
 import configuration
 #####################################
 pdgLookupExists = False
@@ -9,7 +10,7 @@ try:
 except ImportError:
     pass
 #####################################
-class displayer(analysisStep) :
+class displayer(supy.steps.displayer) :
     
     def __init__(self, jets = None, met = None, muons = None, electrons = None, photons = None, taus = None,
                  recHits = None, recHitPtThreshold = -100.0, scale = 200.0, etRatherThanPt = False, doGenParticles = False, doGenJets = False,
@@ -67,18 +68,6 @@ class displayer(analysisStep) :
         self.legendDict = collections.defaultdict(int)
         self.legendList = []
 
-    def outputSuffix(self) :
-        return "_displays.root"
-    
-    def setup(self, chain, fileDir) :
-        someDir = r.gDirectory
-        self.outputFile = r.TFile(self.outputFileName, "RECREATE")
-        someDir.cd()
-
-        self.canvas = utils.canvas("canvas")
-        self.canvas.SetFixedAspectRatio()
-        self.canvasIndex = 0
-
         self.ellipse = r.TEllipse()
         self.ellipse.SetFillStyle(0)
 
@@ -110,11 +99,6 @@ class displayer(analysisStep) :
         self.metLlHisto=r.TH2D("metLlHisto",";log ( likelihood / likelihood0 ) / N varied jets;#slashE_{T};tries / bin",100,-20.0+epsilon,0.0+epsilon,100,0.0,300.0)
         self.mhtLlHisto.SetDirectory(0)
         self.metLlHisto.SetDirectory(0)
-
-    def endFunc(self, chains) :
-        self.outputFile.Write()
-        self.outputFile.Close()
-        del self.canvas
 
     def prepareText(self, params, coords) :
         self.text.SetTextSize(params["size"])
@@ -951,9 +935,7 @@ class displayer(analysisStep) :
         pad.Draw()
         return [pad]
 
-    def uponAcceptance(self, eventVars) :
-        self.canvas.Clear()
-
+    def display(self, eventVars) :
         rhoPhiPadYSize = 0.50*self.canvas.GetAspectRatio()
         rhoPhiPadXSize = 0.50
         radius = 0.4
@@ -984,33 +966,4 @@ class displayer(analysisStep) :
                                          "y1":0.0,
                                          "x2":1.0,
                                          "y2":1.0})
-        
-        someDir=r.gDirectory
-        self.outputFile.cd()
-        self.canvas.Write("canvas_%d"%self.canvasIndex)
-        self.canvasIndex+=1
-        someDir.cd()
-
-    def mergeFunc(self, products) :
-        def psFromRoot(listOfInFileNames, outFileName) :
-            if not len(listOfInFileNames) : return
-            options = ""
-            dummyCanvas = utils.canvas("display")
-            dummyCanvas.Print(outFileName+"[", options)
-            for inFileName in listOfInFileNames :
-                inFile = r.TFile(inFileName)
-                keys = inFile.GetListOfKeys()
-                for key in keys :
-                    someObject = inFile.Get(key.GetName())
-                    if someObject.ClassName()!="TCanvas" : print "Warning: found an object which is not a TCanvas in the display root file"
-                    someObject.Print(outFileName, options)
-                inFile.Close()
-                os.remove(inFileName)                    
-            dummyCanvas.Print(outFileName+"]", options)
-            pdfFileName = outFileName.replace(".ps",".pdf")
-            os.system("ps2pdf "+outFileName+" "+pdfFileName)
-            os.system("gzip -f "+outFileName)
-            print "The display file \""+pdfFileName+"\" has been written."    
-        
-        psFromRoot(products["outputFileName"], self.outputFileName.replace(".root", ".ps"))
-        print utils.hyphens
+        return locals()
