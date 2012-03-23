@@ -69,6 +69,13 @@ class pileupJets(analysisStep) :
             self.book.fill( n[i], "ntracks_%s"%label2, 30, 0, 30, title = ';ntracks (%s);jets / bin'%label2 )
             self.book.fill( puPtFrac[i], "pileupPtFrac_%s"%label2, 50, 0, 1, title = ';pileup Pt Fraction (%s);jets / bin'%label2)
 
+        indicesPrimary = [i for i in indices if i not in indicesPU]
+        if len(indicesPrimary) :
+            iMaxPrimary = max(indicesPrimary, key = puPtFrac.__getitem__)
+            eta = abs(p4[iMaxPrimary].eta())
+            label = ('inner' if eta<1.9 else 'middle' if eta<2.6 else 'outer')  + '_' +  'primaryMax'
+            self.book.fill(puPtFrac[iMaxPrimary], "pileupPtFrac_%s"%label, 50, 0, 1, title = ';pilup Pt Fraction (%s);events / bin'%label)
+
 #####################################
 class Asymmetry(analysisStep) :
     def __init__(self, collection, bins = 18 ) :
