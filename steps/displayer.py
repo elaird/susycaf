@@ -1,5 +1,6 @@
 import os,collections,copy,ROOT as r
-from supy import analysisStep,utils
+from supy import utils
+import supy
 import configuration
 #####################################
 pdgLookupExists = False
@@ -11,8 +12,7 @@ except ImportError:
 #####################################
 from displayer_ttbar import ttbar
 #####################################
-class RA1(analysisStep) :
-    
+class displayer(supy.steps.displayer) :
     def __init__(self, jets = None, met = None, muons = None, electrons = None, photons = None, taus = None,
                  recHits = None, recHitPtThreshold = -100.0, scale = 200.0, etRatherThanPt = False, doGenParticles = False, doGenJets = False,
                  doEtaPhiPlot = True, deltaPhiStarExtraName = "", deltaPhiStarCut = None, deltaPhiStarDR = None, mhtOverMetName = "",
@@ -69,18 +69,6 @@ class RA1(analysisStep) :
         self.legendDict = collections.defaultdict(int)
         self.legendList = []
 
-    def outputSuffix(self) :
-        return "_displays.root"
-    
-    def setup(self, chain, fileDir) :
-        someDir = r.gDirectory
-        self.outputFile = r.TFile(self.outputFileName, "RECREATE")
-        someDir.cd()
-
-        self.canvas = utils.canvas("canvas")
-        self.canvas.SetFixedAspectRatio()
-        self.canvasIndex = 0
-
         self.ellipse = r.TEllipse()
         self.ellipse.SetFillStyle(0)
 
@@ -112,11 +100,6 @@ class RA1(analysisStep) :
         self.metLlHisto=r.TH2D("metLlHisto",";log ( likelihood / likelihood0 ) / N varied jets;#slashE_{T};tries / bin",100,-20.0+epsilon,0.0+epsilon,100,0.0,300.0)
         self.mhtLlHisto.SetDirectory(0)
         self.metLlHisto.SetDirectory(0)
-
-    def endFunc(self, chains) :
-        self.outputFile.Write()
-        self.outputFile.Close()
-        del self.canvas
 
     def prepareText(self, params, coords) :
         self.text.SetTextSize(params["size"])
@@ -953,9 +936,7 @@ class RA1(analysisStep) :
         pad.Draw()
         return [pad]
 
-    def uponAcceptance(self, eventVars) :
-        self.canvas.Clear()
-
+    def display(self, eventVars) :
         rhoPhiPadYSize = 0.50*self.canvas.GetAspectRatio()
         rhoPhiPadXSize = 0.50
         radius = 0.4
@@ -1018,3 +999,6 @@ class RA1(analysisStep) :
         print utils.hyphens
 
 
+=======
+        return locals()
+>>>>>>> master
