@@ -32,7 +32,7 @@ class ttbar(supy.steps.displayer) :
         self.keep = []
         self.preparePads()
 
-    def display(self, ev) :
+    def display(self, eV) :
         r.gStyle.SetOptStat(110011)
 
         self.drawMet(eV, r.kRed+1, 1 )
