@@ -1,14 +1,7 @@
 import math,os,collections,configuration, ROOT as r,numpy as np
-from supy import analysisStep,utils
+import supy
 #####################################
-pdgLookupExists = False
-try:
-    import pdgLookup
-    pdgLookupExists = True
-except ImportError:
-    pass
-#####################################
-class ttbar(analysisStep) :
+class ttbar(supy.steps.displayer) :
     
     def __init__(self, jets = None, met = None, muons = None, electrons = None, photons = None, taus = None, scale = 200 , prettyMode = True , printExtraText = False ) :
 
@@ -22,6 +15,7 @@ class ttbar(analysisStep) :
         self.titleSizeFactor = 1.0
         self.legendDict = collections.defaultdict(int)
         self.legendList = []
+        self.keep = []
         
         self.prettyReName = {
             "clean jets (xcak5JetPFPat)": "jets (AK5 PF)",
@@ -33,15 +27,14 @@ class ttbar(analysisStep) :
             "electronPF": "electrons",
             }
 
-    def outputSuffix(self) :
-        return "_displaysTTbar.root"
-    
-    def uponAcceptance(self, eV) :
+    def reset(self) :
+        del self.keep
         self.keep = []
+        self.preparePads()
 
+    def display(self, eV) :
         r.gStyle.SetOptStat(110011)
 
-        self.preparePads(eV)
         self.drawMet(eV, r.kRed+1, 1 )
         self.drawJets(eV, r.kBlue+3, 1 )
         self.drawLeptons(eV, r.kGreen+3, 1, kind = "muon" , desc = 'charged lepton')
@@ -55,16 +48,9 @@ class ttbar(analysisStep) :
 
         self.drawLegend()
         self.printNarrowText(eV)
-        
-        self.outputFile.cd()
-        self.canvas.Write("canvas_%d"%self.canvasIndex)
-        self.canvasIndex += 1
-        del self.keep
 
     def setup(self, chain, fileDir) :
-        someDir = r.gDirectory
-        self.outputFile = r.TFile(self.outputFileName, "RECREATE")
-        someDir.cd()
+        super(ttbar, self).setup(chain,fileDir)
         
         self.ellipse = r.TEllipse(); self.ellipse.SetFillStyle(0)
         self.metunc= r.TEllipse(); self.metunc.SetFillStyle(0); self.metunc.SetLineStyle(3); self.metunc.SetLineColor(r.kRed+1)
@@ -73,7 +59,6 @@ class ttbar(analysisStep) :
         self.marker = r.TMarker();
         self.text = r.TText()
         self.latex = r.TLatex()
-        self.canvas = utils.canvas("canvas"); self.canvas.SetFixedAspectRatio(); self.canvasIndex = 0
 
         rhoPhiPadYSize = 0.40*self.canvas.GetAspectRatio()
         rhoPhiPadXSize = 0.40
@@ -281,7 +266,7 @@ class ttbar(analysisStep) :
         for i in eV["IndicesAnyIso".join(lepton)] :
             self.drawP4(self.rhoPhiCoords, p4.at(i), color, lineWidth, self.arrow.GetDefaultArrowSize() )
                         
-    def preparePads(self, eV) :
+    def preparePads(self) :
         self.legendPad.Clear();
         self.rhoPhiPad.Clear();
         self.etaPhiPad.Clear();
@@ -376,27 +361,5 @@ class ttbar(analysisStep) :
         self.narrowPad.Draw()
 
 
-    def mergeFunc(self, products) :
-        def psFromRoot(listOfInFileNames, outFileName) :
-            if not len(listOfInFileNames) : return
-            options = "pdf"
-            dummyCanvas = utils.canvas("display")
-            dummyCanvas.Print(outFileName+"[", options)
-            for inFileName in listOfInFileNames :
-                inFile = r.TFile(inFileName)
-                keys = inFile.GetListOfKeys()
-                for key in keys :
-                    someObject = inFile.Get(key.GetName())
-                    if someObject.ClassName()!="TCanvas" : print "Warning: found an object which is not a TCanvas in the display root file"
-                    someObject.Print(outFileName, options)
-                inFile.Close()
-                os.remove(inFileName)                    
-            dummyCanvas.Print(outFileName+"]", options)
-            print "The display file \""+outFileName+"\" has been written."    
-        
-        psFromRoot(products["outputFileName"], self.outputFileName.replace(".root", ".pdf"))
-        print utils.hyphens
 
-    def endFunc(self, chains) :
-        self.outputFile.Write(); self.outputFile.Close(); del self.canvas
 

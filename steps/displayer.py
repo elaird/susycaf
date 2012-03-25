@@ -968,37 +968,4 @@ class displayer(supy.steps.displayer) :
                                          "x2":1.0,
                                          "y2":1.0})
         
-        someDir=r.gDirectory
-        self.outputFile.cd()
-        self.canvas.Write("canvas_%d"%self.canvasIndex)
-        self.canvasIndex+=1
-        someDir.cd()
-
-    def mergeFunc(self, products) :
-        def psFromRoot(listOfInFileNames, outFileName) :
-            if not len(listOfInFileNames) : return
-            options = ""
-            dummyCanvas = utils.canvas("display")
-            dummyCanvas.Print(outFileName+"[", options)
-            for inFileName in listOfInFileNames :
-                inFile = r.TFile(inFileName)
-                keys = inFile.GetListOfKeys()
-                for key in keys :
-                    someObject = inFile.Get(key.GetName())
-                    if someObject.ClassName()!="TCanvas" : print "Warning: found an object which is not a TCanvas in the display root file"
-                    someObject.Print(outFileName, options)
-                inFile.Close()
-                os.remove(inFileName)                    
-            dummyCanvas.Print(outFileName+"]", options)
-            pdfFileName = outFileName.replace(".ps",".pdf")
-            os.system("ps2pdf "+outFileName+" "+pdfFileName)
-            os.system("gzip -f "+outFileName)
-            print "The display file \""+pdfFileName+"\" has been written."    
-        
-        psFromRoot(products["outputFileName"], self.outputFileName.replace(".root", ".ps"))
-        print utils.hyphens
-
-
-=======
         return locals()
->>>>>>> master
