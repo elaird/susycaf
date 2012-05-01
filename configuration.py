@@ -1,6 +1,9 @@
 from supy.defaults import *
 from supy import whereami
 
+def experiment() :
+    return "cms"
+
 def mainTree() :
     return ("susyTree","tree")
 
