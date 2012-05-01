@@ -15,7 +15,7 @@ git clone git://github.com/<user>/susycaf.git #2) clone repo: <user> can be betc
 cd susycaf
 git submodule update --init                   #3) checkout supy dependence
 export PYTHONPATH=$PYTHONPATH:`pwd`           #4a) add directory containing supy to your python path
-export PATH=$PATH:`pwd`/supy/run	      #4b) optionally add to your path
+export PATH=$PATH:`pwd`/supy/bin	      #4b) optionally add to your path
 supy analyses/example.py --loop 1             #5) Run the example (the example input files are located on AFS):
 
 ----------------
