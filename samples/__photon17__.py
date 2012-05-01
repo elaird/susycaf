@@ -1,7 +1,6 @@
 from supy.samples import SampleHolder
 from supy.sites import pnfs
 pnfs = pnfs()
-print pnfs
 photon17 = SampleHolder()
 
 photon17.add("Photon.Run2012A-PromptReco-v1.AOD.job29", '%s/zmeng//ICF/automated/2012_04_13_19_13_29/")'%pnfs, lumi = 1.0)
