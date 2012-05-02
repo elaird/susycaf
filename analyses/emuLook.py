@@ -22,7 +22,10 @@ class emuLook(supy.analysis) :
         #                                      ("muon","PF"),       ("electron","PF"),  ("photon","Pat"),             "PF",
         #                                      ]))
         
-        return {"objects": objects}
+        return {"objects": objects,
+                "bVar" : "CombinedSecondaryVertexBJetTags",
+                "bCut" : 0.679,
+                }
 
     def listOfCalculables(self, params) :
         obj = params["objects"]
@@ -44,7 +47,8 @@ class emuLook(supy.analysis) :
                                      muon = obj["muon"], muonDR = 0.5, correctForMuons = not obj["muonsInJets"],
                                      electron = obj["electron"], electronDR = 0.5
                                      ),
-            calculables.jet.Indices( obj["jet"], ptMin = 30.0, etaMax = 3.0, flagName = obj["jetId"]),
+            calculables.jet.Indices(obj["jet"], ptMin = 30.0, etaMax = 3.0, flagName = obj["jetId"]),
+            calculables.jet.IndicesBtagged(obj["jet"], tag = params["bVar"]),
             ]
         return out
     
@@ -52,6 +56,8 @@ class emuLook(supy.analysis) :
         _jet  = params["objects"]["jet"]
         _electron = params["objects"]["electron"]
         _muon = params["objects"]["muon"]
+        _bVar = "".join([_jet[0].replace("xc",""), params["bVar"], _jet[1]])
+        _bCut = params["bCut"]
 
         return [
             supy.steps.printer.progressPrinter(),
@@ -65,28 +71,39 @@ class emuLook(supy.analysis) :
             supy.steps.filters.multiplicity("%sIndices%s"%_muon,     min = 1),
             supy.steps.filters.multiplicity("%sIndices%s"%_electron, min = 1),
             supy.steps.filters.multiplicity("%sIndices%s"%_jet,      min = 2),
+            supy.steps.filters.multiplicity("%sIndices%s"%_jet,      min = 4),
             #supy.steps.filters.multiplicity("%sIndicesOther%s"%_jet, max = 0),
 
-            supy.steps.histos.multiplicity("vertexIndices"),
+            supy.steps.histos.multiplicity("vertexIndices", max = 31),
+
+            supy.steps.filters.value(_bVar, indices = "%sIndicesBtagged%s"%_jet, index = 0, min = _bCut),
+            supy.steps.filters.value(_bVar, indices = "%sIndicesBtagged%s"%_jet, index = 1, min = _bCut),
+            supy.steps.filters.value(_bVar, indices = "%sIndicesBtagged%s"%_jet, index = 2, min = _bCut),
             
-            #steps.other.skimmer(),
-            #steps.Displayer.displayer(jets = _jet,
-            #                          muons = _muon,
-            #                          met       = params["objects"]["met"],
-            #                          electrons = params["objects"]["electron"],
-            #                          photons   = params["objects"]["photon"],                            
-            #                          recHits   = params["objects"]["rechit"], recHitPtThreshold = 1.0,#GeV
-            #                          scale = 400.0,#GeV
-            #                          #doGenJets = True,
-            #                          ),
+            #supy.steps.other.skimmer(),
+            steps.displayer.displayer(jets = _jet,
+                                      muons = _muon,
+                                      met       = params["objects"]["met"],
+                                      electrons = params["objects"]["electron"],
+                                      photons   = params["objects"]["photon"],
+                                      #recHits   = params["objects"]["rechit"], recHitPtThreshold = 1.0,#GeV
+                                      scale = 200.0,#GeV
+                                      #doGenJets = True,
+                                      ra1Mode = False,
+                                      ),
             ]
     
     def listOfSampleDictionaries(self) :
-        return [samples.top17]
+        sd = supy.samples.SampleHolder()
+        sd.add("skim", '["/uscms/home/elaird/06_skim/ttj_8TeV_mg_job79_1_0_skim.root"]', xs = 1.0)
+        return [samples.top17, sd]
 
     def listOfSamples(self,params) :
         from supy.samples import specify
-        return specify(names = "ttj_8TeV_mg_job79", nFilesMax = 1, nEventsMax = 10000)
+        out = []
+        #out += specify(names = "ttj_8TeV_mg_job79", nFilesMax = 2, nEventsMax = 20000)
+        out += specify(names = "skim")
+        return out
     
     def conclude(self, conf) :
         org = self.organizer(conf)
