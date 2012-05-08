@@ -107,7 +107,7 @@ class photonLook(supy.analysis) :
                      calculables.vertex.ID(),
                      calculables.vertex.Indices(),
                      calculables.jet.deadEcalDR(obj["jet"], extraName = params["lowPtName"], minNXtals = 10),
-                     calculables.other.lowestUnPrescaledTrigger(params["triggerList"]),
+                     calculables.trigger.lowestUnPrescaledTrigger(params["triggerList"]),
                      ]
 
     def listOfSteps(self,params) :
@@ -184,7 +184,7 @@ class photonLook(supy.analysis) :
 
                 #steps.Other.passFilter("photonEfficiencyPlots2"),
                 #steps.Gen.photonEfficiencyPlots(label = "Status1Photon", ptCut = params["thresholds"]["genPhotonPtMin"],
-                #                                etaCut = 1.4, isoCut = 5.0, deltaRCut = 1.1, jets = _jet, photons = _photon),                                            
+                #                                etaCut = 1.4, isoCut = 5.0, deltaRCut = 1.1, jets = _jet, photons = _photon),
                 ]
         else :
             outList+=[
@@ -229,7 +229,7 @@ class photonLook(supy.analysis) :
             supy.steps.filters.label("singlePhotonPlots1"),
             steps.photon.singlePhotonHistogrammer(_photon, _jet),
             supy.steps.filters.label("purityPlots1"),
-            steps.gen.photonPurityPlots("Status1Photon", _jet, _photon),
+            steps.gen.photonPurityPlots("Status1Photon", _jet, _photon).onlySim(),
             
             supy.steps.filters.label("jetSumPlots"),
             steps.jet.cleanJetHtMhtHistogrammer(_jet,_etRatherThanPt),
@@ -262,7 +262,7 @@ class photonLook(supy.analysis) :
             steps.photon.singlePhotonHistogrammer(_photon, _jet),
             
             supy.steps.filters.label("purityPlots2"),
-            steps.gen.photonPurityPlots("Status1Photon", _jet, _photon),
+            steps.gen.photonPurityPlots("Status1Photon", _jet, _photon).onlySim(),
             steps.jet.cleanJetHtMhtHistogrammer(_jet,_etRatherThanPt),
             
             supy.steps.histos.histogrammer("%sMht%sOver%s" %(_jet[0], _jet[1]+params["highPtName"], _met if params["zMode"] else _met+"Plus%s%s"%_photon), 100, 0.0, 3.0,
@@ -405,7 +405,7 @@ class photonLook(supy.analysis) :
         data += specify(names = "Photon.Run2011A-05Aug2011-v1.AOD.job663_skim",  color = r.kBlue)
         data += specify(names = "Photon.Run2011A-PromptReco-v6.AOD.job667_skim", color = r.kGreen)
         data += specify(names = "Photon.Run2011B-PromptReco-v1.AOD.job668_skim", color = r.kCyan)
-        
+
         eL = 20000.0
 
         phw = calculables.photon.photonWeight(var = "vertexIndices")
@@ -427,7 +427,7 @@ class photonLook(supy.analysis) :
         zinv_mg_weighted  = specify(effectiveLumi = eL, color = r.kMagenta, names = self.zNunuMgNames(era = "summer11"), weights = phw)
 
         zinv_py6 = specify(effectiveLumi = eL, color = r.kMagenta, names = ["z_nunu"])
-        
+
         outList = []
 
         if not params["zMode"] :
@@ -511,7 +511,7 @@ class photonLook(supy.analysis) :
                     print "WARNING: HARD-CODED LUMI FOR Z MODE! (%g)"%lumi
                 else :
                     org.scale()
-            melded = organizer.organizer.meld(organizers = organizers)
+            melded = supy.organizer.meld(organizers = organizers)
             self.makeStandardPlots(melded)
             #self.makeIndividualPlots(melded)
                                  
