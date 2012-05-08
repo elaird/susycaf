@@ -3,7 +3,7 @@
 import os,copy,ROOT as r
 import supy,steps,calculables,samples
 
-class photonLook(supy.analysis) :
+class photonLook2011(supy.analysis) :
     def parameters(self) :
         objects = self.vary()
         fields =                                             [ "jet",             "met",            "muon",        "electron",        "photon",       "rechit", "muonsInJets"]
