@@ -3,16 +3,30 @@
 import os,copy,ROOT as r
 import supy,steps,calculables,samples
 
-class photonLook(supy.analysis) :
+class photonLook2011(supy.analysis) :
     def parameters(self) :
         objects = self.vary()
-        fields =                              [ "jet",             "met",            "muon",        "electron",        "photon",       "rechit", "muonsInJets"]
-        objects["caloJet"] = dict(zip(fields, [("xcak5Jet","Pat"), "metP4AK5TypeII",("muon","Pat"),("electron","Pat"),("photon","Pat"), "Calo" ,    False,    ]))
+        fields =                                             [ "jet",             "met",            "muon",        "electron",        "photon",       "rechit", "muonsInJets"]
+        objects["caloAK5Jet_recoLepPhot"] = dict(zip(fields, [("xcak5Jet","Pat"), "metP4AK5TypeII",("muon","Pat"),("electron","Pat"),("photon","Pat"), "Calo" ,    False,    ]))
+        #objects["pfAK5Jet_recoLepPhot"]   = dict(zip(fields, [("xcak5JetPF","Pat"), "metP4PF",     ("muon","Pat"),("electron","Pat"),("photon","Pat"),  "PF"  ,    True ,    ]))
+        #objects["pfAK5JetLep_recoPhot"]   = dict(zip(fields, [("xcak5JetPF","Pat"), "metP4PF",     ("muon","PF"), ("electron","PF"), ("photon","Pat"), "PF"  ,     True ,    ]))
 
         return { "objects": objects,
                  "nJetsMinMax" :      self.vary(dict([ ("ge2",(2,None)),  ("2",(2,2)),  ("ge3",(3,None)) ]       [0:1] )),
-                 "photonId" :         "photonIDTightFromTwikiPat",
-                 "zMode" :            self.vary(dict([ ("Z",True), ("g",False) ]                                  [1:]  )),
+                 "photonId" :         self.vary(dict([ ("photonIsoRelaxed","photonIDIsoRelaxedPat"),            #0
+
+                                                       ("photonLoose","photonIDLooseFromTwikiPat"),             #1
+                                                       ("photonTight","photonIDTightFromTwikiPat"),             #2
+                                                       
+                                                       ("photonEGM-10-006-Loose","photonIDEGM_10_006_LoosePat"),#3
+                                                       ("photonEGM-10-006-Tight","photonIDEGM_10_006_TightPat"),#4
+                                                       
+                                                       ("photonTrkIsoRelaxed","photonIDTrkIsoRelaxedPat"),      #5
+                                                       ("photonTrkIsoSideband","photonIDTrkIsoSideBandPat"),    #6
+                                                       ("photonIsoSideband","photonIDIsoSideBandPat"),          #7
+                                                       ("photonNoIsoReq","photonIDNoIsoReqPat"),                #8
+                                                       ("photonAN-10-268",   "photonIDAnalysisNote_10_268Pat")]  [2:3] )),
+                 "zMode" :            self.vary(dict([ ("Z",True), ("g",False) ]                                  [:]  )),
                  "vertexMode" :       self.vary(dict([ ("vertexMode",True), ("",False) ]                         [1:2] )),
                  "subdet" :           self.vary(dict([ ("barrel", (0.0, 1.444)), ("endcap", (1.566, 2.5)) ]      [:1 ] )),
                  "jetId" :  ["JetIDloose","JetIDtight"]            [0],
@@ -28,10 +42,14 @@ class photonLook(supy.analysis) :
                                                 ("325_scaled", (325.0, 375.0,  86.7, 43.3)),#4
                                                 ][2:3] )),
                  #required to be sorted
-                 "triggerList": tuple(["HLT_Photon135_v%d"%i for i in [6]]+
-                                      ["HLT_Photon150_v%d"%i for i in [3]]+
-                                      ["HLT_Photon160_v%d"%i for i in [3]]
-                                      ),
+                 #"triggerList" : ("HLT_HT100U","HLT_HT100U_v3","HLT_HT120U","HLT_HT140U","HLT_HT150U_v3"), #2010
+                 "triggerList": tuple(["HLT_Photon75_CaloIdVL_v%d"%i for i in range(1,8)]+
+                                      ["HLT_Photon75_CaloIdVL_IsoL_v%d"%i for i in range(1,11)]+
+                                      ["HLT_Photon90_CaloIdVL_v%d"%i for i in range(1,5)]+
+                                      ["HLT_Photon90_CaloIdVL_IsoL_v%d"%i for i in range(1,8)]+
+                                      ["HLT_Photon125_v%d"%i for i in range(1,3)]+
+                                      ["HLT_Photon135_v%d"%i for i in range(1,3)]
+                                      ),#2011
                  }
 
     def listOfCalculables(self, params) :
@@ -167,7 +185,6 @@ class photonLook(supy.analysis) :
                 #steps.Other.passFilter("photonEfficiencyPlots2"),
                 #steps.Gen.photonEfficiencyPlots(label = "Status1Photon", ptCut = params["thresholds"]["genPhotonPtMin"],
                 #                                etaCut = 1.4, isoCut = 5.0, deltaRCut = 1.1, jets = _jet, photons = _photon),
-                #steps.trigger.hltTurnOnHistogrammer("photonLeadingPtPat", (100, 70, 200), "HLT_Photon135_v6", ["HLT_Photon50_CaloIdVL_IsoL_v16", "HLT_Photon75_CaloIdVL_IsoL_v17", "HLT_Photon75_CaloIdVL_v12", "HLT_Photon90_CaloIdVL_IsoL_v14", "HLT_Photon90_CaloIdVL_v9"]), #2012
                 ]
         else :
             outList+=[
@@ -188,10 +205,31 @@ class photonLook(supy.analysis) :
             supy.steps.filters.multiplicity("%sIndices%s"%_jet, min = params["nJetsMinMax"][0], max = params["nJetsMinMax"][1]),
             ]
 
+        ##play with photon pT
+        #outList += [
+        #    steps.Filter.pt("%sP4%s"%_photon, min = params["thresholds"][2], indices = "%sIndices%s"%_photon, index = 0),
+        #    steps.Other.histogrammer("%sIndices%s"%_jet, 20, -0.5, 19.5, title=";number of %s%s passing ID#semicolon p_{T}#semicolon #eta cuts;events / bin"%_jet, funcString="lambda x:len(x)"),
+        #    steps.Filter.pt("%sP4%s"%_photon, min = 1.2*params["thresholds"][2], indices = "%sIndices%s"%_photon, index = 0),            
+        #    steps.Other.histogrammer("%sIndices%s"%_jet, 20, -0.5, 19.5, title=";number of %s%s passing ID#semicolon p_{T}#semicolon #eta cuts;events / bin"%_jet, funcString="lambda x:len(x)"),
+        #    steps.Filter.pt("%sP4%s"%_photon, min = 1.5*params["thresholds"][2], indices = "%sIndices%s"%_photon, index = 0),            
+        #    steps.Other.histogrammer("%sIndices%s"%_jet, 20, -0.5, 19.5, title=";number of %s%s passing ID#semicolon p_{T}#semicolon #eta cuts;events / bin"%_jet, funcString="lambda x:len(x)"),
+        #    steps.Filter.pt("%sP4%s"%_photon, min = 2.0*params["thresholds"][2], indices = "%sIndices%s"%_photon, index = 0),
+        #    steps.Other.histogrammer("vertexIndices", 20, -0.5, 19.5, title=";N vertices;events / bin", funcString="lambda x:len(x)"),
+        #    steps.Other.histogrammer("%sIndices%s"%_jet, 20, -0.5, 19.5, title=";number of %s%s passing ID#semicolon p_{T}#semicolon #eta cuts;events / bin"%_jet, funcString="lambda x:len(x)"),
+        #
+        #    steps.Histos.pt("%sCorrectedP4%s"%_jet, 20, 0.0, 5*params["thresholds"][2], indices = "%sIndices%s"%_jet, index = 0, xtitle = "jet 1 p_{T} (GeV)"),
+        #    steps.Histos.pt("%sCorrectedP4%s"%_jet, 20, 0.0, 4*params["thresholds"][2], indices = "%sIndices%s"%_jet, index = 1, xtitle = "jet 2 p_{T} (GeV)"),
+        #    steps.Histos.pt("%sCorrectedP4%s"%_jet, 20, 0.0, 2*params["thresholds"][2], indices = "%sIndices%s"%_jet, index = 2, xtitle = "jet 3 p_{T} (GeV)"),
+        #    ]
+        
         outList+=[
             #many plots
             supy.steps.histos.multiplicity("vertexIndices", max = 20),
             supy.steps.histos.multiplicity("%sIndices%s"%_jet, max = 10),
+            supy.steps.filters.label("singlePhotonPlots1"),
+            steps.photon.singlePhotonHistogrammer(_photon, _jet),
+            supy.steps.filters.label("purityPlots1"),
+            steps.gen.photonPurityPlots("Status1Photon", _jet, _photon).onlySim(),
             
             supy.steps.filters.label("jetSumPlots"),
             steps.jet.cleanJetHtMhtHistogrammer(_jet,_etRatherThanPt),
@@ -211,6 +249,8 @@ class photonLook(supy.analysis) :
             #steps.Other.histogrammer("%sAlphaTEt%s"%_jet, 4, 0.0, 0.55*4, title=";#alpha_{T};events / bin"),
             supy.steps.histos.histogrammer("%sIndices%s"%_jet,10,-0.5,9.5, title=";number of %s%s passing ID#semicolon p_{T}#semicolon #eta cuts;events / bin"%_jet,
                                            funcString="lambda x:len(x)"),
+            supy.steps.filters.label("singlePhotonPlots2"),
+            steps.photon.singlePhotonHistogrammer(_photon, _jet),
             
             supy.steps.filters.value("%sAlphaTEt%s"%_jet, min = 0.55),
             steps.trigger.lowestUnPrescaledTriggerHistogrammer(),
@@ -270,41 +310,210 @@ class photonLook(supy.analysis) :
         return outList
 
     def listOfSampleDictionaries(self) :
-        return [samples.photon17]
+        return [samples.mc, samples.photon]
+
+    def qcdMgNames2010(self) :
+        return [#"v12_qcd_mg_ht_50_100_noIsoReqSkim",
+            "v12_qcd_mg_ht_100_250_noIsoReqSkim",
+            "v12_qcd_mg_ht_250_500_noIsoReqSkim",
+            "v12_qcd_mg_ht_500_1000_noIsoReqSkim",
+            "v12_qcd_mg_ht_1000_inf_noIsoReqSkim",
+            ]
+
+    def gJetsMgNames2010(self) :
+        return ["v12_g_jets_mg_pt40_100_noIsoReqSkim",
+                "v12_g_jets_mg_pt100_200_noIsoReqSkim",
+                "v12_g_jets_mg_pt200_noIsoReqSkim"
+                ]
+
+    def qcdMgNames(self, era = "") :
+        l = ["100", "250", "500", "1000", "inf"]
+        return ["qcd_mg_ht_%s_%s_%s_skim"%(a, b, era) for a,b in zip(l[:-1], l[1:])]
+
+    def gJetsMgNames(self, era = "") :
+        l = ["40", "100", "200", "inf"]
+        return ["g_jets_mg_ht_%s_%s_%s_skim"%(a, b, era) for a,b in zip(l[:-1], l[1:])]
+
+    def zNunuMgNames(self, era = "summer11") :
+        if era=="spring11" : return ["zinv_jets_mg"]
+        l = ["50", "100", "200", "inf"]
+        return ["znunu_jets_mg_ht_%s_%s_%s_skim"%(a, b, era) for a,b in zip(l[:-1], l[1:])]
+
+    #def qcdPyNames(self) : #full samples
+    #    l = ["15", "30", "50", "80", "120", "170", "300", "470", "600", "800", "1000", "1400", "1800"]
+    #    return ["qcd_py6_pt_%s_%s"%(a,b) for a,b in zip(l[:-2], l[1:-1])]
+    #
+    #def gJetsPyNames(self) : #full samples
+    #    l = ["0", "15", "30", "50", "80", "120", "170", "300", "470", "800", "1400", "1800", "inf"]
+    #    return ["g_jets_py6_pt_%s_%s"%(a,b) for a,b in zip(l[:-1], l[1:])]
+
+    def qcdPyNames(self) :
+        l = ["80", "120", "170", "300", "470", "600", "800"]
+        return ["qcd_py6_pt_%s_%s_noIsoReqSkim"%(a,b) for a,b in zip(l[:-2], l[1:-1])]
+
+    def gJetsPyNames(self) :
+        l = ["80", "120", "170", "300", "470", "800"]
+        return ["g_jets_py6_pt_%s_%s_noIsoReqSkim"%(a,b) for a,b in zip(l[:-1], l[1:])]
 
     def listOfSamples(self,params) :
         from supy.samples import specify
 
-        data = specify("Photon.Run2012A-PromptReco-v1.AOD.job74", nFilesMax = 1, nEventsMax = 1000)
+        #2010
+        data_2010_nov4 = specify(names = ["Nov4_MJ_noIsoReqSkim","Nov4_J_noIsoReqSkim",
+                                          "Nov4_J2_noIsoReqSkim","Nov4_JM_noIsoReqSkim",
+                                          "Nov4_JMT_noIsoReqSkim","Nov4_JMT2_noIsoReqSkim",
+                                          ])
+        data_2010_prompt = specify(names = ["Run2010A_JMT_skim_noIsoReqSkim","Run2010A_JM_skim_noIsoReqSkim",
+                                            "Run2010B_J_skim_noIsoReqSkim","Run2010B_J_skim2_noIsoReqSkim",
+                                            "Run2010B_MJ_skim_noIsoReqSkim","Run2010B_MJ_skim2_noIsoReqSkim",
+                                            "Run2010B_MJ_skim3_noIsoReqSkim","Run2010B_MJ_skim4_noIsoReqSkim",
+                                            #"Run2010B_MJ_skim5_noIsoReqSkim",
+                                            ])
+        qcd_mg_2010    = specify(names = self.qcdMgNames2010())
+        g_jets_mg_2010 = specify(names = self.gJetsMgNames2010())
+        zinv_mg_2010   = specify(names = ["z_inv_mg_v12_skim"], color = r.kMagenta+3)
+
+        ##2011 EPS
+        #jw = calculables.Other.jsonWeight("cert/Cert_160404-167913_7TeV_PromptReco_Collisions11_JSON.txt") #1078/pb
+        #data = []
+        #data += specify(names = "Photon.Run2011A-May10ReReco-v1.AOD.Zoe_skim",    weights = jw, overrideLumi = 188.9)
+        #data += specify(names = "Photon.Run2011A-PromptReco-v4.AOD.Zoe1_skim",    weights = jw, overrideLumi =  70.0)
+        #data += specify(names = "Photon.Run2011A-PromptReco-v4.AOD.Zoe2_skim",    weights = jw, overrideLumi = 151.1)
+        #data += specify(names = "Photon.Run2011A-PromptReco-v4.AOD.Zoe3_skim",    weights = jw, overrideLumi =  74.4)
+        #data += specify(names = "Photon.Run2011A-PromptReco-v4.AOD.Rob1_skim",    weights = jw, overrideLumi = 167.1)
+        #data += specify(names = "Photon.Run2011A-PromptReco-v4.AOD.Rob2_skim",    weights = jw, overrideLumi = 119.7)
+        #data += specify(names = "Photon.Run2011A-PromptReco-v4.AOD.Rob3_skim",    weights = jw, overrideLumi = 180.2)
+        #data += specify(names = "Photon.Run2011A-PromptReco-v4.AOD.Rob4_skim",    weights = jw, overrideLumi =  69.3)
+        #data += specify(names = "Photon.Run2011A-PromptReco-v4.AOD.Darren1_skim", weights = jw, overrideLumi =  36.3)
+
+        #2011
+        data = []
+
+        #jwPrompt = calculables.Other.jsonWeight("cert/Cert_160404-177515_7TeV_PromptReco_Collisions11_JSON.txt")
+        #jwMay = calculables.Other.jsonWeight("cert/Cert_160404-163869_7TeV_May10ReReco_Collisions11_JSON_v3.txt")
+        #jwAug = calculables.Other.jsonWeight("cert/Cert_170249-172619_7TeV_ReReco5Aug_Collisions11_JSON_v3.txt")
+        #data += specify(names = "Photon.Run2011A-May10ReReco-v1.AOD.Darren1", weights = jwMay   , overrideLumi = 202.7)
+        #data += specify(names = "Photon.Run2011A-05Aug2011-v1.AOD.Bryn1",     weights = jwAug   , overrideLumi = 318.5)
+        #data += specify(names = "Photon.Run2011A-PromptReco-v4.AOD.Bryn1",    weights = jwPrompt, overrideLumi = 549.8)
+        #data += specify(names = "Photon.Run2011A-PromptReco-v6.AOD.Bryn1",    weights = jwPrompt, overrideLumi = 382.6)
+        #data += specify(names = "Photon.Run2011B-PromptReco-v1.AOD.Bryn1",    weights = jwPrompt, overrideLumi = 221.2)
+        #data += specify(names = "Photon.Run2011B-PromptReco-v1.AOD.Bryn2",    weights = jwPrompt, overrideLumi = 280.5)
+        #data += specify(names = "Photon.Run2011B-PromptReco-v1.AOD.Bryn3",    weights = jwPrompt, overrideLumi = 374.1)
+
+        data += specify(names = "Photon.Run2011A-May10ReReco-v1.AOD.job662_skim",color = r.kBlack)
+        data += specify(names = "Photon.Run2011A-PromptReco-v4.AOD.job664_skim", color = r.kRed)
+        data += specify(names = "Photon.Run2011A-05Aug2011-v1.AOD.job663_skim",  color = r.kBlue)
+        data += specify(names = "Photon.Run2011A-PromptReco-v6.AOD.job667_skim", color = r.kGreen)
+        data += specify(names = "Photon.Run2011B-PromptReco-v1.AOD.job668_skim", color = r.kCyan)
+
+        eL = 20000.0
+
+        phw = calculables.photon.photonWeight(var = "vertexIndices")
+        
+        qcd_mg          = specify(effectiveLumi = eL, color = r.kBlue, names = self.qcdMgNames(era = "summer11"))
+        g_jets_mg       = specify(effectiveLumi = eL, color = r.kGreen, names = self.gJetsMgNames(era = "summer11"))
+
+        qcd_mg_weighted = specify(effectiveLumi = eL, color = r.kBlue, names = self.qcdMgNames(era = "summer11"), weights = phw)
+        g_jets_mg_weighted = specify(effectiveLumi = eL, color = r.kGreen, names = self.gJetsMgNames(era = "summer11"), weights = phw)
+
+        qcd_py6         = specify(effectiveLumi = eL, color = r.kBlue, names = self.qcdPyNames())
+        g_jets_py6      = specify(effectiveLumi = eL, color = r.kGreen, names = self.gJetsPyNames())
+
+        ttbar_mg = specify(effectiveLumi = eL, color = r.kOrange, names = ["tt_tauola_mg_noIsoReqSkim"])
+        zjets_mg = specify(effectiveLumi = eL, color = r.kYellow-3, names = ["dyll_jets_mg_noIsoReqSkim"])
+        wjets_mg = specify(effectiveLumi = eL, color = 28, names = ["w_jets_mg_noIsoReqSkim"])
+
+        zinv_mg           = specify(effectiveLumi = eL, color = r.kMagenta, names = self.zNunuMgNames(era = "summer11"))
+        zinv_mg_weighted  = specify(effectiveLumi = eL, color = r.kMagenta, names = self.zNunuMgNames(era = "summer11"), weights = phw)
+
+        zinv_py6 = specify(effectiveLumi = eL, color = r.kMagenta, names = ["z_nunu"])
 
         outList = []
 
         if not params["zMode"] :
+            #2010
+            #outList += qcd_mg_2010
+            #outList += g_jets_mg_2010
+            #outList += data_2010_prompt
+            ##outList += data_2010_nov4
+
+            #2011
+            #outList += qcd_py6
+            #outList += g_jets_py6
+            
+            #outList += zjets_mg
+            #outList += wjets_mg
+            #outList += ttbar_mg
+
+            outList += qcd_mg
+            outList += g_jets_mg
+            #outList += qcd_mg_weighted
+            #outList += g_jets_mg_weighted
+            
             outList += data
+
+            #outList += freaks
+            #outList += cands1
+            #outList += cands2
+            #outList += cands3
         else :
-            pass
+            #outList += zinv_mg_2010
+            #outList += zinv_py6
+
+            outList += zinv_mg
+            #outList += zinv_mg_weighted
             
         return outList
 
     def mergeSamples(self, org) :
-        org.mergeSamples(targetSpec = {"name":"2012 Data", "color":r.kBlack, "markerStyle":20}, allWithPrefix = "Photon.Run2012")
+        smSources = []
+        #ewkSources = ["z_inv_mg", "z_jets_mg", "w_jets_mg"]
+        #smSources += ewkSources
 
-#    def concludeAll(self) :
-#        #super(photonLook,self).concludeAll()
-#
-#        for item in ["275","325","375"][-1:] :
-#            organizers = [self.organizer(conf) for conf in self.readyConfs if (item in conf["tag"])]
-#            for org in organizers :
-#                self.mergeSamples(org)
-#                if "Z" in org.tag :
-#                    lumi = 4529.2
-#                    org.scale(lumi)
-#                    print "WARNING: HARD-CODED LUMI FOR Z MODE! (%g)"%lumi
-#                else :
-#                    org.scale()
-#            melded = supy.organizer.meld(organizers = organizers)
-#            self.makeStandardPlots(melded)
-#            #self.makeIndividualPlots(melded)
+        #org.mergeSamples(targetSpec = {"name":"qcd_py6",    "color":r.kBlue},  sources = self.qcdPyNames())
+        #org.mergeSamples(targetSpec = {"name":"g_jets_py6", "color":r.kGreen}, sources = self.gJetsPyNames())
+        #smSources += ["qcd_py6", "g_jets_py6"]
+        #org.mergeSamples(targetSpec = {"name":"standard_model_py6",         "color":r.kRed,   "markerStyle":1}, sources = smSources, keepSources = True)
+
+        names = [("_nVtx", ".photonWeight"), ("", "")][1]
+        if "Z" in org.tag :
+            org.mergeSamples(targetSpec = {"name":"znunu_mg%s"%names[0], "color":r.kMagenta}, sources = [item+names[1] for item in self.zNunuMgNames(era = "summer11")])
+            return
+        
+        org.mergeSamples(targetSpec = {"name":"qcd_mg%s"%names[0],    "color":r.kBlue},  sources = [item+names[1] for item in self.qcdMgNames(era = "summer11")])
+        org.mergeSamples(targetSpec = {"name":"g_jets_mg%s"%names[0], "color":r.kGreen}, sources = [item+names[1] for item in self.gJetsMgNames(era = "summer11")])
+
+        smSources += ["qcd_mg%s"%names[0], "g_jets_mg%s"%names[0]]
+        org.mergeSamples(targetSpec = {"name":"standard_model%s"%names[0], "color":r.kRed}, sources = smSources, keepSources = True)
+        
+        org.mergeSamples(targetSpec = {"name":"2011 Data", "color":r.kBlack, "markerStyle":20}, allWithPrefix = "Photon.Run2011")
+            
+        ##org.mergeSamples(targetSpec = {"name":"MG TT+EWK", "color":r.kOrange}, sources = ewkSources])
+        #org.mergeSamples(targetSpec = {"name":"qcd_mg_2010",    "color":r.kBlue -3}, sources = self.qcdMgNames2010())
+        #org.mergeSamples(targetSpec = {"name":"g_jets_mg_2010", "color":r.kGreen-3}, sources = self.gJetsMgNames2010())
+        #smSources2010 += ["qcd_mg_2010", "g_jets_mg_2010"]
+        #org.mergeSamples(targetSpec = {"name":"sm_2010", "color":r.kRed-3, "markerStyle":1}, sources = smSources2010, keepSources = True)
+
+        ##org.mergeSamples(targetSpec = {"name":"2010 Data", "color":r.kBlack, "markerStyle":20}, allWithPrefix = "Nov4")
+        #org.mergeSamples(targetSpec = {"name":"2010 Data", "color":r.kBlack, "markerStyle":20}, allWithPrefix = "Run2010")
+
+
+    def concludeAll(self) :
+        #super(photonLook,self).concludeAll()
+
+        for item in ["275","325","375"][-1:] :
+            organizers = [self.organizer(conf) for conf in self.readyConfs if (item in conf["tag"])]
+            for org in organizers :
+                self.mergeSamples(org)
+                if "Z" in org.tag :
+                    lumi = 4529.2
+                    org.scale(lumi)
+                    print "WARNING: HARD-CODED LUMI FOR Z MODE! (%g)"%lumi
+                else :
+                    org.scale()
+            melded = supy.organizer.meld(organizers = organizers)
+            self.makeStandardPlots(melded)
+            #self.makeIndividualPlots(melded)
                                  
     def conclude(self, conf) :
         org = self.organizer(conf)
