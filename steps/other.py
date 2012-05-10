@@ -31,10 +31,11 @@ class handleChecker(analysisStep) :
 #####################################
 class jsonMaker(analysisStep) :
 
-    def __init__(self, calculateLumi = True, pixelLumi = True) :
+    def __init__(self, calculateLumi = True, pixelLumi = True, debug = False) :
         self.lumisByRun = collections.defaultdict(list)
         self.calculateLumi = calculateLumi
         self.pixelLumi = pixelLumi
+        self.debug = debug
         self.moreName="see below"
 
     def uponAcceptance(self,eventVars) :
@@ -52,10 +53,16 @@ class jsonMaker(analysisStep) :
             dct = utils.getCommandOutput("lumiCalc2.py overview -i %s"%self.outputFileName)
             assert not dct["returncode"],dct["returncode"]
             assert not dct["stderr"],dct["stderr"]
-            #print dct["stdout"]
+            s = dct["stdout"]
+            if self.debug : print s[s.find("Total"):]
+            m = "Recorded(/"
+            i = s.rindex(m) + len(m)
+            units = s[i-1:i+2]
+            factor = {"/fb":1.0e3, "/pb":1.0, "/nb":1.0e-3, "/ub":1.0e-6}
+            assert units in factor,units
             i2 = dct["stdout"].rindex("|")
             i1 = dct["stdout"][:i2].rindex("|")
-            return float(dct["stdout"][1+i1:i2])/1.0e3
+            return float(dct["stdout"][1+i1:i2])*factor[units]
 
     def mergeFunc(self, products) :
         d = collections.defaultdict(list)
