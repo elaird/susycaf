@@ -41,6 +41,7 @@ class jsonMaker(supy.analysis) :
                               "Photon.Run2012A-PromptReco-v1.AOD.job57",
                               "Photon.Run2012A-PromptReco-v1.AOD.job69",
                               "Photon.Run2012A-PromptReco-v1.AOD.job74",
+                              "Photon.Run2012A-PromptReco-v1.AOD.job81",
                               ], jw2012)]
 
         group['Mumu'] = [(["DoubleMu.Run2011A-05Aug2011-v1.AOD.job663",
