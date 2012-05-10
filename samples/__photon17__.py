@@ -8,3 +8,4 @@ photon17.add("Photon.Run2012A-PromptReco-v1.AOD.job44", '%s/zmeng//ICF/automated
 photon17.add("Photon.Run2012A-PromptReco-v1.AOD.job57", '%s/zmeng//ICF/automated/2012_04_22_16_58_56/")'%pnfs, lumi = 1.0)
 photon17.add("Photon.Run2012A-PromptReco-v1.AOD.job69", '%s/zmeng//ICF/automated/2012_04_26_16_22_08/")'%pnfs, lumi = 1.0)
 photon17.add("Photon.Run2012A-PromptReco-v1.AOD.job74", '%s/zmeng//ICF/automated/2012_04_27_00_07_16/")'%pnfs, lumi = 1.0)
+photon17.add("GJets_HT400.job92",                       '%s/clucas//ICF/automated/2012_05_08_11_07_51/")'%pnfs, xs = {"LO":107.5}["LO"])
