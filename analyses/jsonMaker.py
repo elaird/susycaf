@@ -75,7 +75,7 @@ class jsonMaker(supy.analysis) :
 
     def listOfSteps(self,pars) :
         return [ supy.steps.printer.progressPrinter(2,300),
-                 steps.other.jsonMaker(),
+                 steps.other.jsonMaker(pixelLumi = False),
                  ]
 
     def listOfCalculables(self,pars) :
