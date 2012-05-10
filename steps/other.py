@@ -31,9 +31,10 @@ class handleChecker(analysisStep) :
 #####################################
 class jsonMaker(analysisStep) :
 
-    def __init__(self, calculateLumi = True) :
+    def __init__(self, calculateLumi = True, pixelLumi = True) :
         self.lumisByRun = collections.defaultdict(list)
         self.calculateLumi = calculateLumi
+        self.pixelLumi = pixelLumi
         self.moreName="see below"
 
     def uponAcceptance(self,eventVars) :
@@ -42,7 +43,20 @@ class jsonMaker(analysisStep) :
     def varsToPickle(self) : return ["lumisByRun"]
 
     def outputSuffix(self) : return ".json"
-    
+
+    def lumi(self, json) :
+        if not self.calculateLumi : return -1.0
+        if self.pixelLumi :
+            return utils.luminosity.recordedInvMicrobarns(json)/1e6
+        else :
+            dct = utils.getCommandOutput("lumiCalc2.py overview -i %s"%self.outputFileName)
+            assert not dct["returncode"],dct["returncode"]
+            assert not dct["stderr"],dct["stderr"]
+            #print dct["stdout"]
+            i2 = dct["stdout"].rindex("|")
+            i1 = dct["stdout"][:i2].rindex("|")
+            return float(dct["stdout"][1+i1:i2])/1.0e3
+
     def mergeFunc(self, products) :
         d = collections.defaultdict(list)
         for lumisByRun in products["lumisByRun"] :
@@ -57,9 +71,9 @@ class jsonMaker(analysisStep) :
                     print "Run %d ls %d appears %d times in the lumiTree."%(run,ls,lumis.count(ls))
 
         json = utils.jsonFromRunDict(d2)
-        lumi = utils.luminosity.recordedInvMicrobarns(json)/1e6 if self.calculateLumi else -1.0
         with open(self.outputFileName,"w") as file: print >> file, str(json).replace("'",'"')
-        print "Wrote %.4f/pb json to : %s"%(lumi,self.outputFileName)
+
+        print "Wrote %.4f/pb json to : %s"%(self.lumi(json),self.outputFileName)
         print utils.hyphens
 #####################################
 class duplicateEventCheck(analysisStep) :
