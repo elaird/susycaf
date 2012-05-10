@@ -277,7 +277,14 @@ class photonLook(supy.analysis) :
 
         jw2012 = calculables.other.jsonWeight("cert/Cert_190456-193336_8TeV_PromptReco_Collisions12_JSON.txt")
         
-        data = specify("Photon.Run2012A-PromptReco-v1.AOD.job74", weights = jw2012)
+        #data = specify("Photon.Run2012A-PromptReco-v1.AOD.job74", weights = jw2012, overrideLumi =  53.7)
+        #data = specify("Photon.Run2012A-PromptReco-v1.AOD.job29", weights = jw2012, overrideLumi =  17.4)
+        #data = specify("Photon.Run2012A-PromptReco-v1.AOD.job44", weights = jw2012, overrideLumi =  53.7)
+        #data = specify("Photon.Run2012A-PromptReco-v1.AOD.job57", weights = jw2012, overrideLumi = 362.3)
+        #data = specify("Photon.Run2012A-PromptReco-v1.AOD.job69", weights = jw2012, overrideLumi =   0.0)
+        #data = specify("Photon.Run2012A-PromptReco-v1.AOD.job74", weights = jw2012, overrideLumi =  92.4)
+        data = specify("Photon.Run2012A-PromptReco-v1.AOD.job81", weights = jw2012, overrideLumi = 477.0)
+
         mc = specify("GJets_HT400.job92", color = r.kBlue)
         outList = []
 
