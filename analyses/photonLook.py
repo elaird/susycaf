@@ -28,10 +28,18 @@ class photonLook(supy.analysis) :
                                                 ("325_scaled", (325.0, 375.0,  86.7, 43.3)),#4
                                                 ][2:3] )),
                  #required to be sorted
-                 "triggerList": tuple(["HLT_Photon135_v%d"%i for i in [6]]+
-                                      ["HLT_Photon150_v%d"%i for i in [3]]+
-                                      ["HLT_Photon160_v%d"%i for i in [3]]
+                 "triggerList": tuple(["HLT_Photon135_v%d"%i for i in [4,5,6]]+
+                                      ["HLT_Photon150_v%d"%i for i in [1,2,3]]+
+                                      ["HLT_Photon160_v%d"%i for i in [1,2,3]]
                                       ),
+                 "tagTriggers": tuple(["HLT_Photon50_CaloIdVL_IsoL_v%d"%i for i in [14,15,16]]+
+                                      ["HLT_Photon50_CaloIdVL_v%d"%i for i in [7,8,9]]+
+                                      ["HLT_Photon75_CaloIdVL_IsoL_v%d"%i for i in [15,16,17]]+
+                                      ["HLT_Photon75_CaloIdVL_v%d"%i for i in [10,11,12]]+
+                                      ["HLT_Photon90_CaloIdVL_IsoL_v%d"%i for i in [12,13,14]]+
+                                      ["HLT_Photon90_CaloIdVL_v%d"%i for i in [7,8,9]]
+                                      ),
+                 "possibleTriggers": tuple(["HLT_Photon60_CaloIdL_FJHT300_v%d"%i for i in [1,2,3]]),
                  }
 
     def listOfCalculables(self, params) :
@@ -112,8 +120,11 @@ class photonLook(supy.analysis) :
             steps.filters.monster(),
             steps.filters.hbheNoise().onlyData(),
             steps.trigger.hltPrescaleHistogrammer(params["triggerList"]).onlyData(),
+            supy.steps.filters.value("lowestUnPrescaledTrigger").onlyData(),
             steps.trigger.lowestUnPrescaledTriggerHistogrammer().onlyData(),
             steps.trigger.lowestUnPrescaledTriggerFilter().onlyData(),
+            #steps.trigger.triggerScan( pattern = r"HLT_Photon\d*_v\d", prescaleRequirement = "prescale==1", tag = "Photon"),
+            #steps.trigger.triggerScan( pattern = r"HLT_Photon\d*_v\d", prescaleRequirement = "True", tag = "PhotonAll"),
             ]
 
         if params["vertexMode"] :
@@ -167,8 +178,13 @@ class photonLook(supy.analysis) :
                 #steps.Other.passFilter("photonEfficiencyPlots2"),
                 #steps.Gen.photonEfficiencyPlots(label = "Status1Photon", ptCut = params["thresholds"]["genPhotonPtMin"],
                 #                                etaCut = 1.4, isoCut = 5.0, deltaRCut = 1.1, jets = _jet, photons = _photon),
-                #steps.trigger.hltTurnOnHistogrammer("photonLeadingPtPat", (100, 70, 200), "HLT_Photon135_v6", ["HLT_Photon50_CaloIdVL_IsoL_v16", "HLT_Photon75_CaloIdVL_IsoL_v17", "HLT_Photon75_CaloIdVL_v12", "HLT_Photon90_CaloIdVL_IsoL_v14", "HLT_Photon90_CaloIdVL_v9"]), #2012
                 ]
+
+            #outList += [steps.trigger.hltTurnOnHistogrammer("photonLeadingPtPat", (100, 70, 200), t, params["tagTriggers"]) for t in params["triggerList"]]
+            #outList += [steps.trigger.hltTurnOnHistogrammer("photonLeadingPtPat", (100, 70, 200), "HLT_Photon135_v4", params["tagTriggers"]),
+            #            steps.trigger.hltTurnOnHistogrammer("photonLeadingPtPat", (50, 100, 200), probe = "HLT_Photon135_v5", tags = params["tagTriggers"]),
+            #            steps.trigger.hltTurnOnHistogrammer("photonLeadingPtPat", (100, 70, 200), "HLT_Photon135_v6", params["tagTriggers"]),
+            #            ]
         else :
             outList+=[
                 supy.steps.filters.multiplicity("%sIndices%s"%_photon, max = 0),
@@ -289,7 +305,8 @@ class photonLook(supy.analysis) :
         outList = []
 
         if not params["zMode"] :
-            outList += data+mc
+            outList += data
+            #outList += mc
         else :
             pass
             
