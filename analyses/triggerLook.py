@@ -17,7 +17,7 @@ class triggerLook(supy.analysis) :
         #out += specify(names = "Photon.Run2012A-PromptReco-v1.AOD.job44")
         #out += specify(names = "Photon.Run2012A-PromptReco-v1.AOD.job57")
         #out += specify(names = "Photon.Run2012A-PromptReco-v1.AOD.job69")
-        out += specify(names = "Photon.Run2012A-PromptReco-v1.AOD.job74", nFilesMax = 1)
+        out += specify(names = "Photon.Run2012A-PromptReco-v1.AOD.job81")
 
         return out
 
