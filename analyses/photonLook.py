@@ -111,9 +111,9 @@ class photonLook(supy.analysis) :
             steps.trigger.physicsDeclaredFilter().onlyData(),
             steps.filters.monster(),
             steps.filters.hbheNoise().onlyData(),
-            steps.trigger.hltPrescaleHistogrammer(params["triggerList"]),            
-            steps.trigger.lowestUnPrescaledTriggerHistogrammer(),
-            steps.trigger.lowestUnPrescaledTriggerFilter(),
+            steps.trigger.hltPrescaleHistogrammer(params["triggerList"]).onlyData(),
+            steps.trigger.lowestUnPrescaledTriggerHistogrammer().onlyData(),
+            steps.trigger.lowestUnPrescaledTriggerFilter().onlyData(),
             ]
 
         if params["vertexMode"] :
@@ -128,7 +128,7 @@ class photonLook(supy.analysis) :
 
         #require vertex
         outList += [supy.steps.filters.multiplicity("vertexIndices", min = 1),
-                    supy.steps.histos.multiplicity("vertexIndices", max = 20),
+                    supy.steps.histos.multiplicity("vertexIndices", max = 41),
                     ]
 
         if params["vertexMode"] :
@@ -190,7 +190,7 @@ class photonLook(supy.analysis) :
 
         outList+=[
             #many plots
-            supy.steps.histos.multiplicity("vertexIndices", max = 20),
+            supy.steps.histos.multiplicity("vertexIndices", max = 41),
             supy.steps.histos.multiplicity("%sIndices%s"%_jet, max = 10),
             
             supy.steps.filters.label("jetSumPlots"),
@@ -213,7 +213,7 @@ class photonLook(supy.analysis) :
                                            funcString="lambda x:len(x)"),
             
             supy.steps.filters.value("%sAlphaTEt%s"%_jet, min = 0.55),
-            steps.trigger.lowestUnPrescaledTriggerHistogrammer(),
+            steps.trigger.lowestUnPrescaledTriggerHistogrammer().onlyData(),
             
             steps.jet.photon1PtOverHtHistogrammer(jets = _jet, photons = _photon, etRatherThanPt = _etRatherThanPt),            
             supy.steps.histos.histogrammer("%sIndices%s"%_jet,10,-0.5,9.5, title=";number of %s%s passing ID#semicolon p_{T}#semicolon #eta cuts;events / bin"%_jet,
@@ -275,12 +275,21 @@ class photonLook(supy.analysis) :
     def listOfSamples(self,params) :
         from supy.samples import specify
 
-        data = specify("Photon.Run2012A-PromptReco-v1.AOD.job74", nFilesMax = 1, nEventsMax = 1000)
+        jw2012 = calculables.other.jsonWeight("cert/Cert_190456-193336_8TeV_PromptReco_Collisions12_JSON.txt")
+        
+        #data = specify("Photon.Run2012A-PromptReco-v1.AOD.job74", weights = jw2012, overrideLumi =  53.7)
+        #data = specify("Photon.Run2012A-PromptReco-v1.AOD.job29", weights = jw2012, overrideLumi =  17.4)
+        #data = specify("Photon.Run2012A-PromptReco-v1.AOD.job44", weights = jw2012, overrideLumi =  53.7)
+        #data = specify("Photon.Run2012A-PromptReco-v1.AOD.job57", weights = jw2012, overrideLumi = 362.3)
+        #data = specify("Photon.Run2012A-PromptReco-v1.AOD.job69", weights = jw2012, overrideLumi =   0.0)
+        #data = specify("Photon.Run2012A-PromptReco-v1.AOD.job74", weights = jw2012, overrideLumi =  92.4)
+        data = specify("Photon.Run2012A-PromptReco-v1.AOD.job81", weights = jw2012, overrideLumi = 477.0)
 
+        mc = specify("GJets_HT400.job92", color = r.kBlue)
         outList = []
 
         if not params["zMode"] :
-            outList += data
+            outList += data+mc
         else :
             pass
             
