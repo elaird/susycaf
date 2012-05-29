@@ -291,15 +291,11 @@ class photonLook(supy.analysis) :
     def listOfSamples(self,params) :
         from supy.samples import specify
 
-        jw2012 = calculables.other.jsonWeight("cert/Cert_190456-193336_8TeV_PromptReco_Collisions12_JSON.txt")
-        
-        #data = specify("Photon.Run2012A-PromptReco-v1.AOD.job74", weights = jw2012, overrideLumi =  53.7)
-        #data = specify("Photon.Run2012A-PromptReco-v1.AOD.job29", weights = jw2012, overrideLumi =  17.4)
-        #data = specify("Photon.Run2012A-PromptReco-v1.AOD.job44", weights = jw2012, overrideLumi =  53.7)
-        #data = specify("Photon.Run2012A-PromptReco-v1.AOD.job57", weights = jw2012, overrideLumi = 362.3)
-        #data = specify("Photon.Run2012A-PromptReco-v1.AOD.job69", weights = jw2012, overrideLumi =   0.0)
-        #data = specify("Photon.Run2012A-PromptReco-v1.AOD.job74", weights = jw2012, overrideLumi =  92.4)
-        data = specify("Photon.Run2012A-PromptReco-v1.AOD.job81", weights = jw2012, overrideLumi = 477.0)
+        jw2012 = calculables.other.jsonWeight("cert/Cert_190456-194479_8TeV_PromptReco_Collisions12_JSON.txt")
+
+        data  = []
+        data += specify("Photon.Run2012A-PromptReco-v1.AOD.job171",       weights = jw2012, overrideLumi = 660.1)
+        data += specify("SinglePhoton.Run2012B-PromptReco-v1.AOD.job171", weights = jw2012, overrideLumi = 890.1)
 
         mc = specify("GJets_HT400.job92", color = r.kBlue)
         outList = []
