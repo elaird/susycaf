@@ -309,7 +309,9 @@ class photonLook(supy.analysis) :
         return outList
 
     def mergeSamples(self, org) :
-        org.mergeSamples(targetSpec = {"name":"2012 Data", "color":r.kBlack, "markerStyle":20}, allWithPrefix = "Photon.Run2012")
+        org.mergeSamples(targetSpec = {"name":"2012 Data", "color":r.kBlack, "markerStyle":20},
+                         sources = ["Photon.Run2012A-PromptReco-v1.AOD.job171.jsonWeight", "SinglePhoton.Run2012B-PromptReco-v1.AOD.job171.jsonWeight"]
+                         )
 
 #    def concludeAll(self) :
 #        #super(photonLook,self).concludeAll()
