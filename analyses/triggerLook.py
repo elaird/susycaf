@@ -11,13 +11,9 @@ class triggerLook(supy.analysis) :
 
     def listOfSamples(self,params) :
         from supy.samples import specify
-        out = []
-
-        #out += specify(names = "Photon.Run2012A-PromptReco-v1.AOD.job29")
-        #out += specify(names = "Photon.Run2012A-PromptReco-v1.AOD.job44")
-        #out += specify(names = "Photon.Run2012A-PromptReco-v1.AOD.job57")
-        #out += specify(names = "Photon.Run2012A-PromptReco-v1.AOD.job69")
-        out += specify(names = "Photon.Run2012A-PromptReco-v1.AOD.job74", nFilesMax = 1)
+        out  = []
+        out += specify("Photon.Run2012A-PromptReco-v1.AOD.job171")
+        out += specify("SinglePhoton.Run2012B-PromptReco-v1.AOD.job171")
 
         return out
 
