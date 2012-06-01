@@ -319,9 +319,13 @@ class photonLook(supy.analysis) :
         return outList
 
     def mergeSamples(self, org) :
-        org.mergeSamples(targetSpec = {"name":"2012 Data", "color":r.kBlack, "markerStyle":20},
+        org.mergeSamples(targetSpec = {"name":"Data", "color":r.kBlack, "markerStyle":20},
                          sources = ["Photon.2012A.job171.jsonWeight", "SinglePhoton.2012B.job171.jsonWeight"]
                          )
+
+        org.mergeSamples(targetSpec = {"name":"SM", "color":r.kBlue, "markerStyle":1, "lineWidth":3, "goptions":"hist"},
+                         allWithPrefix = "GJets")
+
 
 #    def concludeAll(self) :
 #        #super(photonLook,self).concludeAll()
@@ -371,7 +375,7 @@ class photonLook(supy.analysis) :
                                    ("2011 Data","standard_model"),
                                    ("2011 Data","standard_model_py6"),
                                    ("2010 Data","sm_2010"),
-                                   ("2012 Data","GJets_HT400.job174.photonWeight"),
+                                   ("2012 Data","SM"),
                                    ])
 
         #plot all
