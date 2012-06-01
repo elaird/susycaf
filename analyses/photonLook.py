@@ -517,7 +517,7 @@ class photonLook(supy.analysis) :
             f.mkdir("phot")
             f.cd("phot")
             for s in ["lumiData", "lumiMc"] :
-                lumi = r.TH1D(s, s, 1, 0, 1)
+                lumi = r.TH1D(s, s, 1, -0.5, 0.5)
                 lumi.SetBinContent(1, org.lumi*1.0e-3)#/fb
                 lumi.Write()
 
@@ -543,11 +543,12 @@ class photonLook(supy.analysis) :
                 h1 = hIn.ProjectionX("%s_projX"%name, 1+iBTag, 1+iBTag)
 
                 xBinsLo = array.array('d',[275., 325.]+[375.+100*i for i in range(7)])
-                yBinsLo = array.array('d',[0.55, 0.60])
+                yBinsLo = array.array('d',[55.0, 60.0])
                 hOut = r.TH2D(name, name, len(xBinsLo)-1, xBinsLo, len(yBinsLo)-1, yBinsLo)
 
                 for iBinX in range(1,1+h1.GetNbinsX()) :
                     hOut.SetBinContent(2+iBinX, 1, h1.GetBinContent(iBinX))
+                    hOut.SetBinError(2+iBinX, 1, h1.GetBinError(iBinX))
 
                 hOut.Write()
             f.Close()
