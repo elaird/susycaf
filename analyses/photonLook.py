@@ -1,6 +1,6 @@
 #!/usr/bin/env python
 
-import os,copy,ROOT as r
+import os,array,copy,ROOT as r
 import supy,steps,calculables,samples
 
 class photonLook(supy.analysis) :
@@ -11,6 +11,7 @@ class photonLook(supy.analysis) :
 
         return { "objects": objects,
                  "nJetsMinMax" :      self.vary(dict([ ("ge2",(2,None)),  ("2",(2,2)),  ("ge3",(3,None)) ]       [0:1] )),
+                 #"nJetsMinMax" :      (2, None),
                  "photonId" :         ["photonIDTightFromTwikiPat", "photonIDRA3Pat"][1],
                  "zMode" :            self.vary(dict([ ("Z",True), ("g",False) ]                                  [1:]  )),
                  "vertexMode" :       self.vary(dict([ ("vertexMode",True), ("",False) ]                         [1:2] )),
@@ -359,6 +360,7 @@ class photonLook(supy.analysis) :
             org.scale()
             
         self.makeStandardPlots(org)
+        self.makeRootFiles(org)
         #self.makeIndividualPlots(org)
         #self.makePurityPlots(org)
         #self.makeEfficiencyPlots(org)
@@ -489,6 +491,62 @@ class photonLook(supy.analysis) :
                            preliminary = True,
                            tdrStyle = True,
                            )
+
+    def makeRootFiles(self, org) :
+        def sampleIndex(org, name) :
+            for iSample,sample in enumerate(org.samples) :
+                if sample["name"]==name : return iSample
+            assert False, "could not find sample %s"%name
+
+
+        def histo(name = "", samples = ["Data", "SM"]) :
+            lst = []
+            for selection in org.steps :
+                if selection.name != "generic" : continue
+                if selection.title!="(lambda x:(x[0],len(x[1])))(%s)"%name : continue
+                dct = {}
+                for s in samples :
+                    dct[s] = selection[name][sampleIndex(org, s)]
+                lst.append(dct)
+            return lst[-1]
+
+        dct = histo(name = "xcak5JetIndicesBtagged2Pat_vs_xcak5JetSumEtPat")
+
+        for iBTag in range(4) :
+            f = r.TFile("%s_%db.root"%(org.tag, iBTag), "RECREATE")
+            f.mkdir("phot")
+            f.cd("phot")
+            for s in ["lumiData", "lumiMc"] :
+                lumi = r.TH1D(s, s, 1, 0, 1)
+                lumi.SetBinContent(1, org.lumi*1.0e-3)#/fb
+                lumi.Write()
+
+            for name,key in [("obs","Data"), ("Phot", "SM")] :
+                hIn = dct[key]
+
+                xMin   = hIn.GetXaxis().GetXmin()
+                xMax   = hIn.GetXaxis().GetXmax()
+                nBinsX = hIn.GetXaxis().GetNbins()
+
+                assert abs(xMin-375.)<1.0e-6,xMin
+                assert abs(xMax-975.)<1.0e-6,xMax
+                assert nBinsX==6,nBinsX
+
+                yMin   = hIn.GetYaxis().GetXmin()
+                yMax   = hIn.GetYaxis().GetXmax()
+                nBinsY = hIn.GetYaxis().GetNbins()
+
+                assert abs(yMin+0.5)<1.0e-6,yMin
+                assert abs(yMax-3.5)<1.0e-6,yMax
+                assert nBinsY==4,nBinsY
+
+                h1 = hIn.ProjectionX("%s_projX"%name, 1+iBTag, 1+iBTag)
+
+                xBinsLo = array.array('d',[275., 325.]+[375.+100*i for i in range(7)])
+                yBinsLo = array.array('d',[0.55, 0.60])
+                hOut = r.TH2D(name, name, len(xBinsLo)-1, xBinsLo, len(yBinsLo)-1, yBinsLo)
+                hOut.Print()
+            f.Close()
 
     def makeNVertexWeights(self, org, chopToOne = False) :
         def sampleIndex(org, name) :
