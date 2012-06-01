@@ -11,7 +11,7 @@ class photonLook(supy.analysis) :
 
         return { "objects": objects,
                  "nJetsMinMax" :      self.vary(dict([ ("ge2",(2,None)),  ("2",(2,2)),  ("ge3",(3,None)) ]       [0:1] )),
-                 "photonId" :         "photonIDTightFromTwikiPat",
+                 "photonId" :         ["photonIDTightFromTwikiPat", "photonIDRA3Pat"][1],
                  "zMode" :            self.vary(dict([ ("Z",True), ("g",False) ]                                  [1:]  )),
                  "vertexMode" :       self.vary(dict([ ("vertexMode",True), ("",False) ]                         [1:2] )),
                  "subdet" :           self.vary(dict([ ("barrel", (0.0, 1.444)), ("endcap", (1.566, 2.5)) ]      [:1 ] )),
@@ -247,8 +247,10 @@ class photonLook(supy.analysis) :
                                            funcString="lambda x:len(x)"),
 
             steps.jet.cleanJetHtMhtHistogrammer(_jet,_etRatherThanPt),
-            steps.photon.singlePhotonHistogrammer(_photon, _jet),
-            
+            #steps.photon.singlePhotonHistogrammer(_photon, _jet, DR = "04"),
+            supy.steps.histos.value("rho", 100, 0.0, 50.0),
+            steps.photon.singlePhotonHistogrammer(_photon, _jet, DR = "03"),
+
             #supy.steps.histos.pt("%sCorrectedP4%s"%_jet, 20, 0.0, 5*params["thresholds"][2], indices = "%sIndices%s"%_jet, index = 0,
             #                     xtitle = "jet 1 p_{T} (GeV)"),
             #supy.steps.histos.pt("%sCorrectedP4%s"%_jet, 20, 0.0, 4*params["thresholds"][2], indices = "%sIndices%s"%_jet, index = 1,
@@ -301,10 +303,11 @@ class photonLook(supy.analysis) :
         jw2012 = calculables.other.jsonWeight("cert/Cert_190456-194479_8TeV_PromptReco_Collisions12_JSON.txt")
 
         data  = []
-        data += specify("Photon.Run2012A-PromptReco-v1.AOD.job171",       weights = jw2012, overrideLumi = 660.1)
-        data += specify("SinglePhoton.Run2012B-PromptReco-v1.AOD.job171", weights = jw2012, overrideLumi = 890.1)
+        data += specify("Photon.2012A.job171",       weights = jw2012, overrideLumi = 660.1)
+        data += specify("SinglePhoton.2012B.job171", weights = jw2012, overrideLumi = 890.1)
 
-        mc = specify("GJets_HT400.job174", color = r.kBlue)
+        phw = calculables.photon.photonWeight(var = "vertexIndices", weightSet = "ZM")
+        mc = specify("GJets_HT400.job174", color = r.kBlue, weights = phw)
         outList = []
 
         if not params["zMode"] :
@@ -317,7 +320,7 @@ class photonLook(supy.analysis) :
 
     def mergeSamples(self, org) :
         org.mergeSamples(targetSpec = {"name":"2012 Data", "color":r.kBlack, "markerStyle":20},
-                         sources = ["Photon.Run2012A-PromptReco-v1.AOD.job171.jsonWeight", "SinglePhoton.Run2012B-PromptReco-v1.AOD.job171.jsonWeight"]
+                         sources = ["Photon.2012A.job171.jsonWeight", "SinglePhoton.2012B.job171.jsonWeight"]
                          )
 
 #    def concludeAll(self) :
@@ -368,7 +371,7 @@ class photonLook(supy.analysis) :
                                    ("2011 Data","standard_model"),
                                    ("2011 Data","standard_model_py6"),
                                    ("2010 Data","sm_2010"),
-                                   ("2012 Data","GJets_HT400.job92"),
+                                   ("2012 Data","GJets_HT400.job174.photonWeight"),
                                    ])
 
         #plot all
