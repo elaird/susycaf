@@ -545,7 +545,11 @@ class photonLook(supy.analysis) :
                 xBinsLo = array.array('d',[275., 325.]+[375.+100*i for i in range(7)])
                 yBinsLo = array.array('d',[0.55, 0.60])
                 hOut = r.TH2D(name, name, len(xBinsLo)-1, xBinsLo, len(yBinsLo)-1, yBinsLo)
-                hOut.Print()
+
+                for iBinX in range(1,1+h1.GetNbinsX()) :
+                    hOut.SetBinContent(2+iBinX, 1, h1.GetBinContent(iBinX))
+
+                hOut.Write()
             f.Close()
 
     def makeNVertexWeights(self, org, chopToOne = False) :
