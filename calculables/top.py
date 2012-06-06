@@ -511,7 +511,8 @@ class TopReconstruction(wrappedChain.calculable) :
             if iPQH[2] not in bIndices : continue
             if np.dot(*(2*[self.ellipseR.dot(jets["ComboPQBDeltaRawMassWTop"][iPQH]) / [35,70]])) > 1 : continue # elliptical window on raw masses
 
-            hadFit = utils.fitKinematic.leastsqHadronicTop(*zip(*((jets["CorrectedP4"][i]*(self.bscale if i==2 else 1), jets["Resolution"][i]) for i in iPQH)), widthW = 4./2 ) #tuned w width
+            #hadFit = utils.fitKinematic.leastsqHadronicTop(*zip(*((jets["CorrectedP4"][i]*(self.bscale if i==2 else 1), jets["Resolution"][i]) for i in iPQH)), widthW = 4./2 ) #tuned w width
+            hadFit = utils.fitKinematic.leastsqHadronicTop2(*zip(*((jets["CorrectedP4"][i]*(self.bscale if i==2 else 1), jets["Resolution"][i]) for i in iPQH)) )
             sumP4 = self.source["mixedSumP4"] - hadFit.rawT + hadFit.fitT
             nuErr = self.source["metCovariancePF"] - sum( jets["CovariantResolution2"][i] for i in iPQH )
             nuXY = -np.array([sumP4.x(), sumP4.y()])
@@ -521,40 +522,36 @@ class TopReconstruction(wrappedChain.calculable) :
                 iPQHL = iPQH+(iL,)
                 iQQBB = iPQHL[:2]+tuple(sorted(iPQHL[2:]))
                 
-                #if sorted([ntrk[i] for i in iPQHL])[1]<4 : continue
-                #if sorted([ntrk[i] for i in iPQHL])[0]<3 : continue
-                #if sorted([ntrk[i] for i in iPQHL])[1]<3 : continue
+                #lepFit = min( utils.fitKinematic.leastsqLeptonicTop( jets["CorrectedP4"][iL]*self.bscale, jets["Resolution"][iL], lepton["P4"], nuXY, nuErr-jets["CovariantResolution2"][iL], zPlus = True ),
+                #              utils.fitKinematic.leastsqLeptonicTop( jets["CorrectedP4"][iL]*self.bscale, jets["Resolution"][iL], lepton["P4"], nuXY, nuErr-jets["CovariantResolution2"][iL], zPlus = False ),
+                #              key = lambda x: x.chi2 )
+                lepFit = utils.fitKinematic.leastsqLeptonicTop2( jets["CorrectedP4"][iL]*self.bscale, jets["Resolution"][iL], lepton["P4"], nuXY, nuErr-jets["CovariantResolution2"][iL])
+                tt = hadFit.fitT + lepFit.fitT
+                iX,ttx = min( [(None,tt)]+[(i,tt+jets["CorrectedP4"][i]) for i in jets["Indices"] if i not in iPQHL], key = lambda lv : lv[1].pt() )
+                recos.append( {"nu"   : lepFit.fitNu,       "hadP" : hadFit.fitJ[0],
+                               "lep"  : lepFit.mu,          "hadQ" : hadFit.fitJ[1],
+                               "lepB" : lepFit.fitB,        "hadB" : hadFit.fitJ[2],
+                               "lepW" : lepFit.fitW,        "hadW" : hadFit.fitW,
+                               "lepTopP4" : lepFit.fitT,    "hadTopP4": hadFit.fitT,
+                               "lepChi2" : lepFit.chi2,     "hadChi2" : hadFit.chi2,
+                               "chi2" : hadFit.chi2 + lepFit.chi2,
+                               "probability" : max(self.epsilon,topP[iQQBB]),
+                               "key" : hadFit.chi2 + lepFit.chi2 - 2*math.log(max(self.epsilon,topP[iQQBB])),
 
-                for zPlus in [0,1] :
-                    lepFit = utils.fitKinematic.leastsqLeptonicTop( jets["CorrectedP4"][iL]*self.bscale, jets["Resolution"][iL], lepton["P4"], nuXY, nuErr-jets["CovariantResolution2"][iL], zPlus = zPlus )
-                    tt = hadFit.fitT + lepFit.fitT
-                    iX,ttx = min( [(None,tt)]+[(i,tt+jets["CorrectedP4"][i]) for i in jets["Indices"] if i not in iPQHL], key = lambda lv : lv[1].pt() )
-                    recos.append( {"nu"   : lepFit.fitNu,       "hadP" : hadFit.fitJ[0],
-                                   "lep"  : lepFit.mu,          "hadQ" : hadFit.fitJ[1],
-                                   "lepB" : lepFit.fitB,        "hadB" : hadFit.fitJ[2],
-                                   "lepW" : lepFit.fitW,        "hadW" : hadFit.fitW,   
-                                   "lepTopP4" : lepFit.fitT,    "hadTopP4": hadFit.fitT,
-                                   "lepChi2" : lepFit.chi2,     "hadChi2" : hadFit.chi2,
-                                   "chi2" : hadFit.chi2 + lepFit.chi2,
-                                   "probability" : max(self.epsilon,topP[iQQBB]),
-                                   "key" : hadFit.chi2 + lepFit.chi2 - 2*math.log(max(self.epsilon,topP[iQQBB])),
+                               "top"  : lepFit.fitT if lepton["Charge"] > 0 else hadFit.fitT,
+                               "tbar" : hadFit.fitT if lepton["Charge"] > 0 else lepFit.fitT,
+                               "ttx" : ttx, "iX" : iX,
 
-                                   "top"  : lepFit.fitT if lepton["Charge"] > 0 else hadFit.fitT,
-                                   "tbar" : hadFit.fitT if lepton["Charge"] > 0 else lepFit.fitT,
-                                   "ttx" : ttx, "iX" : iX,
+                               "iPQHL": iPQHL,
+                               "lepCharge": lepton["Charge"], "hadTraw" : hadFit.rawT, "lepTraw" : lepFit.rawT,
+                               "lepBound" : lepFit.bound,     "hadWraw" : hadFit.rawW, "lepWraw" : lepFit.rawW,
+                               "sumP4": sumP4,
+                               "residuals" : dict( zip(["lep"+i for i in "BSLT"],  lepFit.residualsBSLT ) +
+                                                   zip(["had"+i for i in "PQBWT"], hadFit.residualsPQBWT ) )
+                               })
 
-                                   "iPQHL": iPQHL,
-                                   "lepCharge": lepton["Charge"], "hadTraw" : hadFit.rawT, "lepTraw" : lepFit.rawT,
-                                   "lepBound" : lepFit.bound,     "hadWraw" : hadFit.rawW, "lepWraw" : lepFit.rawW,
-                                   "sumP4": sumP4,
-                                   "residuals" : dict( zip(["lep"+i for i in "BSLT"],  lepFit.residualsBSLT ) +
-                                                       zip(["had"+i for i in "PQBWT"], hadFit.residualsPQBWT ) )
-                                   })
-                if 0.01 > r.Math.VectorUtil.DeltaR(recos[-2]['nu'],recos[-1]['nu']) :
-                    recos.pop(max(-1,-2, key = lambda i: recos[i]['lepChi2']))
-                    
         self.value = sorted( recos,  key = lambda x: x["key"] )
-        
+
 ######################################
 class kinfitFailureModes(wrappedChain.calculable) :
     def update(self,_) : 
