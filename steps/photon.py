@@ -89,11 +89,12 @@ class photonSelectionHistogrammer(analysisStep) :
 #####################################
 class singlePhotonHistogrammer(analysisStep) :
 
-    def __init__(self, cs, jetCs, maxIndex = 0) :
+    def __init__(self, cs, jetCs, maxIndex = 0, DR = "04") :
         self.cs = cs
         self.jetCs = jetCs
         self.maxIndex = maxIndex
-        self.moreName="%s%s through index %d" % (self.cs+(maxIndex,))
+        self.DR = DR
+        self.moreName="%s%s through index %d [DR %s]" % (self.cs+(maxIndex, self.DR,))
         self.photonIndicesName = "%sIndices%s" % self.cs
         self.p4sName = "%sP4%s" % self.cs
         self.seedTimes = "%sWrappedSeedTime%s" % self.cs
@@ -118,12 +119,12 @@ class singlePhotonHistogrammer(analysisStep) :
         ht =  eventVars[self.htName]
         
         #ID variables
-        jurassicEcalIsolations    = eventVars["%sEcalRecHitEtConeDR04%s"%self.cs]
-        towerBasedHcalIsolations1 = eventVars["%sHcalDepth1TowSumEtConeDR04%s"%self.cs]
-        towerBasedHcalIsolations2 = eventVars["%sHcalDepth2TowSumEtConeDR04%s"%self.cs]
+        jurassicEcalIsolations    = eventVars["%sEcalRecHitEtConeDR%s%s"%(self.cs[0], self.DR, self.cs[1])]
+        towerBasedHcalIsolations  = eventVars["%sHcalTowSumEtConeDR%s%s"%(self.cs[0], self.DR, self.cs[1])]
         hadronicOverEms           = eventVars["%sHadronicOverEm%s"%self.cs]
-        hollowConeTrackIsolations = eventVars["%sTrkSumPtHollowConeDR04%s"%self.cs]
+        hollowConeTrackIsolations = eventVars["%sTrkSumPtHollowConeDR%s%s"%(self.cs[0], self.DR, self.cs[1])]
         sigmaIetaIetas            = eventVars["%sSigmaIetaIeta%s"%self.cs]
+        combinedIsolationsRhoCorr = eventVars["%sCombinedIsoDR03RhoCorrected%s"%self.cs] if self.DR=="03" else [0.0]*sigmaIetaIetas.size()
 
         #self.book.fill( len(cleanPhotonIndices), "photonMultiplicity", 10, -0.5, 9.5,
         #                title=";number of %s%s passing ID#semicolon p_{T}#semicolon #eta cuts;events / bin"%self.cs)
@@ -167,23 +168,24 @@ class singlePhotonHistogrammer(analysisStep) :
 
             #ID variables
             jEI = jurassicEcalIsolations.at(iPhoton)
-            tbHI = towerBasedHcalIsolations1.at(iPhoton)+towerBasedHcalIsolations2.at(iPhoton)
+            tbHI = towerBasedHcalIsolations.at(iPhoton)
             hOE = hadronicOverEms.at(iPhoton)
             hcTI = hollowConeTrackIsolations.at(iPhoton)
             sHH = sigmaIetaIetas.at(iPhoton)
 
             cmbI = jEI + tbHI + hcTI
+            cmbIRho = combinedIsolationsRhoCorr[iPhoton]
             
             #ecalIso
             self.book.fill(jEI, "%s%s%sjurassicEcalIsolation"%(self.cs+(photonLabel,)),
-                           50, 0.0, 10.0, title=";ECAL Isolation (GeV);events / bin")
+                           50, 0.0, 10.0, title=";ECAL Isolation (GeV) [DR %s];events / bin"%self.DR)
             #self.book.fill((pt,jEI), "%s%s%sjurassicEcalIsolationVsPt"%(self.cs+(photonLabel,)),
             #          (50, 50), (0.0, 0.0), (500.0, 10.0),
             #          title=";photon%s p_{T} (GeV);Jurassic ECAL Isolation;events / bin"%photonLabel)
             
             #hcalIso
             self.book.fill(tbHI, "%s%s%stowerBasedHcalIsolation"%(self.cs+(photonLabel,)),
-                           50, 0.0, 10.0, title=";Tower-based HCAL Isolation (GeV);events / bin")
+                           50, 0.0, 10.0, title=";Tower-based HCAL Isolation (GeV) [DR %s];events / bin"%self.DR)
             #self.book.fill((pt,tbHI), "%s%s%stowerBasedHcalIsolationVsPt"%(self.cs+(photonLabel,)),
             #          (50, 50), (0.0, 0.0), (500.0, 10.0),
             #          title=";photon%s p_{T} (GeV);Tower-based HCAL Isolation;events / bin"%photonLabel)
@@ -197,14 +199,19 @@ class singlePhotonHistogrammer(analysisStep) :
 
             #trkIso
             self.book.fill(hcTI, "%s%s%shollowConeTrackIsolation"%(self.cs+(photonLabel,)),
-                           50, 0.0, 10.0, title=";hollow cone track isolation (GeV);events / bin")
+                           50, 0.0, 10.0, title=";hollow cone track isolation (GeV) [DR %s];events / bin"%self.DR)
             #self.book.fill((pt,hcTI), "%s%s%shollowConeTrackIsolationVsPt"%(self.cs+(photonLabel,)),
             #          (50, 50), (0.0, 0.0), (500.0, 10.0),
             #          title=";photon%s p_{T} (GeV);hollow cone track isolation;events / bin"%photonLabel)
 
             #combIso
             self.book.fill(cmbI, "%s%s%scombinedIsolation"%(self.cs+(photonLabel,)),
-                           40, -10.0, 30.0, title=";combined isolation (GeV);events / bin")
+                           40, -10.0, 30.0, title=";combined isolation (GeV) [DR %s];events / bin"%self.DR)
+
+            #combIso (rho corrected)
+            if self.DR=="03" :
+                self.book.fill(cmbIRho, "%s%s%scombinedIsolationRhoCorr"%(self.cs+(photonLabel,)),
+                               40, -10.0, 30.0, title=";combined isolation (#rho corrected) (GeV) [DR %s];events / bin"%self.DR)
 
             #sHH
             if abs(photon.eta())<self.etaBE :
