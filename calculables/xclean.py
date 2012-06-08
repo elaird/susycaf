@@ -19,7 +19,7 @@ class xcJet_SingleLepton(wrappedChain.calculable) :
         self.value = utils.vector()
         for iJet in range(len(jets)) :
             jet = jets[iJet]
-            self.value.push_back( jet - lep
+            self.value.push_back( next( j if j.M()>0 else utils.LorentzV(1,jet.eta(),jet.phi(),0) for j in [jet - lep])
                                   if lep and 0.5>r.Math.VectorUtil.DeltaR(jet,lep) else
                                   jet )
 ##############################
