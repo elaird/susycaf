@@ -492,7 +492,7 @@ class TopReconstruction(wrappedChain.calculable) :
         self.epsilon = 1e-7
         self.bscale = 1.1
         self.v2 = True
-        self.eCoupling = 1.0
+        self.eCoupling = 0.55
 
     def update(self,_) :
         
