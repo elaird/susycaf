@@ -12,6 +12,7 @@ class xcJet_SingleLepton(wrappedChain.calculable) :
         self.p4lep = "P4".join(leptons)
         self.indices = indices.join(leptons)
         self.moreName = self.p4jet +" without " + self.p4lep + self.indices.join(['[','[0]]'])
+        self.jesAbs,self.jesRel = jesAbs,jesRel
         if jesAbs!=1 or jesRel!=0 :
             self.moreName2 += "jes corr: %.2f*(1+%.2f|eta|) data only"%(jesAbs,jesRel)
 
