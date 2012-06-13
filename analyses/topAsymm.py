@@ -477,8 +477,8 @@ class topAsymm(supy.analysis) :
         org.mergeSamples(targetSpec = {"name":"SingleMu.2011", "color":r.kBlack, "markerStyle":20}, allWithPrefix="SingleMu")
         org.mergeSamples(targetSpec = {"name":"multijet", "color":r.kBlue}, allWithPrefix="qcd_mu")
         org.mergeSamples(targetSpec = {"name":"t#bar{t}", "color":r.kViolet}, sources=["ttj_mg.wNonQQbar.tw.%s"%rw,"ttj_mg.wTopAsymP00.tw.%s"%rw], keepSources = True)
-        #org.mergeSamples(targetSpec = {"name":"t#bar{t}.q#bar{q}.N30", "color":r.kRed}, sources = ["ttj_mg.wTopAsymN30.tw.%s"%rw,"ttj_mg.wNonQQbar.tw.%s"%rw][:1])
-        #org.mergeSamples(targetSpec = {"name":"t#bar{t}.q#bar{q}.P30", "color":r.kGreen}, sources = ["ttj_mg.wTopAsymP30.tw.%s"%rw,"ttj_mg.wNonQQbar.tw.%s"%rw][:1])
+        org.mergeSamples(targetSpec = {"name":"t#bar{t}.q#bar{q}.N30", "color":r.kRed}, sources = ["ttj_mg.wTopAsymN30.tw.%s"%rw,"ttj_mg.wNonQQbar.tw.%s"%rw][:1])
+        org.mergeSamples(targetSpec = {"name":"t#bar{t}.q#bar{q}.P30", "color":r.kGreen}, sources = ["ttj_mg.wTopAsymP30.tw.%s"%rw,"ttj_mg.wNonQQbar.tw.%s"%rw][:1])
         org.mergeSamples(targetSpec = {"name":"W+jets", "color":28}, allWithPrefix="wj_lv_mg", keepSources = False )
         org.mergeSamples(targetSpec = {"name":"DY+jets", "color":r.kYellow}, allWithPrefix="dyj_ll_mg", keepSources = False )
         org.mergeSamples(targetSpec = {"name":"Single top", "color":r.kGray}, sources = ["%s.tw.%s"%(s,rw) for s in self.single_top()], keepSources = False )
@@ -557,16 +557,17 @@ class topAsymm(supy.analysis) :
         if not hasattr(self,"orgMelded") : print "run meldScale() before plotMeldScale()"; return
         melded = copy.deepcopy(self.orgMelded)
         for ss in filter(lambda ss: 'ttj_mg' in ss['name'], melded.samples) : melded.drop(ss['name'])
-        pl = supy.plotter(melded, pdfFileName = self.pdfFileName(melded.tag),
-                          doLog = False,
-                          blackList = ["lumiHisto","xsHisto","nJobsHisto"],
-                          rowColors = self.rowcolors,
-                          samplesForRatios = ("top.Data 2011","S.M."),
-                          sampleLabelsForRatios = ('data','s.m.'),
-                          rowCycle = 100,
-                          omit2D = True,
-                          pageNumbers = False,
-                          ).plotAll()
+        for log,label in [(False,""),(True,"_log")] : 
+            pl = supy.plotter(melded, pdfFileName = self.pdfFileName(melded.tag + label),
+                              doLog = log,
+                              blackList = ["lumiHisto","xsHisto","nJobsHisto"],
+                              rowColors = self.rowcolors,
+                              samplesForRatios = ("top.Data 2011","S.M."),
+                              sampleLabelsForRatios = ('data','s.m.'),
+                              rowCycle = 100,
+                              omit2D = True,
+                              pageNumbers = False,
+                              ).plotAll()
         
     def meldScale(self,rw) :
         meldSamples = {"top_muon_pf_%s"%rw : ["SingleMu","ttj_mg","wj_lv_mg","dyj_ll_mg"]+self.single_top(),
