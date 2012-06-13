@@ -547,12 +547,21 @@ class TopReconstruction(wrappedChain.calculable) :
                                "lepBound" : lepFit.bound,     "hadWraw" : hadFit.rawW, "lepWraw" : lepFit.rawW,
                                "sumP4": sumP4,
                                "residuals" : dict( zip(["lep"+i for i in "BSLT"],  lepFit.residualsBSLT ) +
-                                                   zip(["had"+i for i in "PQBWT"], hadFit.residualsPQBWT ) )
+                                                   zip(["had"+i for i in "PQBWT"], hadFit.residualsPQBWT ) ),
+                               "signExpectation" : lepFit.signExpectation(hadFit.fitT, lepton["Charge"]<0, qDirFunc = lambda H,L : (H.z()+L.z())/abs(H.z()+L.z()) )
                                })
                 recos[-1]["key"] = recos[-1]['chi2'] - 2*math.log(recos[-1]['probability'])
 
         self.value = sorted( recos,  key = lambda x: x["key"] )
 
+######################################
+class TTbarSignExpectation(wrappedChain.calculable) :
+    def update(self,_) :
+        signs = [ (math.exp(-0.5*reco['key']),
+                   reco['signExpectation']) for reco in self.source["TopReconstruction"]]
+        xw = sum(p*sign for p,sign in signs)
+        w = sum(p for p,sign in signs)
+        self.value =  xw / w if w else 0
 ######################################
 class kinfitFailureModes(wrappedChain.calculable) :
     def update(self,_) : 

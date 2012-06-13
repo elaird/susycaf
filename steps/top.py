@@ -98,6 +98,7 @@ class Asymmetry(analysisStep) :
         self.book.fill( ev[self.DirectedDeltaYttbar], 'ttbarSignedDeltaY', self.bins, -4, 4, title = ';sumP4dir * #Delta Y_{ttbar};events / bin' )
         self.book.fill( ev[self.DirectedDeltaYLHadt], 'lHadtDeltaY',       self.bins, -4, 4, title = ';sumP4dir * #Delta Y_{lhadt};events / bin')
         #self.book.fill( ev[self.Beta],                'ttbarBeta',         self.bins, -math.sqrt(2), math.sqrt(2), title = ';#beta_{ttbar};events / bin')
+        self.book.fill( ev["TTbarSignExpectation"], 'ttbarSignExpectation', self.bins, -1, 1, title = ";<sign #Delta y>_{t#bar{t}};events / bin" )
 #####################################
 class Spin(analysisStep) :
     def __init__(self, collection) :
