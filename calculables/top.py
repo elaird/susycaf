@@ -548,7 +548,7 @@ class TopReconstruction(wrappedChain.calculable) :
                                "sumP4": sumP4,
                                "residuals" : dict( zip(["lep"+i for i in "BSLT"],  lepFit.residualsBSLT ) +
                                                    zip(["had"+i for i in "PQBWT"], hadFit.residualsPQBWT ) ),
-                               "signExpectation" : lepFit.signExpectation(hadFit.fitT, lepton["Charge"]<0, qDirFunc = lambda H,L : (H.z()+L.z())/abs(H.z()+L.z()) )
+                               "signExpectation" : lepFit.signExpectation(hadFit.fitT, lepton["Charge"]<0, qDirFunc = self.source['qDirExpectation_EtaSum'] )
                                })
                 recos[-1]["key"] = recos[-1]['chi2'] - 2*math.log(recos[-1]['probability'])
 

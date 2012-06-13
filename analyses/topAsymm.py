@@ -147,7 +147,7 @@ class topAsymm(supy.analysis) :
                     sum( [supy.samples.specify( names = "ttj_mg", effectiveLumi = eL, 
                                                 color = color, weights = [ calculables.top.wTopAsym(asym, R_sm = -0.05), 'tw',rw ] )
                           for asym,color in [(0.0,r.kOrange),
-                                             #(-0.3,r.kGreen),(0.3,r.kRed),
+                                             (-0.3,r.kGreen),(0.3,r.kRed),
                                              #(-0.6,r.kYellow),(0.6,r.kYellow),
                                              #(-0.5,r.kYellow),(0.5,r.kYellow),
                                              #(-0.4,r.kYellow),(0.4,r.kYellow),
@@ -284,10 +284,10 @@ class topAsymm(supy.analysis) :
              ssteps.filters.value(bVar, indices = "IndicesBtagged".join(obj["jet"]), index = 0, min = 0.0),
              ssteps.filters.value(bVar, indices = "IndicesBtagged".join(obj["jet"]), **pars["selection"]["bCut"])
              
-             , ssteps.histos.multiplicity("IndicesGenPileup".join(obj['jet'])).onlySim()
-             , ssteps.histos.value( 'vertexDzSeparation', 100,0,10)
-             , ssteps.histos.value( 'vertexTrackPurity',  100,0,1 )
-             , steps.top.pileupJets().onlySim()
+             #, ssteps.histos.multiplicity("IndicesGenPileup".join(obj['jet'])).onlySim()
+             #, ssteps.histos.value( 'vertexDzSeparation', 100,0,10)
+             #, ssteps.histos.value( 'vertexTrackPurity',  100,0,1 )
+             #, steps.top.pileupJets().onlySim()
              , ssteps.filters.label('top reco'),
              ssteps.filters.multiplicity("TopReconstruction",min=1)
              , ssteps.filters.label("selection complete")
@@ -319,7 +319,9 @@ class topAsymm(supy.analysis) :
              , ssteps.filters.label('top:W'),   self.discriminantTopW(pars)
              , ssteps.filters.label('top:QCD'), self.discriminantTopQCD(pars)
              , ssteps.filters.label('W:QCD'),   self.discriminantWQCD(pars)
-             , calculables.gen.qDirProbPlus('fitTopSumP4Eta', 10, 'top_muon_pf_%s'%rw, 'ttj_mg.wTopAsymP00.tw.%s'%rw, path = self.globalStem)
+             , calculables.gen.qDirExpectation_('fitTopSumP4Eta', 8, 'top_muon_pf_%s'%rw, 'ttj_mg.wTopAsymP00.tw.%s'%rw)
+             , calculables.gen.qDirExpectation_SumRapidities('top_muon_pf_%s'%rw, 'ttj_mg.wTopAsymP00.tw.%s'%rw)
+             , calculables.gen.qDirExpectation_EtaSum('top_muon_pf_%s'%rw, 'ttj_mg.wTopAsymP00.tw.%s'%rw)
 
              , ssteps.filters.label('extended jets')
              , ssteps.histos.value('FourJetPtThreshold'.join(obj['jet']), 50,0,100)
@@ -327,7 +329,7 @@ class topAsymm(supy.analysis) :
              , ssteps.histos.value('FourJetAbsEtaThreshold'.join(obj['jet']), 40,0,4)
              , ssteps.histos.value('fitTopJetAbsEtaMax', 40,0,4)
              
-             , ssteps.filters.label('signal distributions'), steps.top.Asymmetry(('fitTop',''), bins = 64)#640)
+             , ssteps.filters.label('signal distributions'), steps.top.Asymmetry(('fitTop',''), bins = 41)#640)
              , ssteps.filters.label('spin distributions'),    steps.top.Spin(('fitTop',''))
 
              #steps.histos.value('fitTopSumP4Eta', 12, -6, 6),
@@ -481,7 +483,7 @@ class topAsymm(supy.analysis) :
         org.mergeSamples(targetSpec = {"name":"DY+jets", "color":r.kYellow}, allWithPrefix="dyj_ll_mg", keepSources = False )
         org.mergeSamples(targetSpec = {"name":"Single top", "color":r.kGray}, sources = ["%s.tw.%s"%(s,rw) for s in self.single_top()], keepSources = False )
         org.mergeSamples(targetSpec = {"name":"Standard Model", "color":r.kGreen+2}, sources = ["multijet","t#bar{t}","W+jets","DY+jets","Single top"], keepSources = True)
-        for ss in filter(lambda ss: 'ttj_mg' in ss['name'],org.samples) : org.drop(ss['name'])
+        #for ss in filter(lambda ss: 'ttj_mg' in ss['name'],org.samples) : org.drop(ss['name'])
 
         orgpdf = copy.deepcopy(org)
         orgpdf.scale( toPdf = True )
