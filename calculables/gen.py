@@ -329,6 +329,7 @@ class qDirExpectation(calculables.secondary) :
         qqbar = ev['genQQbar']
         if not qqbar : return
         iTT = ev['genTopTTbar']
+        if not iTT : return
         p4 = ev['genP4']
         qdir = 1 if p4[qqbar[0]].pz()>0 else -1
         var = self.varFunction(p4[iTT[0]],p4[iTT[1]])
