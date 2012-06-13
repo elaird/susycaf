@@ -265,7 +265,7 @@ class genParticleCounter(wrappedChain.calculable) :
             if self.source["genMotherIndex"].at(iParticle) not in [0,1] : continue
             self.incrementCategory(self.source["genPdgId"].at(iParticle))
 ######################################
-class qDirProbPlus(calculables.secondary) :
+class qDirExpectation(calculables.secondary) :
     def __init__(self, var, limit, tag, sample) :
         for item in ['var','tag','sample', 'limit'] : setattr(self,item,eval(item))
         self.fixes = ('',var)
@@ -286,9 +286,9 @@ class qDirProbPlus(calculables.secondary) :
         iZero = edges.index(0)
         R = np.array(vals[iZero:])
         L = np.array(vals[:iZero])[::-1]
-        p = R / ( R + L )
+        p = (R-L) / ( R + L )
 
-        self.p = r.TH1D(self.name, ";|%s|;p of correct qDir"%self.var, len(edges[iZero:])-1, edges[iZero:])
+        self.p = r.TH1D(self.name, ";|%s|;|<qDir>|"%self.var, len(edges[iZero:])-1, edges[iZero:])
         for i in range(len(p)) : self.p.SetBinContent(i+1,p[i])
         self.p.SetBinContent(len(edges[iZero:])+2, edges[-1])
 
@@ -296,16 +296,19 @@ class qDirProbPlus(calculables.secondary) :
         q = (R+L)/(widths * (sum(R)+sum(L)))
         self.q = self.p.Clone(self.name+"_pdist")
         self.q.Reset()
-        self.q.SetTitle(";|%s|;p of |%s|"%(self.var,self.var))
+        self.q.SetTitle(";|%s|;probability of |%s|"%(self.var,self.var))
         for i in range(len(q)) : self.q.SetBinContent(i+1,q[i])
 
     def reportCache(self) :
         fileName = '/'.join(self.outputFileName.split('/')[:-1]+[self.name])
         self.setup()
+        if not self.p : return
         c = r.TCanvas()
+        self.p.SetLineWidth(2)
         self.p.SetMaximum(1)
         self.p.SetMinimum(0)
         self.p.Draw('hist')
+        self.q.SetLineWidth(2)
         self.q.SetLineColor(r.kRed)
         self.q.Draw('hist same')
         utils.tCanvasPrintPdf(c,fileName)
