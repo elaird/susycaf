@@ -278,6 +278,9 @@ class qDirExpectation(calculables.secondary) :
         import numpy as np
         orig = self.fromCache( [self.sample], [self.dist], tag = self.tag)[self.sample][self.dist]
         if not orig : return
+        values = [orig.GetBinContent(i) for i in range(orig.GetNbinsX()+2)]
+        neighbors = 10
+        for i in range(neighbors,len(values)-neighbors) : orig.SetBinContent(i, sum(values[i-neighbors:i+neighbors+1]) / (1+2*neighbors))
 
         edges = utils.edgesRebinned(orig, targetUncRel = 0.056)
         hist = orig.Rebin(len(edges)-1, orig.GetName()+"_rebinned", edges)
@@ -316,8 +319,8 @@ class qDirExpectation(calculables.secondary) :
 
     def update(self,_) :
         var = self.source[self.var]
-        p = self.p.GetBinContent(self.p.FindFixBin(var)) if self.p else 0.5
-        self.value = p if var > 0 else 1-p
+        p = self.p.GetBinContent(self.p.FindFixBin(abs(var))) if self.p else 0
+        self.value = p if var > 0 else -p
 
     def uponAcceptance(self,ev) :
         if ev['isRealData'] : return
