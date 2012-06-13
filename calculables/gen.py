@@ -266,8 +266,8 @@ class genParticleCounter(wrappedChain.calculable) :
             self.incrementCategory(self.source["genPdgId"].at(iParticle))
 ######################################
 class qDirProbPlus(calculables.secondary) :
-    def __init__(self, var, limit, tag, sample, path = None) :
-        for item in ['var','tag','sample', 'limit','path'] : setattr(self,item,eval(item))
+    def __init__(self, var, limit, tag, sample) :
+        for item in ['var','tag','sample', 'limit'] : setattr(self,item,eval(item))
         self.fixes = ('',var)
         self.dist = "qdir.%s"%self.var
         self.p = None
@@ -279,8 +279,8 @@ class qDirProbPlus(calculables.secondary) :
         orig = self.fromCache( [self.sample], [self.dist], tag = self.tag)[self.sample][self.dist]
         if not orig : return
 
-        edges = utils.edgesRebinned(orig, targetUncRel = 0.065)
-        hist = orig.Rebin(len(edges)-1, "tmp", edges)
+        edges = utils.edgesRebinned(orig, targetUncRel = 0.056)
+        hist = orig.Rebin(len(edges)-1, orig.GetName()+"_rebinned", edges)
         vals  = [hist.GetBinContent(i) for i in range(1,len(edges))]
         del hist
         iZero = edges.index(0)
@@ -292,11 +292,14 @@ class qDirProbPlus(calculables.secondary) :
         for i in range(len(p)) : self.p.SetBinContent(i+1,p[i])
         self.p.SetBinContent(len(edges[iZero:])+2, edges[-1])
 
-        if self.path is not None :
-            c = r.TCanvas()
-            self.p.Draw('hist')
-            utils.tCanvasPrintPdf(c,'%s/%s'%(self.path,'.'.join([self.name,self.sample,self.tag])))
-            del c
+
+    def reportCache(self) :
+        fileName = '/'.join(self.outputFileName.split('/')[:-1]+[self.name])
+        self.setup()
+        c = r.TCanvas()
+        self.p.Draw('hist')
+        utils.tCanvasPrintPdf(c,fileName)
+        del c
 
     def update(self,_) :
         var = self.source[self.var]
