@@ -292,12 +292,22 @@ class qDirProbPlus(calculables.secondary) :
         for i in range(len(p)) : self.p.SetBinContent(i+1,p[i])
         self.p.SetBinContent(len(edges[iZero:])+2, edges[-1])
 
+        widths = [high-low for low,high in zip(edges[iZero:-1],edges[iZero+1:])]
+        q = (R+L)/(widths * (sum(R)+sum(L)))
+        self.q = self.p.Clone(self.name+"_pdist")
+        self.q.Reset()
+        self.q.SetTitle(";|%s|;p of |%s|"%(self.var,self.var))
+        for i in range(len(q)) : self.q.SetBinContent(i+1,q[i])
 
     def reportCache(self) :
         fileName = '/'.join(self.outputFileName.split('/')[:-1]+[self.name])
         self.setup()
         c = r.TCanvas()
+        self.p.SetMaximum(1)
+        self.p.SetMinimum(0)
         self.p.Draw('hist')
+        self.q.SetLineColor(r.kRed)
+        self.q.Draw('hist same')
         utils.tCanvasPrintPdf(c,fileName)
         del c
 
