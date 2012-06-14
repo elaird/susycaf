@@ -302,6 +302,8 @@ class qDirExpectation(calculables.secondary) :
         self.q.SetTitle(";|%s|;probability of |%s|"%(self.var,self.var))
         for i in range(len(q)) : self.q.SetBinContent(i+1,q[i])
 
+        self.mean = sum(a*b for a,b in zip(p,(R+L))) / (sum(R)+sum(L))
+
     def reportCache(self) :
         fileName = '/'.join(self.outputFileName.split('/')[:-1]+[self.name])
         self.setup()
@@ -314,7 +316,13 @@ class qDirExpectation(calculables.secondary) :
         self.q.SetLineWidth(2)
         self.q.SetLineColor(r.kRed)
         self.q.Draw('hist same')
+        mean = self.q.Clone('mean'); mean.Reset();
+        for i in range(mean.GetNbinsX()) : mean.SetBinContent(i+1,self.mean)
+        mean.SetTitle("%.2f"%self.mean)
+        mean.SetLineColor(r.kBlue)
+        mean.Draw('hist same')
         utils.tCanvasPrintPdf(c,fileName)
+        del mean
         del c
 
     def update(self,_) : self.value = self.calculate
