@@ -491,7 +491,8 @@ class TopReconstruction(wrappedChain.calculable) :
         self.ellipseR = np.array([[math.cos(theta),-math.sin(theta)],[math.sin(theta), math.cos(theta)]])
         self.epsilon = 1e-7
         self.bscale = 1.1
-        self.v2 = True
+        self.v2had = False
+        self.v2lep = True
         self.eCoupling = 0.55
 
     def update(self,_) :
@@ -511,7 +512,7 @@ class TopReconstruction(wrappedChain.calculable) :
             if iPQH[2] not in bIndices : continue
             if np.dot(*(2*[self.ellipseR.dot(jets["ComboPQBDeltaRawMassWTop"][iPQH]) / [35,70]])) > 1 : continue # elliptical window on raw masses
 
-            hadFit = utils.fitKinematic.leastsqHadronicTop2(*zip(*((jets["CorrectedP4"][i]*(self.bscale if i==2 else 1), jets["Resolution"][i]) for i in iPQH)) ) if self.v2 else \
+            hadFit = utils.fitKinematic.leastsqHadronicTop2(*zip(*((jets["CorrectedP4"][i]*(self.bscale if i==2 else 1), jets["Resolution"][i]) for i in iPQH)) ) if self.v2had else \
                      utils.fitKinematic.leastsqHadronicTop( *zip(*((jets["CorrectedP4"][i]*(self.bscale if i==2 else 1), jets["Resolution"][i]) for i in iPQH)), widthW = 4./2 ) #tuned w width
 
             sumP4 = self.source["mixedSumP4"] - hadFit.rawT + hadFit.fitT
@@ -522,11 +523,11 @@ class TopReconstruction(wrappedChain.calculable) :
                 iPQHL = iPQH+(iL,)
                 iQQBB = iPQHL[:2]+tuple(sorted(iPQHL[2:]))
                 
-                lepFit = utils.fitKinematic.leastsqLeptonicTop2( jets["CorrectedP4"][iL]*self.bscale, jets["Resolution"][iL], lepton["P4"], nuXY, nuErr2-self.eCoupling*jets["CovariantResolution2"][iL]) if self.v2 else \
+                lepFit = utils.fitKinematic.leastsqLeptonicTop2( jets["CorrectedP4"][iL]*self.bscale, jets["Resolution"][iL], lepton["P4"], nuXY, nuErr2-self.eCoupling*jets["CovariantResolution2"][iL]) if self.v2lep else \
                          min( utils.fitKinematic.leastsqLeptonicTop( jets["CorrectedP4"][iL]*self.bscale, jets["Resolution"][iL], lepton["P4"], nuXY, nuErr2-self.eCoupling*jets["CovariantResolution2"][iL], zPlus = True ),
                               utils.fitKinematic.leastsqLeptonicTop( jets["CorrectedP4"][iL]*self.bscale, jets["Resolution"][iL], lepton["P4"], nuXY, nuErr2-self.eCoupling*jets["CovariantResolution2"][iL], zPlus = False ),
                               key = lambda x: x.chi2 )
-                if self.v2 and lepFit.fitT.M() > 180 : continue
+                if self.v2had and lepFit.fitT.M() > 180 : continue
                 tt = hadFit.fitT + lepFit.fitT
                 iX,ttx = min( [(None,tt)]+[(i,tt+jets["CorrectedP4"][i]) for i in jets["Indices"] if i not in iPQHL], key = lambda lv : lv[1].pt() )
                 recos.append( {"nu"   : lepFit.fitNu,       "hadP" : hadFit.fitJ[0],
