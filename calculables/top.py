@@ -486,14 +486,16 @@ class SemileptonicTopIndex(wrappedChain.calculable) :
         self.value = next( iter(self.source["IndicesAnyIsoIsoOrder".join(self.source["TopLeptons"])]), None )
 #####################################
 class TopReconstruction(wrappedChain.calculable) :
-    def __init__(self) :
+    def __init__(self, bscale = 1.1, eCoupling = 0.55, v2had = False, v2lep = True ) :
         theta = math.pi/6
         self.ellipseR = np.array([[math.cos(theta),-math.sin(theta)],[math.sin(theta), math.cos(theta)]])
         self.epsilon = 1e-7
-        self.bscale = 1.1
-        self.v2had = False
-        self.v2lep = True
-        self.eCoupling = 0.55
+        for item in ['bscale',    # factor by which to scale hypothesized b jets
+                     'eCoupling', # percentage of jet resolution used to sharpen MET resolution
+                     'v2had',     # v2 (1parameter,3residuals) is twice as fast as v1 (3parameters,5residuals) but 5% less accurate
+                     'v2lep'      # no comment: read the codes
+                     ] : setattr(self,item,eval(item))
+        self.moreName = "bscale:%.1f; eCoupl:%.2f; v%dhad; v%dlep"%(bscale,eCoupling,v2had+1,v2lep+1)
 
     def update(self,_) :
         

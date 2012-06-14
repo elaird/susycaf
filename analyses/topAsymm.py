@@ -191,6 +191,7 @@ class topAsymm(supy.analysis) :
             calculables.top.IndicesGenTopPQHL( obj['jet'] ),
             calculables.top.IndicesGenTopExtra (obj['jet'] ),
             calculables.top.genTopRecoIndex(),
+            calculables.top.TopReconstruction(),
 
             calculables.other.Mt( lepton, "mixedSumP4", allowNonIso = True, isSumP4 = True),
             calculables.other.Covariance(('met','PF')),
