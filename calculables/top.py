@@ -486,13 +486,16 @@ class SemileptonicTopIndex(wrappedChain.calculable) :
         self.value = next( iter(self.source["IndicesAnyIsoIsoOrder".join(self.source["TopLeptons"])]), None )
 #####################################
 class TopReconstruction(wrappedChain.calculable) :
-    def __init__(self) :
+    def __init__(self, bscale = 1.1, eCoupling = 0.55, v2had = False, v2lep = True ) :
         theta = math.pi/6
         self.ellipseR = np.array([[math.cos(theta),-math.sin(theta)],[math.sin(theta), math.cos(theta)]])
         self.epsilon = 1e-7
-        self.bscale = 1.1
-        self.v2 = True
-        self.eCoupling = 0.55
+        for item in ['bscale',    # factor by which to scale hypothesized b jets
+                     'eCoupling', # percentage of jet resolution used to sharpen MET resolution
+                     'v2had',     # v2 (1parameter,3residuals) is twice as fast as v1 (3parameters,5residuals) but 5% less accurate
+                     'v2lep'      # no comment: read the codes
+                     ] : setattr(self,item,eval(item))
+        self.moreName = "bscale:%.1f; eCoupl:%.2f; v%dhad; v%dlep"%(bscale,eCoupling,v2had+1,v2lep+1)
 
     def update(self,_) :
         
@@ -511,7 +514,7 @@ class TopReconstruction(wrappedChain.calculable) :
             if iPQH[2] not in bIndices : continue
             if np.dot(*(2*[self.ellipseR.dot(jets["ComboPQBDeltaRawMassWTop"][iPQH]) / [35,70]])) > 1 : continue # elliptical window on raw masses
 
-            hadFit = utils.fitKinematic.leastsqHadronicTop2(*zip(*((jets["CorrectedP4"][i]*(self.bscale if i==2 else 1), jets["Resolution"][i]) for i in iPQH)) ) if self.v2 else \
+            hadFit = utils.fitKinematic.leastsqHadronicTop2(*zip(*((jets["CorrectedP4"][i]*(self.bscale if i==2 else 1), jets["Resolution"][i]) for i in iPQH)) ) if self.v2had else \
                      utils.fitKinematic.leastsqHadronicTop( *zip(*((jets["CorrectedP4"][i]*(self.bscale if i==2 else 1), jets["Resolution"][i]) for i in iPQH)), widthW = 4./2 ) #tuned w width
 
             sumP4 = self.source["mixedSumP4"] - hadFit.rawT + hadFit.fitT
@@ -522,11 +525,11 @@ class TopReconstruction(wrappedChain.calculable) :
                 iPQHL = iPQH+(iL,)
                 iQQBB = iPQHL[:2]+tuple(sorted(iPQHL[2:]))
                 
-                lepFit = utils.fitKinematic.leastsqLeptonicTop2( jets["CorrectedP4"][iL]*self.bscale, jets["Resolution"][iL], lepton["P4"], nuXY, nuErr2-self.eCoupling*jets["CovariantResolution2"][iL]) if self.v2 else \
+                lepFit = utils.fitKinematic.leastsqLeptonicTop2( jets["CorrectedP4"][iL]*self.bscale, jets["Resolution"][iL], lepton["P4"], nuXY, nuErr2-self.eCoupling*jets["CovariantResolution2"][iL]) if self.v2lep else \
                          min( utils.fitKinematic.leastsqLeptonicTop( jets["CorrectedP4"][iL]*self.bscale, jets["Resolution"][iL], lepton["P4"], nuXY, nuErr2-self.eCoupling*jets["CovariantResolution2"][iL], zPlus = True ),
                               utils.fitKinematic.leastsqLeptonicTop( jets["CorrectedP4"][iL]*self.bscale, jets["Resolution"][iL], lepton["P4"], nuXY, nuErr2-self.eCoupling*jets["CovariantResolution2"][iL], zPlus = False ),
                               key = lambda x: x.chi2 )
-                if self.v2 and lepFit.fitT.M() > 180 : continue
+                if self.v2had and lepFit.fitT.M() > 180 : continue
                 tt = hadFit.fitT + lepFit.fitT
                 iX,ttx = min( [(None,tt)]+[(i,tt+jets["CorrectedP4"][i]) for i in jets["Indices"] if i not in iPQHL], key = lambda lv : lv[1].pt() )
                 recos.append( {"nu"   : lepFit.fitNu,       "hadP" : hadFit.fitJ[0],
@@ -547,12 +550,21 @@ class TopReconstruction(wrappedChain.calculable) :
                                "lepBound" : lepFit.bound,     "hadWraw" : hadFit.rawW, "lepWraw" : lepFit.rawW,
                                "sumP4": sumP4,
                                "residuals" : dict( zip(["lep"+i for i in "BSLT"],  lepFit.residualsBSLT ) +
-                                                   zip(["had"+i for i in "PQBWT"], hadFit.residualsPQBWT ) )
+                                                   zip(["had"+i for i in "PQBWT"], hadFit.residualsPQBWT ) ),
+                               "signExpectation" : lepFit.signExpectation(hadFit.fitT, lepton["Charge"]<0, qDirFunc = self.source['qDirExpectation_EtaSum'] )
                                })
                 recos[-1]["key"] = recos[-1]['chi2'] - 2*math.log(recos[-1]['probability'])
 
         self.value = sorted( recos,  key = lambda x: x["key"] )
 
+######################################
+class TTbarSignExpectation(wrappedChain.calculable) :
+    def update(self,_) :
+        signs = [ (math.exp(-0.5*reco['key']),
+                   reco['signExpectation']) for reco in self.source["TopReconstruction"]]
+        xw = sum(p*sign for p,sign in signs)
+        w = sum(p for p,sign in signs)
+        self.value =  xw / w if w else 0
 ######################################
 class kinfitFailureModes(wrappedChain.calculable) :
     def update(self,_) : 
