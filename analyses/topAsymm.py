@@ -323,6 +323,7 @@ class topAsymm(supy.analysis) :
              , calculables.gen.qDirExpectation_('fitTopSumP4Eta', 8, 'top_muon_pf_%s'%rw, 'ttj_mg.wTopAsymP00.tw.%s'%rw)
              , calculables.gen.qDirExpectation_SumRapidities('top_muon_pf_%s'%rw, 'ttj_mg.wTopAsymP00.tw.%s'%rw)
              , calculables.gen.qDirExpectation_EtaSum('top_muon_pf_%s'%rw, 'ttj_mg.wTopAsymP00.tw.%s'%rw)
+             , calculables.gen.qDirExpectation_RapiditySum('top_muon_pf_%s'%rw, 'ttj_mg.wTopAsymP00.tw.%s'%rw)
 
              , ssteps.filters.label('extended jets')
              , ssteps.histos.value('FourJetPtThreshold'.join(obj['jet']), 50,0,100)

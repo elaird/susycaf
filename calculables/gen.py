@@ -369,3 +369,11 @@ class qDirExpectation_EtaSum(qDirExpectation) :
         self.tag = tag
         self.sample = sample
 
+class qDirExpectation_RapiditySum(qDirExpectation) :
+    def varFunction(self,top,tbar) : return (top + tbar).Rapidity()
+    def __init__(self, tag, sample) :
+        self.var = "RapiditySum"
+        self.limit = 2.5
+        self.tag = tag
+        self.sample = sample
+
