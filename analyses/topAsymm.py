@@ -332,7 +332,8 @@ class topAsymm(supy.analysis) :
              , ssteps.histos.value('fitTopJetAbsEtaMax', 40,0,4)
              
              , ssteps.filters.label('signal distributions'), steps.top.Asymmetry(('fitTop',''), bins = 41)#640)
-             , ssteps.filters.label('spin distributions'),    steps.top.Spin(('fitTop',''))
+             , ssteps.filters.label('spin distributions'),   steps.top.Spin(('fitTop',''))
+             , ssteps.filters.label('sign check'),           steps.top.signCheck()
 
              #steps.histos.value('fitTopSumP4Eta', 12, -6, 6),
              #steps.filters.absEta('fitTopSumP4', min = 1),
