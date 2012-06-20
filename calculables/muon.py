@@ -94,7 +94,7 @@ class IdPog2012Tight(wrappedChain.calculable) :
     def __init__(self, collection = None) :
         self.fixes = collection
         self.stash(["IsGlobalMuon","IsPFMuon","GlobalTracknormalizedChi2", "GlobalTracknumberOfValidMuonHits",
-                    "NumberOfMatchedStations", "InnerTrackDxy",
+                    "NumberOfMatchedStations", "InnerTrackDxy", "InnerTrackDz",
                     "NumberOfValidPixelHits", "NumberOfTrackerLayersWithMeasurement"
                     ])
         self.moreName = "https://twiki.cern.ch/twiki/bin/view/CMSPublic/SWGuideMuonId#Tight_Muon"
@@ -104,7 +104,7 @@ class IdPog2012Tight(wrappedChain.calculable) :
 
         gm = self.source[self.IsGlobalMuon]
         pf = self.source[self.IsPFMuon]
-        chi2 = self.source[self.GlobalTrackNormalizedChi2]
+        chi2 = self.source[self.GlobalTracknormalizedChi2]
         mHits = self.source[self.GlobalTracknumberOfValidMuonHits]
         mStations = self.source[self.NumberOfMatchedStations]
         dxy = self.source[self.InnerTrackDxy]
