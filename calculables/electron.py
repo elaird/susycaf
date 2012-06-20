@@ -11,7 +11,7 @@ class Indices(wrappedChain.calculable) :
         self.stash(["IndicesOther","IndicesNonIso","P4"])
         self.ptMin = ptMin
         self.flag2012 = flag2012
-        if use2012 :
+        if self.flag2012 :
             self.eID = ("%sId"+self.flag2012+"%s")% self.fixes
             self.moreName = "pt>%.1f; (2012 %s)" % (self.ptMin, self.flag2012)
         else :
