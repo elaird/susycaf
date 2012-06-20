@@ -329,7 +329,7 @@ class qDirExpectation(calculables.secondary) :
 
     def calculate(self, top, tbar) :
         var = self.varFunction(top,tbar)
-        p = self.p.GetBinContent(self.p.FindFixBin(abs(var))) if self.p else 0
+        p = max(0,self.p.GetBinContent(self.p.FindFixBin(abs(var)))) if self.p else 0
         return p if var > 0 else -p
 
     def uponAcceptance(self,ev) :
