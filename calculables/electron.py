@@ -6,14 +6,19 @@ barrelEtaMax = configuration.detectorSpecs()["cms"]["barrelEtaMax"]
 endcapEtaMin = configuration.detectorSpecs()["cms"]["endcapEtaMin"]
 ##############################
 class Indices(wrappedChain.calculable) :
-    def __init__(self, collection = None, ptMin = None, simpleEleID = None, useCombinedIso = True) :
+    def __init__(self, collection = None, ptMin = None, simpleEleID = None, useCombinedIso = True, flag2012 = "") :
         self.fixes = collection
         self.stash(["IndicesOther","IndicesNonIso","P4"])
-        isotype = "c" if useCombinedIso else "rel"
-        self.eID = ("%sID"+simpleEleID+"%s")% self.fixes
-        self.eIso = ("%s"+isotype+"Iso"+simpleEleID+"%s") % self.fixes
         self.ptMin = ptMin
-        self.moreName = "pt>%.1f; simple%s; %sIso" % (ptMin, simpleEleID, isotype)
+        self.flag2012 = flag2012
+        if use2012 :
+            self.eID = ("%sId"+self.flag2012+"%s")% self.fixes
+            self.moreName = "pt>%.1f; (2012 %s)" % (self.ptMin, self.flag2012)
+        else :
+            isotype = "c" if useCombinedIso else "rel"
+            self.eID = ("%sID"+simpleEleID+"%s")% self.fixes
+            self.eIso = ("%s"+isotype+"Iso"+simpleEleID+"%s") % self.fixes
+            self.moreName = "pt>%.1f; simple%s; %sIso" % (ptMin, simpleEleID, isotype)
 
     def update(self,ignored) :
         self.value = []
@@ -21,7 +26,7 @@ class Indices(wrappedChain.calculable) :
         nonIso = self.source[self.IndicesNonIso]
         p4s   = self.source[self.P4]
         eID   = self.source[self.eID]
-        eIso  = self.source[self.eIso]
+        eIso  = self.source[self.eIso] if not self.flag2012 else [True]*p4s.size()
         for i in range(p4s.size()) :
             if p4s.at(i).pt() < self.ptMin : break
             elif eID[i]:
