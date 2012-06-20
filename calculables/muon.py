@@ -90,6 +90,34 @@ class IDtight(wrappedChain.calculable) :
                          self.source[self.NumberOfValidPixelHits],
                          self.source[self.GlobalTrackDxy])    
 ##############################
+class IdPog2012Tight(wrappedChain.calculable) :
+    def __init__(self, collection = None) :
+        self.fixes = collection
+        self.stash(["IsGlobalMuon","IsPFMuon","GlobalTracknormalizedChi2", "GlobalTracknumberOfValidMuonHits",
+                    "NumberOfMatchedStations", "InnerTrackDxy",
+                    "NumberOfValidPixelHits", "NumberOfTrackerLayersWithMeasurement"
+                    ])
+        self.moreName = "https://twiki.cern.ch/twiki/bin/view/CMSPublic/SWGuideMuonId#Tight_Muon"
+
+    def update(self,ignored) :
+        self.value = []
+
+        gm = self.source[self.IsGlobalMuon]
+        pf = self.source[self.IsPFMuon]
+        chi2 = self.source[self.GlobalTrackNormalizedChi2]
+        mHits = self.source[self.GlobalTracknumberOfValidMuonHits]
+        mStations = self.source[self.NumberOfMatchedStations]
+        dxy = self.source[self.InnerTrackDxy]
+        dz = self.source[self.InnerTrackDz]
+        pHits = self.source[self.NumberOfValidPixelHits]
+        tLayers = self.source[self.NumberOfTrackerLayersWithMeasurement]
+
+        for i in range(gm.size()) :
+            reqs = [gm.at(i), pf.at(i), chi2.at(i)<10.0, mHits.at(i)>0,
+                    mStations.at(i)>1, dxy.at(i)<0.2, dz.at(i)<0.5,
+                    pHits.at(i)>0, tLayers.at(i)>5]
+            self.value.append(all(reqs))
+##############################
 class CombinedRelativeIso(wrappedChain.calculable) :
     def __init__(self, collection = None) :
         self.fixes = collection
@@ -134,14 +162,20 @@ class IndicesNonIso(calculables.IndicesOther) :
         self.moreName = "pass ptMin & id; fail iso"
 ##############################
 class Indices(wrappedChain.calculable) :
-    def __init__(self, collection = None, ptMin = None, combinedRelIsoMax = None, requireIsGlobal = True , ID = "IDtight") :
+    def __init__(self, collection = None, ptMin = None, combinedRelIsoMax = None, requireIsGlobal = True,
+                 ID = "IDtight", usePfIso = False, pfRelIsoMax = None) :
         self.fixes = collection
         self.requireIsGlobal = requireIsGlobal
-        self.stash(["IndicesNonIso","IndicesOther","P4","CombinedRelativeIso","IsGlobalMuon"])
+        self.usePfIso = usePfIso
+        self.stash(["IndicesNonIso","IndicesOther","P4","IsGlobalMuon"] + (["PfIsolationR04DeltaBCorrected"] if self.usePfIso else ["CombinedRelativeIso"]))
         self.ID = ID.join(collection)
         self.ptMin = ptMin
-        self.relIsoMax = combinedRelIsoMax
-        self.moreName = "%s; pt>%.1f GeV; cmbRelIso<%.2f"%( ID, ptMin, combinedRelIsoMax )
+        if self.usePfIso :
+            self.relIsoMax = pfRelIsoMax
+            self.moreName = "%s; pt>%.1f GeV; pfRelIso<%.2f"%( ID, ptMin, self.relIsoMax )
+        else :
+            self.relIsoMax = combinedRelIsoMax
+            self.moreName = "%s; pt>%.1f GeV; cmbRelIso<%.2f"%( ID, ptMin, combinedRelIsoMax )
 
     def update(self,ignored) :
         self.value = []
@@ -149,7 +183,7 @@ class Indices(wrappedChain.calculable) :
         other  = self.source[self.IndicesOther]
         p4s    = self.source[self.P4]
         id  = self.source[self.ID]
-        relIso = self.source[self.CombinedRelativeIso]
+        relIso = self.source[self.PfIsolationR04DeltaBCorrected] if self.usePfIso else self.source[self.CombinedRelativeIso]
         isGlobal = self.source[self.IsGlobalMuon]
         for i in range(p4s.size()) :
             if p4s.at(i).pt() < self.ptMin : continue
