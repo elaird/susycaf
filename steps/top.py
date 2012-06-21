@@ -104,6 +104,7 @@ class signCheck(analysisStep) :
     def uponAcceptance(self,ev) :
         if ev["isRealData"] : return
         if not ev["genQQbar"] : return
+        if not ev["genTopTTbar"] : return
         genTT_DDY = ev["genTopDirectedDeltaYttbar"]
         signGenTT_DDY = 1 if genTT_DDY > 0 else -1 if genTT_DDY<0 else 0
         self.book.fill( ev["TTbarSignExpectation"] * signGenTT_DDY, "TTbarSignExpectation_trueSign", 41, -1, 1, title = ";<sign #Delta y>_{t#bar{t}} . trueSign;events / bin")
