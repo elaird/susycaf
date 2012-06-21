@@ -531,7 +531,6 @@ class TopReconstruction(wrappedChain.calculable) :
                          min( utils.fitKinematic.leastsqLeptonicTop( b*self.bscale, jets["Resolution"][iL], lepton["P4"], nuXY_b, nuErr2_b, zPlus = True ),
                               utils.fitKinematic.leastsqLeptonicTop( b*self.bscale, jets["Resolution"][iL], lepton["P4"], nuXY_b, nuErr2_b, zPlus = False ),
                               key = lambda x: x.chi2 )
-                if self.v2had and lepFit.fitT.M() > 180 : continue
                 tt = hadFit.fitT + lepFit.fitT
                 iX,ttx = min( [(None,tt)]+[(i,tt+jets["CorrectedP4"][i]) for i in jets["Indices"] if i not in iPQHL], key = lambda lv : lv[1].pt() )
                 recos.append( {"nu"   : lepFit.fitNu,       "hadP" : hadFit.fitJ[0],
