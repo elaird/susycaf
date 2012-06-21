@@ -553,9 +553,9 @@ class TopReconstruction(wrappedChain.calculable) :
                                "nuErr2":nuErr2_b,
                                "residuals" : dict( zip(["lep"+i for i in "BSLT"],  lepFit.residualsBSLT ) +
                                                    zip(["had"+i for i in "PQBWT"], hadFit.residualsPQBWT ) ),
-                               "signExpectation" : lepFit.signExpectation(hadFit.fitT, lepton["Charge"]<0, qDirFunc = self.source['qDirExpectation_EtaSum'] ),
                                "nuEllipse"       : lepFit.Ellipse,
-                               "nuSolutions"     : lepFit.solutions
+                               "nuSolutions"     : lepFit.solutions,
+                               "nuChi2Matrix"    : lepFit.M
                                })
                 recos[-1]["key"] = recos[-1]['chi2'] - 2*math.log(recos[-1]['probability'])
 
@@ -563,9 +563,43 @@ class TopReconstruction(wrappedChain.calculable) :
 
 ######################################
 class TTbarSignExpectation(wrappedChain.calculable) :
+
+    def __init__(self, nSamples = 16, qDirFunc = None ) :
+        self.nSamples = nSamples
+        self.qDirFunc = qDirFunc
+        self.moreName = "%d samples; %s"%(nSamples,qDirFunc)
+        self.nu = utils.LorentzV()
+
+    def signExpect(self,topReco) :
+        samples = []
+        lep = topReco['lepTopP4']
+        had = topReco['hadTopP4']
+        had_y = had.Rapidity()
+        hadIsTop = topReco['lepCharge'] < 0
+        bmu = topReco['lep'] + topReco['lepB']
+        qDirFunc = self.source[self.qDirFunc] if self.qDirFunc else (lambda L,H : 1 if L.Rapidity()+H.Rapidity() > 0 else -1)
+        
+        c,s = topReco['nuSolutions'][0][:2]
+        Ellipse = topReco['nuEllipse']
+        M = topReco['nuChi2Matrix']
+        if not (s or c) : return qDirFunc(had,lep) * (-1)**(hadIsTop^( lep.Rapidity() < had_y))
+        tau_0 = math.atan2(s,c)
+        for tau in np.arange(tau_0, tau_0 + 2*math.pi, 2*math.pi/self.nSamples)[::-1] :
+            sol = np.array([math.cos(tau),math.sin(tau),1])
+            chi2 = sol.T.dot(M.dot(sol))
+            x,y,z = Ellipse.dot(sol)
+            self.nu.SetPxPyPzE(x,y,z,0); self.nu.SetM(0)
+            lep = bmu + self.nu
+            samples.append( (math.exp(-0.5*chi2),
+                             qDirFunc(had,lep) * (-1)**(hadIsTop^( lep.Rapidity() < had_y ) ) ) )
+
+        xw = sum(p*sdy for p,sdy in samples)
+        w = sum(p for p,sdy in samples)
+        return xw / w if w else 0
+
     def update(self,_) :
         signs = [ (math.exp(-0.5*reco['key']),
-                   reco['signExpectation']) for reco in self.source["TopReconstruction"]]
+                   self.signExpect(reco)) for reco in self.source["TopReconstruction"]]
         xw = sum(p*sign for p,sign in signs)
         w = sum(p for p,sign in signs)
         self.value =  xw / w if w else 0
