@@ -136,7 +136,11 @@ class topAsymm(supy.analysis) :
                                                   "qcd_mg_ht_500_1000",
                                                   "qcd_mg_ht_1000_inf"],  weights = ['tw',rw], effectiveLumi = eL )     if 'Wlv' not in pars['tag'] else []
         def ewk(eL = None) :
-            return supy.samples.specify( names = ["wj_lv_mg","dyj_ll_mg"], effectiveLumi = eL, color = 28, weights = ['tw',rw] ) if "QCD" not in pars['tag'] else []
+            return supy.samples.specify( names = [#"wj_lv_mg",
+                                                  "dyj_ll_mg",
+                                                  "w2j_mg",
+                                                  "w3j_mg",
+                                                  "w4j_mg"], effectiveLumi = eL, color = 28, weights = ['tw',rw] ) if "QCD" not in pars['tag'] else []
 
         def single_top(eL = None) :
             return supy.samples.specify( names = self.single_top(),
@@ -156,7 +160,7 @@ class topAsymm(supy.analysis) :
                                              ]], [])
                     )[: 2 if "QCD" in pars['tag'] else 2 if 'Wlv' in pars['tag'] else None]
         
-        return  ( self.data(pars) + qcd_py6_mu() + ewk() + ttbar_mg(5e4) + single_top() )
+        return  ( self.data(pars) + qcd_py6_mu() + ewk() + ttbar_mg(8e4) + single_top() )
 
 
     ########################################################################################
@@ -371,6 +375,7 @@ class topAsymm(supy.analysis) :
         return supy.calculables.other.Target("pileupTrueNumInteractionsBX0", thisSample = pars['baseSample'],
                                              target = ("data/pileup_true_Cert_160404-180252_7TeV_ReRecoNov08_Collisions11_JSON.root","pileup"),
                                              groups = [('qcd_mu',[]),('wj_lv_mg',[]),('dyj_ll_mg',[]),
+                                                       ("w2j_mg.tw.%s"%rw,[]),("w3j_mg.tw.%s"%rw,[]),("w4j_mg.tw.%s"%rw,[]),
                                                        ('single_top', ['%s.tw.%s'%(s,rw) for s in cls.single_top()]),
                                                        ('ttj_mg',['ttj_mg%s.tw.%s'%(s,rw) for s in ['',
                                                                                                     '.wNonQQbar',
@@ -380,6 +385,7 @@ class topAsymm(supy.analysis) :
         rw = pars['reweights']['abbr']
         return supy.calculables.other.Ratio("nVertex", binning = (20,-0.5,19.5), thisSample = pars['baseSample'],
                                             target = ("SingleMu",[]), groups = [('qcd_mu',[]),('wj_lv_mg',[]),('dyj_ll_mg',[]),
+                                                                                ("w2j_mg.tw.%s"%rw,[]),("w3j_mg.tw.%s"%rw,[]),("w4j_mg.tw.%s"%rw,[]),
                                                                                 ('single_top', ['%s.tw.%s'%(s,rw) for s in cls.single_top()]),
                                                                                 ('ttj_mg',['ttj_mg%s.tw.'%(s,rw) for s in ['',
                                                                                                                            '.wNonQQbar',
@@ -389,6 +395,7 @@ class topAsymm(supy.analysis) :
         rw = pars['reweights']['abbr']
         return supy.calculables.other.Ratio("rho", binning = (90,0,30), thisSample = pars['baseSample'],
                                             target = ("SingleMu",[]), groups = [('qcd_mu',[]),('wj_lv_mg',[]),('dyj_ll_mg',[]),
+                                                                                ("w2j_mg.tw.%s"%rw,[]),("w3j_mg.tw.%s"%rw,[]),("w4j_mg.tw.%s"%rw,[]),
                                                                                 ('single_top', ['%s.tw.s'%(s,rw) for s in cls.single_top()]),
                                                                                 ('ttj_mg',['ttj_mg%s.tw.%s'%(s,rw) for s in ['',
                                                                                                                              '.wNonQQbar',
@@ -426,7 +433,7 @@ class topAsymm(supy.analysis) :
     def discriminantTopW(pars) :
         rw = pars['reweights']['abbr']
         return supy.calculables.other.Discriminant( fixes = ("","TopW"),
-                                                    left = {"pre":"wj_lv_mg", "tag":"top_muon_pf_%s"%rw, "samples":[]},
+                                                    left = {"pre":"wj", "tag":"top_muon_pf_%s"%rw, "samples":['w%dj_mg.tw.%s'%(n,rw) for n in [2,3,4]]},
                                                     right = {"pre":"ttj_mg", "tag":"top_muon_pf_%s"%rw, "samples": ['ttj_mg.%s.tw.%s'%(s,rw) for s in ['wNonQQbar','wTopAsymP00']]},
                                                     correlations = pars['discriminant2DPlots'],
                                                     dists = {"TopRatherThanWProbability" : (20,0.5,1),          # 0.185
@@ -456,7 +463,7 @@ class topAsymm(supy.analysis) :
         tops = ['ttj_mg.%s.tw.%s'%(s,rw) for s in ['wNonQQbar','wTopAsymP00']]
         lumi = 5008
         return supy.calculables.other.Discriminant( fixes = ("","WQCD"),
-                                                    left = {"pre":"wj_lv_mg", "tag":"top_muon_pf_%s"%rw, "samples":[]},
+                                                    left = {"pre":"wj", "tag":"top_muon_pf_%s"%rw, "samples":['w%dj_mg.tw.%s'%(n,rw) for n in [2,3,4]]},
                                                     right = {"pre":"Multijet", "tag":"QCD_muon_pf_%s"%rw, "samples":["SingleMu.2011A.tw","SingleMu.2011B.tw"]+tops, 'sf':[1,1,-lumi,-lumi]},
                                                     correlations = pars['discriminant2DPlots'],
                                                     dists = {"Mt".join(pars['objects']['muon'])+"mixedSumP4" : (30,0,180), # 0.395
@@ -483,9 +490,10 @@ class topAsymm(supy.analysis) :
         org.mergeSamples(targetSpec = {"name":"t#bar{t}", "color":r.kViolet}, sources=["ttj_mg.wNonQQbar.tw.%s"%rw,"ttj_mg.wTopAsymP00.tw.%s"%rw], keepSources = True)
         org.mergeSamples(targetSpec = {"name":"t#bar{t}.q#bar{q}.N30", "color":r.kRed}, sources = ["ttj_mg.wTopAsymN30.tw.%s"%rw,"ttj_mg.wNonQQbar.tw.%s"%rw][:1])
         org.mergeSamples(targetSpec = {"name":"t#bar{t}.q#bar{q}.P30", "color":r.kGreen}, sources = ["ttj_mg.wTopAsymP30.tw.%s"%rw,"ttj_mg.wNonQQbar.tw.%s"%rw][:1])
-        org.mergeSamples(targetSpec = {"name":"W+jets", "color":28}, allWithPrefix="wj_lv_mg", keepSources = False )
-        org.mergeSamples(targetSpec = {"name":"DY+jets", "color":r.kYellow}, allWithPrefix="dyj_ll_mg", keepSources = False )
-        org.mergeSamples(targetSpec = {"name":"Single top", "color":r.kGray}, sources = ["%s.tw.%s"%(s,rw) for s in self.single_top()], keepSources = False )
+        #org.mergeSamples(targetSpec = {"name":"W+jets", "color":28}, allWithPrefix="wj_lv_mg")
+        org.mergeSamples(targetSpec = {"name":"W+jets", "color":28}, sources = ["w%dj_mg.tw.%s"%(n,rw) for n in [2,3,4]])
+        org.mergeSamples(targetSpec = {"name":"DY+jets", "color":r.kYellow}, allWithPrefix="dyj_ll_mg")
+        org.mergeSamples(targetSpec = {"name":"Single top", "color":r.kGray}, sources = ["%s.tw.%s"%(s,rw) for s in self.single_top()])
         org.mergeSamples(targetSpec = {"name":"Standard Model", "color":r.kGreen+2}, sources = ["multijet","t#bar{t}","W+jets","DY+jets","Single top"], keepSources = True)
         #for ss in filter(lambda ss: 'ttj_mg' in ss['name'],org.samples) : org.drop(ss['name'])
 
@@ -512,50 +520,50 @@ class topAsymm(supy.analysis) :
                        "dependence2D" : True})
         supy.plotter(orgpdf, pdfFileName = self.pdfFileName(org.tag+"_pdf"), doLog = False, **kwargs ).plotAll()
 
-    def meldWpartitions(self,pars) :
-        rw = pars['reweights']['abbr']
-        samples = {"top_muon_pf_%s"%rw : ["w_"],
-                   "Wlv_muon_pf_%s"%rw : ["w_","SingleMu"],
-                   "QCD_muon_pf_%s"%rw : []}
-        organizers = [supy.organizer(tag, [s for s in self.sampleSpecs(tag) if any(item in s['name'] for item in samples[tag])])
-                      for tag in [p['tag'] for p in self.readyConfs]]
-        if len(organizers)<2 : return
-        for org in organizers :
-            org.mergeSamples(targetSpec = {"name":"Data 2011", "color":r.kBlack, "markerStyle":20}, allWithPrefix="SingleMu")
-            org.mergeSamples(targetSpec = {"name":"w_mg", "color":r.kRed if "Wlv" in org.tag else r.kBlue, "markerStyle": 22}, sources = ["wj_lv_mg.tw.%s"%rw])
-            org.scale(toPdf=True)
-
-        melded = supy.organizer.meld("wpartitions",filter(lambda o: o.samples, organizers))
-        pl = supy.plotter(melded,
-                          pdfFileName = self.pdfFileName(melded.tag),
-                          doLog = False,
-                          blackList = ["lumiHisto","xsHisto","nJobsHisto"],
-                          rowColors = self.rowcolors,
-                          rowCycle = 100,
-                          omit2D = True,
-                          ).plotAll()
-        
-    def meldQCDpartitions(self) :
-        samples = {"top_muon_pf_%s"%rw : ["qcd_mu"],
-                   "Wlv_muon_pf_%s"%rw : [],
-                   "QCD_muon_pf_%s"%rw : ["qcd_mu","SingleMu"]}
-        organizers = [supy.organizer(tag, [s for s in self.sampleSpecs(tag) if any(item in s['name'] for item in samples[tag])])
-                      for tag in [p['tag'] for p in self.readyConfs]]
-        if len(organizers)<2 : return
-        for org in organizers :
-            org.mergeSamples(targetSpec = {"name":"Data 2011", "color":r.kBlack, "markerStyle":20}, allWithPrefix="SingleMu")
-            org.mergeSamples(targetSpec = {"name":"qcd_mu", "color":r.kRed if "QCD" in org.tag else r.kBlue, "markerStyle": 22}, allWithPrefix="qcd_mu")
-            org.scale(toPdf=True)
-
-        melded = supy.organizer.meld("qcdPartitions",filter(lambda o: o.samples, organizers))
-        pl = supy.plotter(melded,
-                          pdfFileName = self.pdfFileName(melded.tag),
-                          doLog = False,
-                          blackList = ["lumiHisto","xsHisto","nJobsHisto"],
-                          rowColors = self.rowcolors,
-                          rowCycle = 100,
-                          omit2D = True,
-                          ).plotAll()
+    #def meldWpartitions(self,pars) :
+    #    rw = pars['reweights']['abbr']
+    #    samples = {"top_muon_pf_%s"%rw : ["w_"],
+    #               "Wlv_muon_pf_%s"%rw : ["w_","SingleMu"],
+    #               "QCD_muon_pf_%s"%rw : []}
+    #    organizers = [supy.organizer(tag, [s for s in self.sampleSpecs(tag) if any(item in s['name'] for item in samples[tag])])
+    #                  for tag in [p['tag'] for p in self.readyConfs]]
+    #    if len(organizers)<2 : return
+    #    for org in organizers :
+    #        org.mergeSamples(targetSpec = {"name":"Data 2011", "color":r.kBlack, "markerStyle":20}, allWithPrefix="SingleMu")
+    #        org.mergeSamples(targetSpec = {"name":"w_mg", "color":r.kRed if "Wlv" in org.tag else r.kBlue, "markerStyle": 22}, sources = ["wj_lv_mg.tw.%s"%rw])
+    #        org.scale(toPdf=True)
+    #
+    #    melded = supy.organizer.meld("wpartitions",filter(lambda o: o.samples, organizers))
+    #    pl = supy.plotter(melded,
+    #                      pdfFileName = self.pdfFileName(melded.tag),
+    #                      doLog = False,
+    #                      blackList = ["lumiHisto","xsHisto","nJobsHisto"],
+    #                      rowColors = self.rowcolors,
+    #                      rowCycle = 100,
+    #                      omit2D = True,
+    #                      ).plotAll()
+    #    
+    #def meldQCDpartitions(self) :
+    #    samples = {"top_muon_pf_%s"%rw : ["qcd_mu"],
+    #               "Wlv_muon_pf_%s"%rw : [],
+    #               "QCD_muon_pf_%s"%rw : ["qcd_mu","SingleMu"]}
+    #    organizers = [supy.organizer(tag, [s for s in self.sampleSpecs(tag) if any(item in s['name'] for item in samples[tag])])
+    #                  for tag in [p['tag'] for p in self.readyConfs]]
+    #    if len(organizers)<2 : return
+    #    for org in organizers :
+    #        org.mergeSamples(targetSpec = {"name":"Data 2011", "color":r.kBlack, "markerStyle":20}, allWithPrefix="SingleMu")
+    #        org.mergeSamples(targetSpec = {"name":"qcd_mu", "color":r.kRed if "QCD" in org.tag else r.kBlue, "markerStyle": 22}, allWithPrefix="qcd_mu")
+    #        org.scale(toPdf=True)
+    #
+    #    melded = supy.organizer.meld("qcdPartitions",filter(lambda o: o.samples, organizers))
+    #    pl = supy.plotter(melded,
+    #                      pdfFileName = self.pdfFileName(melded.tag),
+    #                      doLog = False,
+    #                      blackList = ["lumiHisto","xsHisto","nJobsHisto"],
+    #                      rowColors = self.rowcolors,
+    #                      rowCycle = 100,
+    #                      omit2D = True,
+    #                      ).plotAll()
         
     def plotMeldScale(self, rw) :
         if not hasattr(self,"orgMelded") : print "run meldScale() before plotMeldScale()"; return
@@ -574,7 +582,10 @@ class topAsymm(supy.analysis) :
                               ).plotAll()
         
     def meldScale(self,rw) :
-        meldSamples = {"top_muon_pf_%s"%rw : ["SingleMu","ttj_mg","wj_lv_mg","dyj_ll_mg"]+self.single_top(),
+        meldSamples = {"top_muon_pf_%s"%rw : ["SingleMu",
+                                              "ttj_mg",
+                                              #"wj_lv_mg",
+                                              "dyj_ll_mg"]+self.single_top()+["w%dj_mg"%n for n in [2,3,4]],
                        #"Wlv_muon_pf_%s"%rw : ["w_jets"],
                        "QCD_muon_pf_%s"%rw : ["SingleMu","ttj_mg"]}
         
@@ -583,7 +594,8 @@ class topAsymm(supy.analysis) :
         if len(organizers) < len(meldSamples) : return
         for org in organizers :
             org.mergeSamples(targetSpec = {"name":"t#bar{t}", "color":r.kViolet}, sources=["ttj_mg.wNonQQbar.tw.%s"%rw,"ttj_mg.wTopAsymP00.tw.%s"%rw], keepSources = True)
-            org.mergeSamples(targetSpec = {"name":"W", "color":r.kRed}, allWithPrefix = "wj_lv_mg")
+            #org.mergeSamples(targetSpec = {"name":"W", "color":r.kRed}, allWithPrefix = "wj_lv_mg")
+            org.mergeSamples(targetSpec = {"name":"W", "color":r.kRed}, sources = ["w%dj_mg.tw.%s"%(n,rw) for n in [2,3,4]] )
             org.mergeSamples(targetSpec = {"name":"DY", "color":28}, allWithPrefix = "dyj_ll_mg")
             org.mergeSamples(targetSpec = {"name":"Single", "color":r.kGray}, sources = ["%s.tw.%s"%(s,rw) for s in self.single_top()], keepSources = False )
             org.mergeSamples(targetSpec = {"name":"Data 2011", "color":r.kBlack, "markerStyle":20}, allWithPrefix="SingleMu")
