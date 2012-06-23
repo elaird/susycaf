@@ -152,11 +152,11 @@ class topAsymm(supy.analysis) :
                                                 color = color, weights = [ calculables.top.wTopAsym(asym, R_sm = -0.05), 'tw',rw ] )
                           for asym,color in [(0.0,r.kOrange),
                                              (-0.3,r.kGreen),(0.3,r.kRed),
-                                             #(-0.6,r.kYellow),(0.6,r.kYellow),
-                                             #(-0.5,r.kYellow),(0.5,r.kYellow),
-                                             #(-0.4,r.kYellow),(0.4,r.kYellow),
-                                             #(-0.2,r.kYellow),(0.2,r.kYellow),
-                                             #(-0.1,r.kYellow),(0.1,r.kYellow),
+                                             (-0.6,r.kYellow),(0.6,r.kYellow),
+                                             (-0.5,r.kYellow),(0.5,r.kYellow),
+                                             (-0.4,r.kYellow),(0.4,r.kYellow),
+                                             (-0.2,r.kYellow),(0.2,r.kYellow),
+                                             (-0.1,r.kYellow),(0.1,r.kYellow),
                                              ]], [])
                     )[: 2 if "QCD" in pars['tag'] else 2 if 'Wlv' in pars['tag'] else None]
         
@@ -473,14 +473,14 @@ class topAsymm(supy.analysis) :
     ########################################################################################
     def concludeAll(self) :
         self.rowcolors = 2*[13] + 2*[45]
-        super(topAsymm,self).concludeAll()
+        #super(topAsymm,self).concludeAll()
         #self.meldWpartitions()
         #self.meldQCDpartitions()
         for rw in set([pars['reweights']['abbr'] for pars in self.readyConfs]) :
             self.meldScale(rw)
-            self.plotMeldScale(rw)
-        #self.ensembleTest()
-        self.PEcurves()
+            #self.plotMeldScale(rw)
+            self.ensembleTest(rw)
+        #self.PEcurves()
 
     def conclude(self,pars) :
         rw = pars['reweights']['abbr']
@@ -600,7 +600,11 @@ class topAsymm(supy.analysis) :
             org.mergeSamples(targetSpec = {"name":"Single", "color":r.kGray}, sources = ["%s.tw.%s"%(s,rw) for s in self.single_top()], keepSources = False )
             org.mergeSamples(targetSpec = {"name":"Data 2011", "color":r.kBlack, "markerStyle":20}, allWithPrefix="SingleMu")
             org.scale()
-            if "QCD_" in org.tag : org.mergeSamples(targetSpec = {"name":"multijet","color":r.kBlue}, sources=["Data 2011",'t#bar{t}'], scaleFactors = [1,-1], force=True)
+            if "QCD_" in org.tag :
+                org.mergeSamples(targetSpec = {"name":"multijet","color":r.kBlue},
+                                 sources=["Data 2011",'t#bar{t}'],
+                                 scaleFactors = [1,-1],
+                                 force=True, keepSources = False)
 
         self.orgMelded = supy.organizer.meld(organizers = organizers)
 
@@ -635,7 +639,7 @@ class topAsymm(supy.analysis) :
             from supy.utils.fractions import componentSolver,drawComponentSolver
             cs = componentSolver(observed, templates, 1e4, base = np.sum(bases, axis=0) )
             stuff = drawComponentSolver( cs, mfCanvas, distName = dist,
-                                        templateNames = [t.replace("top.ttj_mg.wTopAsymP00.tw.%s"%rw,"q#bar{q}-->t#bar{t}").replace("top.ttj_mg.wNonQQbar.tw.%s"%rw,"gg-->t#bar{t}").replace("QCD.Data 2011","Multijet").replace("top.W","W+jets").replace('top.',"") for t in  templateSamples])
+                                         templateNames = [t.replace("top.ttj_mg.wTopAsymP00.tw.%s"%rw,"q#bar{q}-->t#bar{t}").replace("top.ttj_mg.wNonQQbar.tw.%s"%rw,"gg-->t#bar{t}").replace("QCD.Data 2011","Multijet").replace("top.W","W+jets").replace('top.',"") for t in  templateSamples])
             printMF()
             return distTup,cs
 
@@ -664,7 +668,7 @@ class topAsymm(supy.analysis) :
 
         templateSamples = ['top.t#bar{t}'] # hack !!
         self.orgMelded.mergeSamples(targetSpec = {"name":"S.M.", "color":r.kGreen+2}, sources = templateSamples + baseSamples , keepSources = True, force = True)
-        for ss in filter(lambda ss: 'ttj_mg' in ss['name'],self.orgMelded.samples) : self.orgMelded.drop(ss['name'])
+        #for ss in filter(lambda ss: 'ttj_mg' in ss['name'],self.orgMelded.samples) : self.orgMelded.drop(ss['name'])
         self.orgMelded.drop('bg')
         
     def PEcurves(self) :
@@ -699,13 +703,13 @@ class topAsymm(supy.analysis) :
         return
 
 
-    def templates(self, iStep, dist, qqFrac, pars) :
-        rw = pars['reweights']['abbr']
+    def templates(self, iStep, dist, qqFrac, rw) :
         if not hasattr(self,'orgMelded') : print 'run meldScale() before asking for templates()'; return
         topQQs = [s['name'] for s in self.orgMelded.samples if 'wTopAsym' in s['name']]
-        asymm = [eval(name.replace("top.ttj_mg.wTopAsym","").replace(".tw.%s"%rw,"").replace("P",".").replace("N","-.")) for name in topQQs]
+        asymm = [eval(name.replace("top.ttj_mg.wTopAsym","").replace(".tw.%s"%rw,"").replace("P",".").replace("N","-.")) for name in topQQs if 'QCD' not in name]
         distTup = self.orgMelded.steps[iStep][dist]
-        edges = supy.utils.edgesRebinned( distTup[ self.orgMelded.indexOfSampleWithName("S.M.") ], targetUncRel = 0.015, offset = 2 )
+        hist = distTup[ self.orgMelded.indexOfSampleWithName("S.M.") ]
+        edges = supy.utils.edgesRebinned( hist, targetUncRel = 0.015, offset = 0 )
 
         def nparray(name, scaleToN = None) :
             hist_orig = distTup[ self.orgMelded.indexOfSampleWithName(name) ]
@@ -716,8 +720,10 @@ class topAsymm(supy.analysis) :
 
         nTT = sum(nparray('top.t#bar{t}'))
         observed = nparray('top.Data 2011')
-        base = ( nparray('QCD.Data 2011') +
-                 nparray('top.w_jets') +
+        base = ( nparray('QCD.multijet') +
+                 nparray('top.W') +
+                 nparray('top.DY') +
+                 nparray('top.Single') +
                  nparray('top.ttj_mg.wNonQQbar.tw.%s'%rw, scaleToN = (1-qqFrac) * nTT )
                  )
         templates = [base +  nparray(qqtt, qqFrac*nTT ) for qqtt in topQQs]
@@ -727,16 +733,17 @@ class topAsymm(supy.analysis) :
     def ensembleFileName(self, iStep, dist, qqFrac, suffix = '.pickleData') :
         return "%s/ensembles/%d_%s_%.3f%s"%(self.globalStem,iStep,dist,qqFrac,suffix)
 
-    def ensembleTest(self) :
+    def ensembleTest(self,rw) :
         qqFracs = sorted([0.10, 0.12, 0.15, 0.20, 0.25, 0.30, 0.40, 0.60, 1.0])
-        dists = ['lHadtDeltaY',
+        dists = [#'lHadtDeltaY',
                  'ttbarDeltaAbsY',
-                 'leptonRelativeY',
-                 'ttbarSignedDeltaY'
+                 #'leptonRelativeY',
+                 #'ttbarSignedDeltaY',
+                 'ttbarSignExpectation'
                 ]
-        args = sum([[(iStep, dist, qqFrac, pars) for iStep in list(self.orgMelded.indicesOfStepsWithKey(dist))[:None] for qqFrac in qqFracs] for dist in dists],[])
+        args = sum([[(iStep, dist, qqFrac, rw) for iStep in list(self.orgMelded.indicesOfStepsWithKey(dist))[:None] for qqFrac in qqFracs] for dist in dists],[])
         supy.utils.operateOnListUsingQueue(6, supy.utils.qWorker(self.pickleEnsemble), args)
-        ensembles = dict([(arg,supy.utils.readPickle(self.ensembleFileName(*arg))) for arg in args])
+        ensembles = dict([(arg[:-1],supy.utils.readPickle(self.ensembleFileName(*arg[:-1]))) for arg in args])
 
         for iStep in sorted(set([iStep for iStep,dist,qqFrac in ensembles])) :
             canvas = r.TCanvas()
@@ -755,9 +762,9 @@ class topAsymm(supy.analysis) :
             legend.Draw()
             supy.utils.tCanvasPrintPdf(canvas, '%s/sensitivity_%d'%(self.globalStem,iStep))
                 
-    def pickleEnsemble(self, iStep, dist, qqFrac, pars) :
+    def pickleEnsemble(self, iStep, dist, qqFrac, rw) :
         supy.utils.mkdir(self.globalStem+'/ensembles')
-        templates,observed = self.templates(iStep, dist, qqFrac, pars)
+        templates,observed = self.templates(iStep, dist, qqFrac, rw)
         ensemble = supy.utils.templateFit.templateEnsembles(2e3, *zip(*templates) )
         supy.utils.writePickle(self.ensembleFileName(iStep,dist,qqFrac), ensemble)
 
