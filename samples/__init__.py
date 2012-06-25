@@ -20,4 +20,6 @@ for module in [
     "top16",
     #
     "photon17",
+    "ht17",
+    "qcd17",
     ] : exec("from __%s__ import %s"%(module,module))
