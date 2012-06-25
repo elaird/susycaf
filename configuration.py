@@ -44,7 +44,7 @@ def detectorSpecs() :
     return {
         "cms": {"etaBE": 1.479, #from CMS PAS EGM-10-005
                 "barrelEtaMax": 1.4442,
-                "endcapEtaMin": 1.560,
+                "endcapEtaMin": 1.5660,
                 "CaloSubdetectors": ["Eb", "Ee", "Hbhe", "Hf"],
                 "PFSubdetectors": ["Ecal", "Hcal", "Hfem", "Hfhad", "Ps"],
                 "CaloRecHitCollections": [""],
