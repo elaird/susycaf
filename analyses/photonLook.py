@@ -12,7 +12,7 @@ class photonLook(supy.analysis) :
         return { "objects": objects,
                  "nJetsMinMax" :      self.vary(dict([ ("ge2",(2,None)),  ("2",(2,2)),  ("ge3",(3,None)) ]       [0:1] )),
                  "photonId" :         "photonIDTightFromTwikiPat",
-                 "zMode" :            self.vary(dict([ ("Z",True), ("g",False) ]                                  [1:]  )),
+                 "zMode" :            self.vary(dict([ ("Z",True), ("g",False) ]                                  [:1]  )),
                  "vertexMode" :       self.vary(dict([ ("vertexMode",True), ("",False) ]                         [1:2] )),
                  "subdet" :           self.vary(dict([ ("barrel", (0.0, 1.444)), ("endcap", (1.566, 2.5)) ]      [:1 ] )),
                  "jetId" :  ["JetIDloose","JetIDtight"]            [0],
@@ -28,9 +28,9 @@ class photonLook(supy.analysis) :
                                                 ("325_scaled", (325.0, 375.0,  86.7, 43.3)),#4
                                                 ][2:3] )),
                  #required to be sorted
-                 "triggerList": tuple(["HLT_Photon135_v%d"%i for i in [4,5,6]]+
-                                      ["HLT_Photon150_v%d"%i for i in [1,2,3]]+
-                                      ["HLT_Photon160_v%d"%i for i in [1,2,3]]
+                 "triggerList": tuple(["HLT_Photon135_v%d"%i for i in range(4,10)]+
+                                      ["HLT_Photon150_v%d"%i for i in range(1,10)]+
+                                      ["HLT_Photon160_v%d"%i for i in range(1,10)]
                                       ),
                  "tagTriggers": tuple(["HLT_Photon50_CaloIdVL_IsoL_v%d"%i for i in [14,15,16]]+
                                       ["HLT_Photon50_CaloIdVL_v%d"%i for i in [7,8,9]]+
@@ -74,6 +74,9 @@ class photonLook(supy.analysis) :
                  calculables.gen.genMinDeltaRPhotonOther( label = "Status3Photon"),
                  
                  calculables.gen.genIndices( pdgs = [22], label = "Status1Photon", status = [1]),
+                 calculables.gen.genIndices( pdgs = [13], label = "Status1MuPlus", status = [1]),
+                 calculables.gen.genIndices( pdgs = [-13], label = "Status1MuMinus", status = [1]),
+                 calculables.gen.genIndices( pdgs = [23], label = "Status3Z", status = [3]),
                  calculables.gen.genIsolations(label = "Status1Photon", coneSize = 0.4),
                  calculables.gen.genPhotonCategory(label = "Status1Photon"),
 
@@ -144,6 +147,15 @@ class photonLook(supy.analysis) :
 
         if params["vertexMode"] :
             return outList
+
+        if params["zMode"] :
+            outList += [supy.steps.filters.multiplicity("genIndicesStatus1MuPlus", min = 1),
+                        supy.steps.filters.multiplicity("genIndicesStatus1MuMinus", min = 1),
+                        supy.steps.filters.multiplicity("genIndicesStatus3Z", min = 1, max = 1),
+                        supy.steps.filters.mass("genP4", index = 0, indices = "genIndicesStatus3Z", min = 80, max = 105),
+                ]
+               
+
 
         #HT bin and leading jets
         outList += [
@@ -243,7 +255,7 @@ class photonLook(supy.analysis) :
             
             supy.steps.histos.histogrammer("%sMht%sOver%s" %(_jet[0], _jet[1]+params["highPtName"], _met if params["zMode"] else _met+"Plus%s%s"%_photon), 100, 0.0, 3.0,
                                            title = ";MHT %s%s / %s;events / bin"%(_jet[0], _jet[1], _met if params["zMode"] else _met+"Plus%s%s"%_photon)),
-            supy.steps.filters.value("%sMht%sOver%s" %(_jet[0], _jet[1]+params["highPtName"], _met if params["zMode"] else _met+"Plus%s%s"%_photon), max = 1.25),
+            #supy.steps.filters.value("%sMht%sOver%s" %(_jet[0], _jet[1]+params["highPtName"], _met if params["zMode"] else _met+"Plus%s%s"%_photon), max = 1.25),
             steps.other.deadEcalFilter(jets = _jet, extraName = params["lowPtName"], dR = 0.3, dPhiStarCut = 0.5),
 
             supy.steps.histos.histogrammer("%sIndices%s"%_jet,10,-0.5,9.5, title=";number of %s%s passing ID#semicolon p_{T}#semicolon #eta cuts;events / bin"%_jet,
@@ -294,17 +306,17 @@ class photonLook(supy.analysis) :
         jw2012 = calculables.other.jsonWeight("cert/Cert_190456-194479_8TeV_PromptReco_Collisions12_JSON.txt")
 
         data  = []
-        data += specify("Photon.Run2012A-PromptReco-v1.AOD.job171",       weights = jw2012, overrideLumi = 660.1)
-        data += specify("SinglePhoton.Run2012B-PromptReco-v1.AOD.job171", weights = jw2012, overrideLumi = 890.1)
+        data += specify("Photon.Run2012A-PromptReco-v1.AOD.job171",       weights = jw2012, overrideLumi = 660.1,nFilesMax=1,nEventsMax=1000)
+        data += specify("SinglePhoton.Run2012B-PromptReco-v1.AOD.job171", weights = jw2012, overrideLumi = 890.1,nFilesMax=1,nEventsMax=1000)
+        mc = []
 
-        mc = specify("GJets_HT400.job92", color = r.kBlue)
         outList = []
 
         if not params["zMode"] :
             outList += data
-            #outList += mc
+            #outList += specify("GJets_HT400.job92", color = r.kBlue)
         else :
-            pass
+            outList += specify("DYJetsToLL_M-50.job97", color = r.kMagenta, nFilesMax=1, nEventsMax=1000)
             
         return outList
 
