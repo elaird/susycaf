@@ -165,6 +165,25 @@ class IndicesBtagged(wrappedChain.calculable) :
         self.value = sorted(self.source[self.Indices],
                             key = self.source[self.tag].__getitem__, reverse = True )
 ###################################
+class IndicesBtagged2(wrappedChain.calculable) :
+    '''
+    CMS PAS BTV-09-001
+    CMS PAS BTV-10-001
+    '''
+    def __init__(self, collection, tag, threshold = None) :
+        self.fixes = collection
+        self.stash(["Indices"])
+        self.tag = ("%s"+tag+"%s") % xcStrip(collection)
+        self.moreName = " (>%g)"%threshold
+        self.threshold = threshold
+
+    def update(self,ignored) :
+        self.value = []
+        for i in self.source[self.Indices] :
+            v = self.source[self.tag].at(i)
+            if v > self.threshold :
+                self.value.append(i)
+###################################
 class IndicesGenB(wrappedChain.calculable) :
     def __init__(self,collection) :
         self.fixes = collection

@@ -188,6 +188,39 @@ class WrappedSeedTime(wrappedChain.calculable) :
         else :
             self.value = self.source[self.SeedTime]
 ####################################
+class CombinedIsoDR03RhoCorrected(wrappedChain.calculable) :
+    def __init__(self, collection = None, areaEff = [0.093+0.0281, 0.080+0.021+0.009][1]) :
+        self.fixes = collection
+        self.areaEff = areaEff
+        self.stash(["EcalRecHitEtConeDR03", "HcalTowSumEtConeDR03", "TrkSumPtHollowConeDR03"])
+
+    def update(self, _) :
+        self.value = []
+        e = self.source[self.EcalRecHitEtConeDR03]
+        h = self.source[self.HcalTowSumEtConeDR03]
+        t = self.source[self.TrkSumPtHollowConeDR03]
+        rho = self.source["rho25"]
+        for i in range(e.size()) :
+            self.value.append(e.at(i) + h.at(i) + t.at(i) - rho*self.areaEff)
+####################################
+class IDRA3(wrappedChain.calculable) :
+    #https://indico.cern.ch/getFile.py/access?contribId=2&resId=0&materialId=slides&confId=188427
+    #SUS-12-018 AN: http://cms.cern.ch/iCMS/jsp/openfile.jsp?tp=draft&files=AN2012_212_v3.pdf
+    def __init__(self, collection = None) :
+        self.fixes = collection
+        self.stash(["CombinedIsoDR03RhoCorrected", "HadronicOverEm", "SigmaIetaIeta", "HasPixelSeed", "R9"])
+
+    def update(self, _) :
+        self.value = []
+        hoe = self.source[self.HadronicOverEm]
+        shh = self.source[self.SigmaIetaIeta]
+        pix = self.source[self.HasPixelSeed]
+        r9  = self.source[self.R9]
+        iso = self.source[self.CombinedIsoDR03RhoCorrected]
+
+        for i in range(hoe.size()) :
+            self.value.append(all([not pix.at(i), hoe.at(i)<0.05, shh.at(i)<0.011, r9.at(i)<1.0, iso[i]<6.0]))
+####################################
 class photonIDEmFromTwiki(photonID) :
     def __init__(self, collection = None) :
         super(photonIDEmFromTwiki,self).__init__(collection,"EmFromTwiki")
@@ -233,11 +266,21 @@ class photonIDEGM_10_006_Loose(photonID) :
         super(photonIDEGM_10_006_Loose,self).__init__(collection,"EGM_10_006_Loose")
 ####################################
 class photonWeight(wrappedChain.calculable) :
-    def __init__(self, var = None) :
-        self.weight = collections.defaultdict(int)
-        #self.weight.update({0:1.00002, 1:0.246676, 2:0.784571, 3:1.34209, 4:1.49489, 5:1.45355, 6:1.10074, 7:0.90572, 8:0.595763, 9:0.514093, 10:0.469262, 11:0.451208, 12:0.59306, 13:0.459517, 14:0.467984, 15:0, 16:0, 17:0, 18:0, 19:0})#determined on 2011-06-14 requiring a photon
-        self.weight.update({0:1.00004, 1:0.0872381, 2:0.441893, 3:0.764065, 4:1.08425, 5:1.2493, 6:1.34958, 7:1.44752, 8:1.47106, 9:1.60048, 10:1.75302, 11:1.79496, 12:2.28168, 13:2.33737, 14:2.2478, 15:3.22463, 16:4.26286, 17:4.71759, 18:7.22803, 19:24.0934})#determined on 2011-11-29 requiring a photon
+    def __init__(self, var = None, weightSet = "November 2011") :
         self.var = var
+
+        self.weight = collections.defaultdict(int)
+        if weightSet=="June 2011" :
+            self.weight.update({0:1.00002, 1:0.246676, 2:0.784571, 3:1.34209, 4:1.49489, 5:1.45355, 6:1.10074, 7:0.90572, 8:0.595763, 9:0.514093, 10:0.469262, 11:0.451208, 12:0.59306, 13:0.459517, 14:0.467984, 15:0, 16:0, 17:0, 18:0, 19:0})#determined on 2011-06-14 requiring a photon
+
+        if weightSet=="November 2011" :
+            self.weight.update({0:1.00004, 1:0.0872381, 2:0.441893, 3:0.764065, 4:1.08425, 5:1.2493, 6:1.34958, 7:1.44752, 8:1.47106, 9:1.60048, 10:1.75302, 11:1.79496, 12:2.28168, 13:2.33737, 14:2.2478, 15:3.22463, 16:4.26286, 17:4.71759, 18:7.22803, 19:24.0934})#determined on 2011-11-29 requiring a photon
+
+        if weightSet=="ZM" :
+            lst = [ 0.0, 0.737935, 6.20516, 4.81946, 7.17781, 5.23649, 5.87606, 6.50951, 4.63189, 4.57838, 3.53186, 2.93797, 2.11116, 1.64937, 1.40657, 0.936336, 0.748872, 0.591696, 0.407115, 0.317994, 0.243221, 0.187518, 0.115325, 0.151001, 0.0843434, 0.0516356, 0.049791, 0.0272625, 0.0189111, 0.00867613, 0.00481305, 0, 0.0184357, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,0, 0, 0, 0, 0,0, 0, 0, 0, 0 ]
+            for i,w in enumerate(lst) :
+                self.weight[i] = w
+
     def update(self, ignored) :
         self.value = self.weight[len(self.source[self.var])]
 ####################################
