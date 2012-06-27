@@ -10,7 +10,7 @@ class lowestUnPrescaledTrigger(wrappedChain.calculable) :
     def __init__(self, sortedListOfPaths = []) :
         self.sortedListOfPaths = sortedListOfPaths
         self.cached = dict()
-        self.moreName = "lowest unprescaled of "+','.join(self.sortedListOfPaths).replace("HLT_","")
+        self.moreName = "lowest unprescaled of " + utils.contract(self.sortedListOfPaths)
 
     def update(self, ignored) :
         key = (self.source["run"],self.source["lumiSection"])

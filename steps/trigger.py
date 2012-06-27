@@ -1,5 +1,4 @@
 import math,collections,re, ROOT as r
-from itertools import groupby
 from supy import analysisStep,utils
 #####################################
 class physicsDeclaredFilter(analysisStep) :
@@ -331,17 +330,7 @@ class anyTrigger(analysisStep) :
         self.sortedListOfPaths = sortedListOfPaths
         self.unreliable = unreliable
         
-        def longestPrefix(strings) :
-            return ( "" if not (len(strings[0]) and all (len(s) and strings[0][0]==s[0] for s in strings[1:])) else
-                     (strings[0][0] + longestPrefix([s[1:] for s in strings])))
-        
-        def contract(strings) :
-            lpfx = longestPrefix(strings)
-            tails = [s[len(lpfx):] for s in strings]
-            return lpfx + ( '' if len(tails)==1 else
-                            "{%s}"%(','.join([contract(list(ctails)) for c,ctails in groupby(tails,
-                                                                                             key = lambda s: next(iter(s),''))])))
-        self.moreName = "any of "+contract(self.sortedListOfPaths)
+        self.moreName = "any of "+utils.contract(self.sortedListOfPaths)
         
     def select(self, ev) :
         return any(ev['triggered'][item] for item in self.sortedListOfPaths if item not in self.unreliable or ev['prescaled'][item] not in self.unreliable[item])
