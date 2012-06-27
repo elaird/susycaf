@@ -40,8 +40,8 @@ class topAsymm(supy.analysis) :
             'etaMax'   : [                    2.1 ,                      2.5 ],
             'iso'      : [   'CombinedRelativeIso',             'IsoCombined'],
             'triggers' : [       self.mutriggers(),         self.eltriggers()],
-            'isoNormal': [             {"max":0.10},             {'max':0.07}],#0.06 for endcap electron !!!!!
-            'isoInvert': [ {"min":0.15, "max":0.55}, {'min':0.18, 'max':0.85}] #check inverted iso max for electron
+            'isoNormal': [             {"max":0.10},             {'max':0.10}],#0.06 for endcap electron !!!!!
+            'isoInvert': [ {"min":0.15, "max":0.55}, {'min':0.15, 'max':0.85}] #check inverted iso max for electron
             }
 
         #btag working points: https://twiki.cern.ch/twiki/bin/viewauth/CMS/BTagPerformanceOP
@@ -99,8 +99,7 @@ class topAsymm(supy.analysis) :
     @staticmethod
     def eltriggers() :
         return zip(["%s_v%d"%(s,i) for s in
-                    [#"HLT_Ele25_CaloIdVT_TrkIdT_CentralJet30",
-                     "HLT_Ele25_CaloIdVT_TrkIdT_CentralTriJet30",
+                    ["HLT_Ele25_CaloIdVT_TrkIdT_CentralTriJet30",
                      "HLT_Ele25_CaloIdVT_TrkIdT_TriCentralJet30",
                      "HLT_Ele25_CaloIdVT_CaloIsoT_TrkIdT_TrkIsoT_TriCentralJet30",
                      "HLT_Ele25_CaloIdVT_CaloIsoT_TrkIdT_TrkIsoT_TriCentralPFJet30"]
@@ -123,8 +122,10 @@ class topAsymm(supy.analysis) :
 
     def listOfSamples(self,pars) :
         rw = pars['reweights']['abbr']
+        lname = pars['lepton']["name"]
 
         def qcd_py6_mu(eL = None) :
+            if lname == "electron" : return []
             return supy.samples.specify( names = ["qcd_mu_15_20",
                                                   "qcd_mu_20_30",
                                                   "qcd_mu_30_50",
@@ -133,6 +134,7 @@ class topAsymm(supy.analysis) :
                                                   "qcd_mu_120_150",
                                                   "qcd_mu_150"],  weights = ['tw',rw], effectiveLumi = eL )     if 'Wlv' not in pars['tag'] else []
         def qcd_mg(eL = None) :
+            if lname == "electron" : return []
             return supy.samples.specify( names = ["qcd_mg_ht_50_100",
                                                   "qcd_mg_ht_100_250",
                                                   "qcd_mg_ht_250_500",
@@ -174,9 +176,11 @@ class topAsymm(supy.analysis) :
                      [supy.calculables.fromCollections(getattr(calculables,item), [obj[item]])
                       for item in  ['jet','photon','electron','muon']], [])
         calcs += supy.calculables.fromCollections(calculables.top,[('genTop',""),('fitTop',"")])
+        calcs += filter(lambda c: c.name not in [C.name for C in calcs], supy.calculables.fromCollections(calculables.jet,[("ak5JetPF","Pat")])) #triggerjets
         calcs += [
             calculables.jet.IndicesBtagged(obj["jet"],pars["bVar"]),
             calculables.jet.Indices(       obj["jet"],      ptMin = 20, etaMax = 3.1, flagName = "JetIDloose"),
+            calculables.jet.Indices(("ak5JetPF","Pat"),     ptMin = 30, etaMax = 2.4, flagName = "JetIDloose"), #triggerjets
             calculables.electron.Indices(  obj["electron"], ptMin = 10, simpleEleID = "80", useCombinedIso = True),
             calculables.muon.Indices(      obj["muon"],     ptMin = 10, combinedRelIsoMax = 0.25, ID = "ID_TOPPAG"),
             calculables.muon.IndicesTriggering(lepton),
@@ -258,8 +262,8 @@ class topAsymm(supy.analysis) :
 
              , ssteps.filters.label('trigger reweighting'),
              self.triggerWeight(pars, [ss.weightedName for ss in self.data(pars)]).disable(lname != 'muon'),
+             ssteps.filters.multiplicity( min=3, var = "ak5JetPFIndicesPat").disable(lname != 'electron'),
              ssteps.filters.multiplicity( min=1, var = lIndices ),
-             ssteps.filters.pt(min=35, var = "CorrectedP4".join(obj['jet']), indices = "Indices".join(obj['jet']), index = 2).disable(lname != 'electron' ),
              steps.trigger.anyTrigger(zip(*pars["lepton"]['triggers'])[0]).onlyData().disable(lname != 'electron')
              , steps.trigger.lowestUnPrescaledTriggerHistogrammer().onlyData()
              
@@ -274,8 +278,8 @@ class topAsymm(supy.analysis) :
              ssteps.filters.value('ecalDeadCellTPFilterFlag',min=1),
              steps.jet.failedJetVeto( obj["jet"], ptMin = 20, id = "PFJetIDloose"),
              steps.jet.forwardJetVeto( obj["jet"], ptMax = 50, etaMin = 3.1)
-             , ssteps.histos.pt("mixedSumP4",100,0,300),
-             ssteps.filters.pt("mixedSumP4",min=20)
+             , ssteps.histos.pt("mixedSumP4",100,0,300)
+             #ssteps.filters.pt("mixedSumP4",min=20)
 
              , ssteps.histos.absEta("P4".join(lepton), 100,0,4, indices = lIndices, index = 0),
              ssteps.filters.absEta("P4".join(lepton), max = pars['lepton']['etaMax'], indices = lIndices, index = 0)
@@ -463,8 +467,8 @@ class topAsymm(supy.analysis) :
                                                     left = {"pre":"Multijet", "tag":"QCD_%s_pf_%s"%(lname,rw), "samples":datas+tops, 'sf':[1,1,-lumi,-lumi]},
                                                     right = {"pre":"ttj_mg", "tag":"top_%s_pf_%s"%(lname,rw), "samples": tops},
                                                     correlations = pars['discriminant2DPlots'],
-                                                    dists = {"Mt".join(pars['objects'][lname])+"mixedSumP4" : (30,0,180), # 0.329
-                                                             "Kt".join(pars['objects']["jet"]) : (24,0,120),               # 0.079
+                                                    dists = {"Mt".join(pars['objects'][lname])+"mixedSumP4" : (10,0,100), # 0.329
+                                                             "Kt".join(pars['objects']["jet"]) : (12,0,120),              # 0.079
                                                              #"B0pt".join(pars['objects']["jet"]) : (30,0,300),
                                                              })
     @staticmethod
@@ -479,8 +483,8 @@ class topAsymm(supy.analysis) :
                                                     left = {"pre":"wj", "tag":"top_%s_pf_%s"%(lname,rw), "samples":['w%dj_mg.tw.%s'%(n,rw) for n in [2,3,4]]},
                                                     right = {"pre":"Multijet", "tag":"QCD_%s_pf_%s"%(lname,rw), "samples":datas+tops, 'sf':[1,1,-lumi,-lumi]},
                                                     correlations = pars['discriminant2DPlots'],
-                                                    dists = {"Mt".join(pars['objects'][lname])+"mixedSumP4" : (30,0,180), # 0.395
-                                                             "B0pt".join(pars['objects']["jet"]) : (30,0,300),            # 0.122
+                                                    dists = {"Mt".join(pars['objects'][lname])+"mixedSumP4" : (10,0,100), # 0.395
+                                                             "B0pt".join(pars['objects']["jet"]) : (10,0,200),            # 0.122
                                                              })
     
     ########################################################################################
