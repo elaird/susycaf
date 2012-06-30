@@ -101,8 +101,8 @@ class topAsymm(supy.analysis) :
         return zip(["%s_v%d"%(s,i) for s in
                     ["HLT_Ele25_CaloIdVT_TrkIdT_CentralTriJet30",
                      "HLT_Ele25_CaloIdVT_TrkIdT_TriCentralJet30",
-                     "HLT_Ele25_CaloIdVT_CaloIsoT_TrkIdT_TrkIsoT_TriCentralJet30",
-                     "HLT_Ele25_CaloIdVT_CaloIsoT_TrkIdT_TrkIsoT_TriCentralPFJet30"]
+                     "HLT_Ele25_CaloIdVT_CaloIsoT_TrkIdT_TrkIsoT_TriCentralPFJet30",
+                     "HLT_Ele25_CaloIdVT_CaloIsoT_TrkIdT_TrkIsoT_TriCentralJet30"]
                     for i in range(20) ], 20*4*[25])
 
     ########################################################################################
@@ -180,7 +180,7 @@ class topAsymm(supy.analysis) :
         calcs += [
             calculables.jet.IndicesBtagged(obj["jet"],pars["bVar"]),
             calculables.jet.Indices(       obj["jet"],      ptMin = 20, etaMax = 3.1, flagName = "JetIDloose"),
-            calculables.jet.Indices(("ak5JetPF","Pat"),     ptMin = 30, etaMax = 2.4, flagName = "JetIDloose"), #triggerjets
+            calculables.jet.Indices(("ak5JetPF","Pat"),     ptMin = 25, etaMax = 2.4, flagName = "JetIDloose"), #triggerjets
             calculables.electron.Indices(  obj["electron"], ptMin = 10, simpleEleID = "80", useCombinedIso = True),
             calculables.muon.Indices(      obj["muon"],     ptMin = 10, combinedRelIsoMax = 0.25, ID = "ID_TOPPAG"),
             calculables.muon.IndicesTriggering(lepton),
@@ -218,8 +218,7 @@ class topAsymm(supy.analysis) :
             supy.calculables.other.abbreviation( "TrkCountingHighEffBJetTags", "TCHE", fixes = calculables.jet.xcStrip(obj['jet']) ),
             supy.calculables.other.abbreviation( "CombinedSecondaryVertexBJetTags", "CSV", fixes = calculables.jet.xcStrip(obj['jet']) ),
             supy.calculables.other.abbreviation( pars['reweights']['var'], pars['reweights']['abbr'] ),
-            supy.calculables.other.abbreviation( 'muonTriggerWeightPF' if pars['lepton']['name']=="muon" else "one", 'tw' ),
-            supy.calculables.other.fixedValue(label = "one", value = 1)
+            supy.calculables.other.abbreviation( {'muon':'muonTriggerWeightPF','electron':"CrossTriggerWeight"}[pars['lepton']['name']], 'tw' ),
             ]
         return calcs
     ########################################################################################
@@ -261,17 +260,15 @@ class topAsymm(supy.analysis) :
              , ssteps.histos.value("rho",100,0,40)
 
              , ssteps.filters.label('trigger reweighting'),
-             self.triggerWeight(pars, [ss.weightedName for ss in self.data(pars)]).disable(lname != 'muon'),
-             ssteps.filters.multiplicity( min=3, var = "ak5JetPFIndicesPat").disable(lname != 'electron'),
-             ssteps.filters.multiplicity( min=1, var = lIndices ),
-             steps.trigger.anyTrigger(zip(*pars["lepton"]['triggers'])[0]).onlyData().disable(lname != 'electron')
+             self.triggerWeight(pars, [ss.weightedName for ss in self.data(pars)]),
+             ssteps.filters.multiplicity( min=1, var = lIndices )
              , steps.trigger.lowestUnPrescaledTriggerHistogrammer().onlyData()
              
              ####################################
              , ssteps.filters.label('selection'),
              ssteps.histos.value( lIso, 100, 0, 1, indices = lIndices, index = 1),
              ssteps.filters.multiplicity( max=1, var = "Indices".join(lepton) ),
-             ssteps.filters.multiplicity( max=0, var = "Indices".join(obj['electron' if pars['lepton']['name']=='muon' else 'muon'])),
+             ssteps.filters.multiplicity( max=0, var = "Indices".join(obj[{'electron':'muon','muon':'electron'}[lname]])),
              ssteps.filters.multiplicity( max=0, var = "IndicesOther".join(obj['muon']))
              
              , ssteps.histos.pt("mixedSumP4",100,0,300),
@@ -373,9 +370,14 @@ class topAsymm(supy.analysis) :
 
     @staticmethod
     def triggerWeight(pars,samples) :
-        return calculables.trigger.TriggerWeight( samples,
-                                                  unreliable = pars['unreliable'],
-                                                  **dict(zip(['triggers','thresholds'], zip(*pars['lepton']['triggers']))))
+        triggers,thresholds = zip(*pars['lepton']['triggers'])
+        return { 'electron' : calculables.trigger.CrossTriggerWeight( samples = samples,
+                                                                      triggers = triggers),
+                 'muon'     : calculables.trigger.TriggerWeight( samples,
+                                                                 unreliable = pars['unreliable'],
+                                                                 triggers = triggers,
+                                                                 thresholds = thresholds )
+                 }[pars['lepton']['name']]
     
     @classmethod
     def pileup(cls,pars) :

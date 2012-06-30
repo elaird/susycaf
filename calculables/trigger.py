@@ -1,5 +1,6 @@
 from supy import calculables,utils,wrappedChain
 import collections,os, ROOT as r
+import itertools,operator,random,math
 try:
     import numpy as np
 except:
@@ -27,8 +28,8 @@ class TriggerWeight(calculables.secondary) :
     
     def __init__(self, samples, tag = None, collection = ('muon','PF'), var = 'Pt', index = 'TriggeringIndex', triggers = [], thresholds = [], unreliable = {}) :
         self.fixes = collection
-        self.var = "%s%s%s"%(self.fixes[0],var,self.fixes[1])
-        self.index = "%s%s%s"%(self.fixes[0],index,self.fixes[1])
+        self.var = var.join(collection)
+        self.index = index.join(collection)
         self.binning = (200,0,200)
         for item in ['triggers','thresholds','tag','samples','unreliable'] : setattr(self,item,eval(item))
 
@@ -119,4 +120,146 @@ class TriggerWeight(calculables.secondary) :
         for i,w in enumerate(weights) : weightHist.SetBinContent(i+2, w)
         weightHist.SetBinContent(len(thresholds)+3, 1)
         weightHist.Write()
+############################################
+class CrossTriggerWeight(calculables.secondary) :
+    '''Implemented from description in CMS AN-2011/439 (4.6)'''
+
+    def __init__(self, samples, triggers) :
+        self.triggers = triggers
+        self.samples = samples
+        assert all([ abs(self.prob(effs)-probEffs) < 1e-15
+                    for effs,probEffs in [(3*[1],1),
+                                          (4*[1],1),
+                                          (5*[1],1),
+                                          (3*[0.5],0.5**3),
+                                          ([0.95,0.95,0.1,0.1], sum( [0.95*0.95*0.1*0.1,
+                                                                      0.95*0.95*0.1*(1-0.1),
+                                                                      0.95*0.95*(1-0.1)*0.1,
+                                                                      0.95*(1-0.95)*0.1*0.1,
+                                                                      (1-0.95)*0.95*0.1*0.1] )),
+                                          ([0.9,0.8,0.7,0.6,0.5], sum([0.9*0.8*0.7*0.6*0.5,
+                                                                       0.9*0.8*0.7*0.6*(1-0.5),
+                                                                       0.9*0.8*0.7*(1-0.6)*0.5,
+                                                                       0.9*0.8*(1-0.7)*0.6*0.5,
+                                                                       0.9*(1-0.8)*0.7*0.6*0.5,
+                                                                       (1-0.9)*0.8*0.7*0.6*0.5,
+                                                                       0.9*0.8*0.7*(1-0.6)*(1-0.5),
+                                                                       0.9*0.8*(1-0.7)*0.6*(1-0.5),
+                                                                       0.9*(1-0.8)*0.7*0.6*(1-0.5),
+                                                                       (1-0.9)*0.8*0.7*0.6*(1-0.5),
+                                                                       0.9*0.8*(1-0.7)*(1-0.6)*0.5,
+                                                                       0.9*(1-0.8)*0.7*(1-0.6)*0.5,
+                                                                       (1-0.9)*0.8*0.7*(1-0.6)*0.5,
+                                                                       0.9*(1-0.8)*(1-0.7)*0.6*0.5,
+                                                                       (1-0.9)*0.8*(1-0.7)*0.6*0.5,
+                                                                       (1-0.9)*(1-0.8)*0.7*0.6*0.5
+                                                                       ]))
+                                          ]
+                    ])
         
+    def onlySamples(self) : return self.samples
+    
+    @staticmethod
+    def gompertz((a,b,c),pT) : return a * math.exp( b * math.exp( c * pT ) )
+
+    @staticmethod
+    def abcs(triggertype) :
+        return {"CentralJet30_A": ( (0.987,    -52.43,-0.166) ,
+                                    (0.975,   -115.59,-0.187) ),
+                "CentralJet30_B": ( (0.985,    -40.58,-0.160) ,
+                                    (0.975,    -61.05,-0.163) ),
+                "CentralPFJet30": ( (0.983,-189093.65,-0.410) ,
+                                    (0.978,  -5914.00,-0.272) ),
+                }[triggertype]
+
+    def random_trigger_type(self) :
+        rando = random.random()
+        return ["CentralJet30_A",
+                "CentralJet30_B",
+                "CentralPFJet30"][ next( i for i,cumprob in enumerate(self.trigTypeCumProbs) if rando < cumprob) ]
+
+    @staticmethod
+    def prob(eff) :
+        indices = range(len(eff))
+        return sum( ( reduce(operator.mul, [eff[i] for i in iPass] + [1-eff[i] for i in indices if i not in iPass])
+                    for njetsPass in range(3,len(eff)+1)
+                    for iPass in itertools.combinations(indices, njetsPass) ) )
+
+    def mcTriggeringProb(self) :
+        indices = self.source['ak5JetPFIndicesPat']
+        if len(indices) < 3 : return None
+        p4 = self.source['ak5JetPFCorrectedP4Pat']
+        abcs = self.abcs( self.random_trigger_type() )
+        return self.prob( [ self.gompertz( abcs[ 1.4 < abs(p4.at(i).eta()) ], p4.at(i).pt())
+                            for i in indices] )
+
+    def triggerFired(self) :
+        return ( len(self.source['ak5JetPFIndicesPat']) > 2 and 
+                 any(self.source['triggered'][path] for path in self.triggers) )
+
+    def update(self,_) :
+        self.value = ( self.mcTriggeringProb() if not self.source['isRealData'] else
+                       1                       if self.triggerFired() else
+                       None )
+
+    def uponAcceptance(self,ev) :
+        jets = self.source['ak5JetPFCorrectedP4Pat']
+        for i,iJet in list(enumerate(self.source['ak5JetPFIndicesPat']))[:6] :
+            barend = "barrel" if abs(jets[iJet].eta())<1.4 else 'endcap'
+            pt = jets[iJet].pt()
+            name = "jet%d_%s"%(i,barend)
+            title = ";jet_{%d} pt (%s); events / bin"%(i,barend)
+            self.book.fill( pt, name, 100,0,100, title = title )
+            self.book.fill( pt, name+'_unweighted', 100,0,100,
+                            title = 'unweighted '+title, w = 1)
+
+        if not ev['isRealData'] : return
+        trigger = next(ev['triggered'][path] for path in self.triggers)
+
+        run,lumi = (ev["run"],ev["lumiSection"])
+        if lumi in self.lumis[run] : return
+        self.lumis[run].add(lumi)
+        ps = ev['prescaled']
+        self.prescales[(run,lumi)] = ( (1,0,0) if run < 174000 else
+                                       ( 0,
+                                         next(iter(sorted(ps[trig] for trig in self.triggers if 'PF' not in trig and ps[trig])), 0 ),
+                                         next(iter(sorted(ps[trig] for trig in self.triggers if 'PF'     in trig and ps[trig])), 0 )) )
+
+    def varsToPickle(self) : return ["prescales"]
+    def outputSuffix(self) : return "_%s/"%self.name
+
+    def mergeFunc(self,products) :
+        dd = collections.defaultdict
+        epochs = dd(lambda: dd(set))
+        prescales = {}
+        for ps in products['prescales'] : prescales.update(ps)
+        if not prescales : return
+        for (run,lumi),val in prescales.iteritems() : epochs[val][run].add(lumi)
+
+        lumiDir = self.outputFileName
+        if not os.path.exists(lumiDir) : utils.mkdir(lumiDir)
+
+        lumis = utils.luminosity.recordedInvMicrobarnsShotgun( [ utils.jsonFromRunDict(rundict) for rundict in epochs.values() ],
+                                                               cores = 4, cacheDir = lumiDir)
+        lumiA,lumiB,lumiBPF = [ sum(lumis) for lumis in zip(*[(lumi/A if A else 0,
+                                                               lumi/B if B else 0,
+                                                               lumi/BPF if BPF else 0) for (A,B,BPF),lumi in zip(epochs.keys(),lumis) ] ) ]
+        lumiHist = r.TH1D('lumis','luminosity by path;;1/pb', 3,0,3)
+        lumiHist.SetBinContent(1,lumiA * 1e-6)   ; lumiHist.GetXaxis().SetBinLabel(1,'2011A')
+        lumiHist.SetBinContent(2,lumiB * 1e-6)   ; lumiHist.GetXaxis().SetBinLabel(2,'2011B')
+        lumiHist.SetBinContent(3,lumiBPF*1e-6) ; lumiHist.GetXaxis().SetBinLabel(3,'2011BPF')
+        lumiHist.Write()
+        return
+
+    def setup(self,*_) :
+        self.lumis = collections.defaultdict(set)
+        self.prescales = {}
+
+        hists = self.fromCache( self.samples, ["lumis"], tag = None )
+        lumiHists = [shists['lumis'] for shists in hists.values()]
+        if not all(lumiHists) :
+            self.trigTypCumProbs = 3*[1]
+            return
+        lumis = sum( [np.array([h.GetBinContent(i) for i in [1,2,3]]) for h in lumiHists ])
+        self.trigTypeCumProbs = np.cumsum( lumis / sum(lumis) )
+        return
