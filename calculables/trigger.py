@@ -124,7 +124,8 @@ class TriggerWeight(calculables.secondary) :
 class CrossTriggerWeight(calculables.secondary) :
     '''Implemented from description in CMS AN-2011/439 (4.6)'''
 
-    def __init__(self, samples, triggers) :
+    def __init__(self, samples, triggers, jets = None) :
+        self.jets = jets
         self.triggers = triggers
         self.samples = samples
         assert all([ abs(self.prob(effs)-probEffs) < 1e-15
@@ -186,15 +187,15 @@ class CrossTriggerWeight(calculables.secondary) :
                     for iPass in itertools.combinations(indices, njetsPass) ) )
 
     def mcTriggeringProb(self) :
-        indices = self.source['ak5JetPFIndicesPat']
+        indices = self.source['Indices'.join(self.jets)]
         if len(indices) < 3 : return None
-        p4 = self.source['ak5JetPFCorrectedP4Pat']
+        p4 = self.source['CorrectedP4'.join(self.jets)]
         abcs = self.abcs( self.random_trigger_type() )
-        return self.prob( [ self.gompertz( abcs[ 1.4 < abs(p4.at(i).eta()) ], p4.at(i).pt())
+        return self.prob( [ self.gompertz( abcs[ 1.4 < abs(p4[i].eta()) ], p4[i].pt())
                             for i in indices] )
 
     def triggerFired(self) :
-        return ( len(self.source['ak5JetPFIndicesPat']) > 2 and 
+        return ( len(self.source['Indices'.join(self.jets)]) > 2 and 
                  any(self.source['triggered'][path] for path in self.triggers) )
 
     def update(self,_) :
@@ -203,8 +204,8 @@ class CrossTriggerWeight(calculables.secondary) :
                        None )
 
     def uponAcceptance(self,ev) :
-        jets = self.source['ak5JetPFCorrectedP4Pat']
-        for i,iJet in list(enumerate(self.source['ak5JetPFIndicesPat']))[:6] :
+        jets = self.source['CorrectedP4'.join(self.jets)]
+        for i,iJet in list(enumerate(self.source['Indices'.join(self.jets)]))[:6] :
             barend = "barrel" if abs(jets[iJet].eta())<1.4 else 'endcap'
             pt = jets[iJet].pt()
             name = "jet%d_%s"%(i,barend)

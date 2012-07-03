@@ -23,7 +23,8 @@ class xcJet_SingleLepton(wrappedChain.calculable) :
 
     def update(self,_) :
         jets = self.source[self.p4jet]
-        lep =  self.source[self.p4lep][next(iter(self.source[self.indices]), None )]
+        iLep = next(iter(self.source[self.indices]), None )
+        lep =  self.source[self.p4lep][iLep] if iLep>None else None
         self.value = utils.vector()
         for iJet in range(len(jets)) :
             jet = jets[iJet]

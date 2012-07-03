@@ -180,7 +180,7 @@ class topAsymm(supy.analysis) :
         calcs += [
             calculables.jet.IndicesBtagged(obj["jet"],pars["bVar"]),
             calculables.jet.Indices(       obj["jet"],      ptMin = 20, etaMax = 3.1, flagName = "JetIDloose"),
-            calculables.jet.Indices(("ak5JetPF","Pat"),     ptMin = 25, etaMax = 2.4, flagName = "JetIDloose"), #triggerjets
+            calculables.jet.Indices(       obj["jet"],      ptMin = 25, etaMax = 2.4, flagName = "JetIDloose", extraName = "triggering"),
             calculables.electron.Indices(  obj["electron"], ptMin = 10, simpleEleID = "80", useCombinedIso = True),
             calculables.muon.Indices(      obj["muon"],     ptMin = 10, combinedRelIsoMax = 0.25, ID = "ID_TOPPAG"),
             calculables.muon.IndicesTriggering(lepton),
@@ -219,6 +219,7 @@ class topAsymm(supy.analysis) :
             supy.calculables.other.abbreviation( "CombinedSecondaryVertexBJetTags", "CSV", fixes = calculables.jet.xcStrip(obj['jet']) ),
             supy.calculables.other.abbreviation( pars['reweights']['var'], pars['reweights']['abbr'] ),
             supy.calculables.other.abbreviation( {'muon':'muonTriggerWeightPF','electron':"CrossTriggerWeight"}[pars['lepton']['name']], 'tw' ),
+            supy.calculables.other.abbreviation( "xcak5JetPFCorrectedP4Pat","xcak5JetPFCorrectedP4Pattriggering"),
             ]
         return calcs
     ########################################################################################
@@ -299,7 +300,7 @@ class topAsymm(supy.analysis) :
              ssteps.filters.value(bVar, indices = "IndicesBtagged".join(obj["jet"]), index = 0, min = 0.0),
              ssteps.filters.value(bVar, indices = "IndicesBtagged".join(obj["jet"]), **pars["selection"]["bCut"])
              
-             , ssteps.filters.label('top reco'),
+             , ssteps.filters.label('top reco').invert(),
              ssteps.filters.multiplicity("TopReconstruction",min=1)
              , ssteps.filters.label("selection complete")
 
@@ -371,8 +372,10 @@ class topAsymm(supy.analysis) :
     @staticmethod
     def triggerWeight(pars,samples) :
         triggers,thresholds = zip(*pars['lepton']['triggers'])
+        jets = pars['objects']['jet']
         return { 'electron' : calculables.trigger.CrossTriggerWeight( samples = samples,
-                                                                      triggers = triggers),
+                                                                      triggers = triggers,
+                                                                      jets = (jets[0],jets[1]+'triggering')),
                  'muon'     : calculables.trigger.TriggerWeight( samples,
                                                                  unreliable = pars['unreliable'],
                                                                  triggers = triggers,
