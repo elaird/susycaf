@@ -281,9 +281,7 @@ class topAsymm(supy.analysis) :
              , ssteps.histos.pt("P4".join(lepton), 200,0,200, indices = lIndices, index = 0)
              , ssteps.histos.value("MinJetDR".join(lepton), 100,0,2, indices = lIndices, index = 0),
              ssteps.filters.value("MinJetDR".join(lepton), min = 0.3, indices = lIndices, index = 0)
-             #ssteps.filters.absEta("P4".join(lepton), max = pars['lepton']['etaMax'], indices = lIndices, index = 0)
-             #ssteps.filters.pt("P4".join(lepton), min = lPtMin, indices = lIndices, index = 0)
-
+ 
              , ssteps.histos.pt("mixedSumP4",100,0,300),
              ssteps.filters.value('ecalDeadCellTPFilterFlag',min=1),
              steps.jet.failedJetVeto( obj["jet"], ptMin = 20, id = "PFJetIDloose"),
@@ -307,22 +305,7 @@ class topAsymm(supy.analysis) :
 
              , steps.top.channelClassification().onlySim()
              , steps.top.combinatorialFrequency().onlySim()
-             , ssteps.filters.label('gen top kinfit ')
-             , steps.top.kinFitLook('genTopRecoIndex')
-             #, steps.top.kinematics('genTop')
-             , steps.top.resolutions('genTopRecoIndex')
-             , ssteps.filters.label('reco top kinfit ')
-             , steps.top.kinFitLook('fitTopRecoIndex')
-             , steps.top.kinematics('fitTop')
-             , steps.top.resolutions('fitTopRecoIndex')
-             ####################################
              #, steps.displayer.ttbar(jets=obj["jet"], met=obj['met'], muons = obj['muon'], electrons = obj['electron'])
-
-             , ssteps.histos.multiplicity("Indices".join(obj["jet"]))
-             , ssteps.histos.value("M3".join(obj['jet']), 20,0,800)
-             , ssteps.histos.pt("P4".join(lepton), 200,0,200, indices = lIndices, index = 0)
-             , ssteps.histos.absEta("P4".join(lepton), 100,0,4, indices = lIndices, index = 0)
-             
              ####################################
              , ssteps.filters.label('discriminants')
              , ssteps.histos.value("KarlsruheDiscriminant", 28, -320, 800 )
@@ -336,7 +319,33 @@ class topAsymm(supy.analysis) :
              , calculables.gen.qDirExpectation_SumRapidities('top_muon_pf_%s'%rw, 'ttj_mg.wTopAsymP00.tw.%s'%rw)
              , calculables.gen.qDirExpectation_EtaSum('top_muon_pf_%s'%rw, 'ttj_mg.wTopAsymP00.tw.%s'%rw)
              , calculables.gen.qDirExpectation_RapiditySum('top_muon_pf_%s'%rw, 'ttj_mg.wTopAsymP00.tw.%s'%rw)
+             ####################################
+             , ssteps.filters.label('gen top kinfit ')
+             , steps.top.kinFitLook('genTopRecoIndex')
+             #, steps.top.kinematics('genTop')
+             , steps.top.resolutions('genTopRecoIndex')
+             , ssteps.filters.label('reco top kinfit ')
+             , steps.top.kinFitLook('fitTopRecoIndex')
+             , steps.top.kinematics('fitTop')
+             , steps.top.resolutions('fitTopRecoIndex')
+             ####################################
 
+             , ssteps.histos.value("M3".join(obj['jet']), 20,0,800)
+             , ssteps.histos.multiplicity("Indices".join(obj["jet"]))
+             , ssteps.filters.label('object pt')
+             , ssteps.histos.pt("mixedSumP4",100,1,201)
+             , ssteps.histos.pt("P4".join(lepton), 100,1,201, indices = lIndices, index = 0)
+             , ssteps.histos.pt("CorrectedP4".join(obj['jet']), 100,1,201, indices = "Indices".join(obj['jet']), index = 0)
+             , ssteps.histos.pt("CorrectedP4".join(obj['jet']), 100,1,201, indices = "Indices".join(obj['jet']), index = 1)
+             , ssteps.histos.pt("CorrectedP4".join(obj['jet']), 100,1,201, indices = "Indices".join(obj['jet']), index = 2)
+             , ssteps.histos.pt("CorrectedP4".join(obj['jet']), 100,1,201, indices = "Indices".join(obj['jet']), index = 3)
+             , ssteps.filters.label('object eta')
+             , ssteps.histos.absEta("P4".join(lepton), 100,0,4, indices = lIndices, index = 0)
+             , ssteps.histos.absEta("CorrectedP4".join(obj['jet']), 100,0,4, indices = "Indices".join(obj['jet']), index = 0)
+             , ssteps.histos.absEta("CorrectedP4".join(obj['jet']), 100,0,4, indices = "Indices".join(obj['jet']), index = 1)
+             , ssteps.histos.absEta("CorrectedP4".join(obj['jet']), 100,0,4, indices = "Indices".join(obj['jet']), index = 2)
+             , ssteps.histos.absEta("CorrectedP4".join(obj['jet']), 100,0,4, indices = "Indices".join(obj['jet']), index = 3)
+             
              , ssteps.filters.label('extended jets')
              , ssteps.histos.value('FourJetPtThreshold'.join(obj['jet']), 50,0,100)
              , ssteps.histos.value('fitTopJetPtMin', 50,0,100)
