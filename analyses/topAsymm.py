@@ -38,10 +38,10 @@ class topAsymm(supy.analysis) :
             'name'     : [                  'muon',                'electron'],
             'ptMin'    : [                   20.0 ,                     30.0 ],
             'etaMax'   : [                    2.1 ,                      2.5 ],
-            'iso'      : [    'CombinedRelativeIso',            'IsoCombined'],
+            'iso'      : [    'CombinedRelativeIso',    'IsoCombinedAdjusted'],
             'triggers' : [       self.mutriggers(),         self.eltriggers()],
-            'isoNormal': [             {"max":0.10},             {'max':0.07}],
-            'isoInvert': [ {"min":0.15, "max":0.55}, {'min':0.15, 'max':0.85}] #check inverted iso max for electron
+            'isoNormal': [             {"max":0.10},             {'max':0.09}],
+            'isoInvert': [ {"min":0.15, "max":0.55}, {'min':0.14, 'max':0.55}]
             }
 
         #btag working points: https://twiki.cern.ch/twiki/bin/viewauth/CMS/BTagPerformanceOP
@@ -169,7 +169,6 @@ class topAsymm(supy.analysis) :
                      [supy.calculables.fromCollections(getattr(calculables,item), [obj[item]])
                       for item in  ['jet','photon','electron','muon']], [])
         calcs += supy.calculables.fromCollections(calculables.top,[('genTop',""),('fitTop',"")])
-        #calcs += filter(lambda c: c.name not in [C.name for C in calcs], supy.calculables.fromCollections(calculables.jet,[("ak5JetPF","Pat")])) #triggerjets
         calcs += [
             calculables.jet.IndicesBtagged(obj["jet"],pars["bVar"]),
 
@@ -181,9 +180,10 @@ class topAsymm(supy.analysis) :
 
                                                   combinedRelIsoMax = 0.25, ISO = "CombinedRelativeIso"), #these two are kind of irrelevant, since we use IndicesAnyIsoIsoOrder
 
-            calculables.electron.IndicesIsoLoose( obj["electron"], ptMin = 15, absEtaMax = 2.5, iso = "IsoCombined", isoMax = 0.15),
+            calculables.electron.IndicesIsoLoose( obj["electron"], ptMin = 15, absEtaMax = 2.5, iso = "IsoCombinedAdjusted", isoMax = 0.15),
             calculables.muon.IndicesIsoLoose( obj["muon"], ptMin = 10, absEtaMax = 2.5, iso = "CombinedRelativeIso", isoMax = 0.20 ),
 
+            calculables.electron.IsoCombinedAdjusted(obj["electron"], barrelCIso = 0.09, endcapCIso = 0.06 ), # VBTF 0.85
             calculables.muon.IndicesTriggering(lepton),
             calculables.muon.IndicesAnyIsoIsoOrder(lepton, pars["lepton"]["iso"]),
             calculables.muon.MinJetDR(lepton, obj["jet"], jetPtMin = 30),

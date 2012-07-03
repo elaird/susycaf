@@ -168,6 +168,25 @@ class IsoCombined(wrappedChain.calculable) :
                (trk + ecal + hcal) / p4.pt() if absEta > endcapEtaMin else \
                None
 ##############################
+class IsoCombinedAdjusted(wrappedChain.calculable) :
+    '''IsoCombined, scaled only for endcap by constant M, such that barrelCIso == M * endcapCIso.
+
+    Default values of {barrelCIso:1,endcapCIso:1} provide
+    IsoCombinedAdjusted values identical to those of IsoCombined.
+    '''
+
+    def __init__(self,collection = None, barrelCIso = 1, endcapCIso = 1) :
+        self.fixes = collection
+        self.stash(['IsoCombined','ESuperClusterEta'])
+        self.endcapScaling = barrelCIso / endcapCIso
+
+    def update(self,_) :
+        isos = self.source[self.IsoCombined]
+        scetas = self.source[self.ESuperClusterEta]
+        self.value = [ iso if abs(scetas.at(i)) < barrelEtaMax else
+                       iso * self.endcapScaling if iso!=None else None
+                       for i,iso in enumerate(isos)]
+##############################
 class IsoRel(wrappedChain.calculable) :
     def __init__(self, collection, isoSource) :
         self.fixes = collection
