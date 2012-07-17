@@ -98,6 +98,17 @@ class Asymmetry(analysisStep) :
         self.book.fill( ev[self.DirectedDeltaYttbar], 'ttbarSignedDeltaY', self.bins, -4, 4, title = ';sumP4dir * #Delta Y_{ttbar};events / bin' )
         self.book.fill( ev[self.DirectedDeltaYLHadt], 'lHadtDeltaY',       self.bins, -4, 4, title = ';sumP4dir * #Delta Y_{lhadt};events / bin')
         #self.book.fill( ev[self.Beta],                'ttbarBeta',         self.bins, -math.sqrt(2), math.sqrt(2), title = ';#beta_{ttbar};events / bin')
+        self.book.fill( ev["TTbarSignExpectation"], 'ttbarSignExpectation', self.bins, -1, 1, title = ";<sign #Delta y>_{t#bar{t}};events / bin" )
+#####################################
+class signCheck(analysisStep) :
+    def uponAcceptance(self,ev) :
+        if ev["isRealData"] : return
+        if not ev["genQQbar"] : return
+        if not ev["genTopTTbar"] : return
+        genTT_DDY = ev["genTopDirectedDeltaYttbar"]
+        signGenTT_DDY = 1 if genTT_DDY > 0 else -1 if genTT_DDY<0 else 0
+        self.book.fill( ev["TTbarSignExpectation"] * signGenTT_DDY, "TTbarSignExpectation_trueSign", 41, -1, 1, title = ";<sign #Delta y>_{t#bar{t}} . trueSign;events / bin")
+        self.book.fill( ev["TTbarSignExpectation"] * signGenTT_DDY, "TTbarSignExpectation_trueSign_2bin", 2, -1, 1, title = ";<sign #Delta y>_{t#bar{t}} . trueSign;events / bin")
 #####################################
 class Spin(analysisStep) :
     def __init__(self, collection) :

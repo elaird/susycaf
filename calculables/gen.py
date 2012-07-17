@@ -265,48 +265,115 @@ class genParticleCounter(wrappedChain.calculable) :
             if self.source["genMotherIndex"].at(iParticle) not in [0,1] : continue
             self.incrementCategory(self.source["genPdgId"].at(iParticle))
 ######################################
-class qDirProbPlus(calculables.secondary) :
-    def __init__(self, var, limit, tag, sample, path = None) :
-        for item in ['var','tag','sample', 'limit','path'] : setattr(self,item,eval(item))
-        self.fixes = ('',var)
-        self.dist = "qdir.%s"%self.var
-        self.p = None
+class qDirExpectation(calculables.secondary) :
+    var = ""
+    limit = 1
+    tag = ""
+    sample = ""
+    p = None
 
     def onlySamples(self) : return [self.sample]
 
     def setup(self,*_) :
         import numpy as np
-        orig = self.fromCache( [self.sample], [self.dist], tag = self.tag)[self.sample][self.dist]
+        orig = self.fromCache( [self.sample], [self.var], tag = self.tag)[self.sample][self.var]
         if not orig : return
+        values = [orig.GetBinContent(i) for i in range(orig.GetNbinsX()+2)]
+        neighbors = 10
+        for i in range(neighbors,len(values)-neighbors) : orig.SetBinContent(i, sum(values[i-neighbors:i+neighbors+1]) / (1+2*neighbors))
 
-        edges = utils.edgesRebinned(orig, targetUncRel = 0.065)
-        hist = orig.Rebin(len(edges)-1, "tmp", edges)
+        edges = utils.edgesRebinned(orig, targetUncRel = 0.1)
+        hist = orig.Rebin(len(edges)-1, orig.GetName()+"_rebinned", edges)
         vals  = [hist.GetBinContent(i) for i in range(1,len(edges))]
         del hist
         iZero = edges.index(0)
         R = np.array(vals[iZero:])
         L = np.array(vals[:iZero])[::-1]
-        p = R / ( R + L )
+        p = (R-L) / ( R + L )
 
-        self.p = r.TH1D(self.name, ";|%s|;p of correct qDir"%self.var, len(edges[iZero:])-1, edges[iZero:])
+        self.p = r.TH1D(self.name, ";|%s|;|<qDir>|"%self.var, len(edges[iZero:])-1, edges[iZero:])
         for i in range(len(p)) : self.p.SetBinContent(i+1,p[i])
         self.p.SetBinContent(len(edges[iZero:])+2, edges[-1])
 
-        if self.path is not None :
-            c = r.TCanvas()
-            self.p.Draw('hist')
-            utils.tCanvasPrintPdf(c,'%s/%s'%(self.path,'.'.join([self.name,self.sample,self.tag])))
-            del c
+        widths = [high-low for low,high in zip(edges[iZero:-1],edges[iZero+1:])]
+        q = (R+L)/(widths * (sum(R)+sum(L)))
+        self.q = self.p.Clone(self.name+"_pdist")
+        self.q.Reset()
+        self.q.SetTitle(";|%s|;probability of |%s|"%(self.var,self.var))
+        for i in range(len(q)) : self.q.SetBinContent(i+1,q[i])
 
-    def update(self,_) :
-        var = self.source[self.var]
-        p = self.p.GetBinContent(self.p.FindFixBin(var)) if self.p else 0.5
-        self.value = p if var > 0 else 1-p
+        self.mean = sum(a*b for a,b in zip(p,(R+L))) / (sum(R)+sum(L))
+
+    def reportCache(self) :
+        fileName = '/'.join(self.outputFileName.split('/')[:-1]+[self.name])
+        self.setup()
+        if not self.p : return
+        c = r.TCanvas()
+        self.p.SetLineWidth(2)
+        self.p.SetMaximum(1)
+        self.p.SetMinimum(0)
+        self.p.Draw('hist')
+        self.q.SetLineWidth(2)
+        self.q.SetLineColor(r.kRed)
+        self.q.Draw('hist same')
+        mean = self.q.Clone('mean'); mean.Reset();
+        for i in range(mean.GetNbinsX()) : mean.SetBinContent(i+1,self.mean)
+        mean.SetTitle("%.2f"%self.mean)
+        mean.SetLineColor(r.kBlue)
+        mean.Draw('hist same')
+        utils.tCanvasPrintPdf(c,fileName)
+        del mean
+        del c
+
+    def update(self,_) : self.value = self.calculate
+
+    def calculate(self, top, tbar) :
+        var = self.varFunction(top,tbar)
+        p = max(0,self.p.GetBinContent(self.p.FindFixBin(abs(var)))) if self.p else 0
+        return p if var > 0 else -p
 
     def uponAcceptance(self,ev) :
         if ev['isRealData'] : return
         qqbar = ev['genQQbar']
         if not qqbar : return
-        qdir = 1 if ev['genP4'][qqbar[0]].pz()>0 else -1
-        var = ev[self.var]
-        self.book.fill(qdir*var, self.dist, 1000, -self.limit, self.limit, title = ";qdir * %s;events / bin"%self.var )
+        iTT = ev['genTopTTbar']
+        if not iTT : return
+        p4 = ev['genP4']
+        qdir = 1 if p4[qqbar[0]].pz()>0 else -1
+        var = self.varFunction(p4[iTT[0]],p4[iTT[1]])
+        self.book.fill(qdir*var, self.var, 1000, -self.limit, self.limit, title = ";qdir * %s;events / bin"%self.var )
+
+    def varFunction(self,top,tbar) : return
+
+
+class qDirExpectation_(qDirExpectation) :
+    def __init__(self, var, limit, tag, sample) :
+        for item in ['var','tag','sample', 'limit'] : setattr(self,item,eval(item))
+        self.fixes = ('',var)
+
+    def varFunction(self,top,tbar) : return self.source[self.var]
+
+class qDirExpectation_SumRapidities(qDirExpectation) :
+    def varFunction(self,top,tbar) : return top.Rapidity() + tbar.Rapidity()
+    def __init__(self, tag, sample) :
+        self.var = "SumRapidities"
+        self.limit = 5
+        self.tag = tag
+        self.sample = sample
+
+class qDirExpectation_EtaSum(qDirExpectation) :
+    def varFunction(self,top,tbar) : return (top + tbar).Eta()
+    def __init__(self, tag, sample) :
+        self.var = "EtaSum"
+        self.limit = 8
+        self.tag = tag
+        self.sample = sample
+
+class qDirExpectation_RapiditySum(qDirExpectation) :
+    def varFunction(self,top,tbar) : return (top + tbar).Rapidity()
+    def __init__(self, tag, sample) :
+        self.var = "RapiditySum"
+        self.limit = 2.5
+        self.tag = tag
+        self.sample = sample
+
