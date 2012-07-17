@@ -134,7 +134,7 @@ class IndicesNonIso(calculables.IndicesOther) :
         self.moreName = "pass ptMin & id; fail iso"
 ##############################
 class Indices(wrappedChain.calculable) :
-    def __init__(self, collection = None, ptMin = None, combinedRelIsoMax = None, requireIsGlobal = True , ID = "IDtight", ISO = "CombinedRelativeIso", absEtaMax = None) :
+    def __init__(self, collection = None, ptMin = None, isoMax = None, requireIsGlobal = True , ID = "IDtight", ISO = "CombinedRelativeIso", absEtaMax = 1000) :
         self.fixes = collection
         self.requireIsGlobal = requireIsGlobal
         self.stash(["IndicesNonIso","IndicesOther","P4","IsGlobalMuon"])
@@ -142,8 +142,8 @@ class Indices(wrappedChain.calculable) :
         self.ISO = ISO.join(collection)
         self.ptMin = ptMin
         self.absEtaMax = absEtaMax
-        self.relIsoMax = combinedRelIsoMax
-        self.moreName = "%s; pt>%.1f GeV; %s<%.2f"%( ID, ptMin, ISO, combinedRelIsoMax )
+        self.isoMax = isoMax
+        self.moreName = "%s; pt>%.1f GeV; %s<%.2f"%( ID, ptMin, ISO, isoMax )
 
     def update(self,ignored) :
         self.value = []
@@ -151,7 +151,7 @@ class Indices(wrappedChain.calculable) :
         other  = self.source[self.IndicesOther]
         p4s    = self.source[self.P4]
         id  = self.source[self.ID]
-        relIso = self.source[self.ISO]
+        iso = self.source[self.ISO]
         isGlobal = self.source[self.IsGlobalMuon]
         for i in range(p4s.size()) :
             p4 = p4s.at(i)
@@ -159,7 +159,7 @@ class Indices(wrappedChain.calculable) :
             if self.requireIsGlobal and not isGlobal.at(i) : continue
             if self.absEtaMax < abs(p4.eta()) : continue
             if id[i] :
-                if relIso[i] < self.relIsoMax :
+                if iso[i] < self.isoMax :
                     self.value.append(i)
                 else: nonIso.append(i)
             else: other.append(i)
