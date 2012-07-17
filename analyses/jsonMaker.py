@@ -6,6 +6,8 @@ class jsonMaker(supy.analysis) :
         jwMay = calculables.other.jsonWeight("cert/Cert_160404-163869_7TeV_May10ReReco_Collisions11_JSON_v3.txt")
         jwAug = calculables.other.jsonWeight("cert/Cert_170249-172619_7TeV_ReReco5Aug_Collisions11_JSON_v3.txt")
 
+        jw2012 = calculables.other.jsonWeight("cert/Cert_190456-194479_8TeV_PromptReco_Collisions12_JSON.txt")
+
         group = self.vary()
 
         group['SingleMu'] = [(['SingleMu.2011A',
@@ -16,23 +18,9 @@ class jsonMaker(supy.analysis) :
                                'SingleEl.2011B',
                                      ], [])] # no json filtering necessary, golden json used
 
-        group['Photon1'] = [(['Photon.Run2011A-May10ReReco-v1.AOD.job536',
-                             'Photon.Run2011A-05Aug2011-v1.AOD.job528',
-                             'Photon.Run2011A-PromptReco-v4.AOD.job535',
-                             'Photon.Run2011A-PromptReco-v6.AOD.job527',
-                             'Photon.Run2011B-PromptReco-v1.AOD.job515',
-                             'Photon.Run2011B-PromptReco-v1.AOD.job519',
-                             'Photon.Run2011B-PromptReco-v1.AOD.job531',
-                             'Photon.Run2011B-PromptReco-v1.AOD.job570',
-                             'Photon.Run2011B-PromptReco-v1.AOD.job598',
-                             ], [])]
-
-        group['Photon2'] = [(["Photon.Run2011A-05Aug2011-v1.AOD.job663_skim",
-                              "Photon.Run2011A-May10ReReco-v1.AOD.job662_skim",
-                              "Photon.Run2011A-PromptReco-v4.AOD.job664_skim",
-                              "Photon.Run2011A-PromptReco-v6.AOD.job667_skim",
-                              "Photon.Run2011B-PromptReco-v1.AOD.job668_skim",
-                              ], [])]
+        group['Photon'] = [(["Photon.Run2012A-PromptReco-v1.AOD.job171",
+                             "SinglePhoton.Run2012B-PromptReco-v1.AOD.job171",
+                             ], jw2012)]
 
         group['Mumu'] = [(["DoubleMu.Run2011A-05Aug2011-v1.AOD.job663",
                            "DoubleMu.Run2011A-May10ReReco-v1.AOD.job662",
@@ -66,7 +54,7 @@ class jsonMaker(supy.analysis) :
 
     def listOfSteps(self,pars) :
         return [ supy.steps.printer.progressPrinter(2,300),
-                 steps.other.jsonMaker(),
+                 steps.other.jsonMaker(pixelLumi = False),
                  ]
 
     def listOfCalculables(self,pars) :
@@ -76,7 +64,7 @@ class jsonMaker(supy.analysis) :
         return sum([supy.samples.specify(names = samps, weights = jw) for samps,jw in pars['group']],[])
 
     def listOfSampleDictionaries(self) :
-        return [samples.ht, samples.muon16, samples.photon, samples.electron16, samples.mumu]
+        return [samples.ht, samples.muon16, samples.photon, samples.photon17, samples.electron16, samples.mumu]
 
     def mainTree(self) :
         return ("lumiTree","tree")
