@@ -59,32 +59,15 @@ triggers_alphaT_2011 = triggerTuple(l  = [#{"HT":250, "AlphaT": 0.53, "v":range(
                                           {"HT":450, "AlphaT": 0.52, "v":range(1,3)},
                                           ], keys = ("HT", "AlphaT"))
 
-triggers_alphaT_2012 = triggerTuple(l  = [{"HT":200, "AlphaT": 0.57, "v":range(1,5)},
-                                          
-                                          {"HT":250, "AlphaT": 0.55, "v":range(1,4)},
-                                          {"HT":250, "AlphaT": 0.57, "v":range(1,4)},
-                                          
-                                          {"HT":300, "AlphaT": 0.53, "v":range(1,4)},
-                                          {"HT":300, "AlphaT": 0.54, "v":range(1,10)},
-                                          
-                                          {"HT":350, "AlphaT": 0.52, "v":range(1,4)},
-                                          {"HT":350, "AlphaT": 0.53, "v":range(1,15)},
-                                          
-                                          {"HT":400, "AlphaT": 0.51, "v":range(1,15)},
-                                          {"HT":400, "AlphaT": 0.52, "v":range(1,10)},
-                                          
-                                          {"HT":450, "AlphaT": 0.51, "v":range(1,10)},
-                                          ], keys = ("HT", "AlphaT"))
 
-
-class hadronicLook(supy.analysis) :
+class hadronicLook2011(supy.analysis) :
     def parameters(self) :
         objects = self.vary()
         fields =                                                  [ "jet",                        "jetId",     "muonsInJets",           "met",
                                                                     "compJet",                "compJetId", "compMuonsInJets",        "compMet",
                                                                     "muon",                    "electron",          "photon",         "rechit"]
 
-        objects["caloAK5JetMet_recoLepPhot"]   = dict(zip(fields, [("xcak5Jet","Pat"),       "JetIDloose",             False,   "metP4TypeIPF",
+        objects["caloAK5JetMet_recoLepPhot"]   = dict(zip(fields, [("xcak5Jet","Pat"),       "JetIDloose",             False,   "metP4AK5TypeII",
                                                                    ("xcak5JetPF","Pat"),     "JetIDtight",              True,        "metP4PF",
                                                                    ("muon","Pat"),     ("electron","Pat"),  ("photon","Pat"),           "Calo",
                                                                    ]))
@@ -115,7 +98,7 @@ class hadronicLook(supy.analysis) :
                                                 ("275_scaled", (275.0, 325.0,  73.3, 36.7)),#4
                                                 ("675",        (675.0, None,  100.0, 50.0)),#5
                                                 ][2:3] )),
-                 "triggerList": triggers_alphaT_2012, 
+                 "triggerList": triggers_mht_2011, 
                  }
 
     def ra1Cosmetics(self) : return False
@@ -141,7 +124,7 @@ class hadronicLook(supy.analysis) :
                 calculables.jet.SumP4(jet, extraName = highPtName),
                 calculables.jet.DeltaPhiStar(jet, extraName = lowPtName),
                 calculables.jet.DeltaPhiStar(jet),
-                calculables.jet.MaxEmEnergyFraction(jet),
+                #calculables.jet.MaxEmEnergyFraction(jet),
                 calculables.jet.DeltaPseudoJet(jet, etRatherThanPt),
                 calculables.jet.AlphaT(jet, etRatherThanPt),
                 calculables.jet.AlphaTMet(jet, etRatherThanPt, met),
@@ -161,10 +144,10 @@ class hadronicLook(supy.analysis) :
             calculables.xclean.IndicesUnmatched(collection = obj["photon"], xcjets = obj["jet"], DR = 0.5),
             calculables.xclean.IndicesUnmatched(collection = obj["electron"], xcjets = obj["jet"], DR = 0.5),
 
-            calculables.muon.Indices( obj["muon"], ptMin = 10, ID = "IdPog2012Tight", usePfIso = True, pfRelIsoMax = 0.20),
-            calculables.electron.Indices( obj["electron"], ptMin = 10, flag2012 = "Veto"),
-            calculables.photon.Indices(obj["photon"], ptMin = 25, flagName = "photonIDRA3Pat"),
-            calculables.photon.CombinedIsoDR03RhoCorrected(obj["photon"]),
+            calculables.muon.Indices( obj["muon"], ptMin = 10, combinedRelIsoMax = 0.15),
+            calculables.electron.Indices( obj["electron"], ptMin = 10, simpleEleID = "95", useCombinedIso = True),
+            calculables.photon.Indices(obj["photon"], ptMin = 25, flagName = "photonIDLooseFromTwikiPat"),
+            
 
             calculables.other.RecHitSumPt(obj["rechit"]),
             calculables.other.RecHitSumP4(obj["rechit"]),
@@ -202,11 +185,11 @@ class hadronicLook(supy.analysis) :
         return scanBefore + [
             supy.steps.printer.progressPrinter(),
             #steps.trigger.lowestUnPrescaledTriggerFilter(),
-            steps.trigger.l1Filter("L1Tech_BPTX_plus_AND_minus.v0"),
+            steps.trigger.l1Filter("L1Tech_BPTX_plus_AND_minus.v0").onlyData(),
             
-            steps.trigger.physicsDeclaredFilter(),
+            steps.trigger.physicsDeclaredFilter().onlyData(),
             steps.filters.monster(),
-            steps.filters.hbheNoise(),
+            steps.filters.hbheNoise().onlyData(),
 
             supy.steps.histos.histogrammer("genpthat",200,0,1000,title=";#hat{p_{T}} (GeV);events / bin").onlySim(),
             steps.trigger.hltPrescaleHistogrammer(params["triggerList"]),
@@ -261,7 +244,7 @@ class hadronicLook(supy.analysis) :
             steps.jet.cleanJetHtMhtHistogrammer(_jet,_etRatherThanPt),
             supy.steps.histos.histogrammer("%sDeltaPhiStar%s%s"%(_jet[0], _jet[1], params["lowPtName"]), 20, 0.0, r.TMath.Pi(), title = ";#Delta#phi*;events / bin", funcString = 'lambda x:x[0][0]'),
             supy.steps.histos.histogrammer("%sDeltaPhiStar%s"%(_jet[0], _jet[1]), 20, 0.0, r.TMath.Pi(), title = ";#Delta#phi*;events / bin", funcString = 'lambda x:x[0][0]'),
-            supy.steps.histos.histogrammer("%sMaxEmEnergyFraction%s"%(_jet[0], _jet[1]), 20, 0.0, 1.0, title = ";MaxEmEnergyFraction;events / bin"),
+            #supy.steps.histos.histogrammer("%sMaxEmEnergyFraction%s"%(_jet[0], _jet[1]), 20, 0.0, 1.0, title = ";MaxEmEnergyFraction;events / bin"),
             supy.steps.histos.histogrammer(_met,100,0.0,500.0,title=";"+_met+" (GeV);events / bin", funcString = "lambda x: x.pt()"),
             supy.steps.filters.label("kinematicPlots1"),
 
@@ -275,8 +258,8 @@ class hadronicLook(supy.analysis) :
             #signal selection
             #supy.steps.filters.pt("%sSumP4%s"%_jet, min = 140.0),
             supy.steps.filters.value("%sAlphaT%s%s"%(_jet[0],"Et" if _etRatherThanPt else "Pt",_jet[1]), min = 0.55),
-            supy.steps.histos.histogrammer("%sMaxEmEnergyFraction%s"%(_jet[0], _jet[1]), 20, 0.0, 1.0, title = ";MaxEmEnergyFraction;events / bin"),
-            supy.steps.filters.value("%sMaxEmEnergyFraction%s"%(_jet[0],_jet[1]), max = .1),
+            #supy.steps.histos.histogrammer("%sMaxEmEnergyFraction%s"%(_jet[0], _jet[1]), 20, 0.0, 1.0, title = ";MaxEmEnergyFraction;events / bin"),
+            #supy.steps.filters.value("%sMaxEmEnergyFraction%s"%(_jet[0],_jet[1]), max = .1),
             #]), #end cutSorter
 
             #steps.Trigger.lowestUnPrescaledTriggerFilter(),
@@ -333,16 +316,23 @@ class hadronicLook(supy.analysis) :
             #                          #doGenJets = True,
             #                          markusMode = False,
             #                          ),
-            ] + scanAfter + [supy.steps.other.skimmer()] + [supy.steps.filters.value("%sSumEt%s"%_jet, min = bin) for bin in [475, 575, 675, 775, 875]]
+            ] + scanAfter + [supy.steps.filters.value("%sSumEt%s"%_jet, min = bin) for bin in [475, 575, 675, 775, 875]]
             #] + scanAfter + [supy.steps.other.skimmer()]
             
 
     def listOfSampleDictionaries(self) :
-        #sampleDict = supy.samples.SampleHolder() #added to run over skim
-        return [samples.ht17]
+        #return [samples.ht17]
         #sampleDict.add("Data_High_HT", '["~/nobackup/supy-output/hadronicLook/675_ge2_caloAK5JetMet_recoLepPhot_pythia6/High_HT_skim.root"]', lumi = 1.1e3)
         #return [sampleDict]
-    
+        sampleDict = supy.samples.SampleHolder()
+   
+        sampleDict.add("t1_1000_50", '["/uscms/home/yeshaq/nobackup/supy-output/smsSkim1000_50/t1_1000_50.root"]', xs = 1.0)
+        sampleDict.add("t1_1000_600", '["/uscms/home/yeshaq/nobackup/supy-output/smsSkim1000_600/t1_1000_600.root"]', xs = 1.0)
+        sampleDict.add("t1_400_300", '["/uscms/home/yeshaq/nobackup/supy-output/smsSkim400_300/t1_400_300.root"]', xs = 1.0)        
+        sampleDict.add("t1_3_points", '["/uscms/home/yeshaq/nobackup/supy-output/smsSkim/sms_3_points.root"]', xs = 1.0)
+
+        return [sampleDict]
+            
     def listOfSamples(self,params) :
         from supy.samples import specify
 
@@ -458,8 +448,13 @@ class hadronicLook(supy.analysis) :
                      specify(names = wName, effectiveLumi = eL, color = 28         ) )
 
         def susy(eL) :
-            return specify(names = "lm6", effectiveLumi = eL, color = r.kRed)
 
+            return specify(names = "lm6", effectiveLumi = eL, color = r.kRed)
+            
+        def smst1() :
+
+            return specify(names = "t1_400_300")
+        
         def scan(tanBeta) :
             return specify(names = "scan_tanbeta%d"%tanBeta, color = r.kMagenta, nFilesMax = 1)
                      
@@ -470,11 +465,12 @@ class hadronicLook(supy.analysis) :
         era = "summer11"
         smLumi = 30000 # 1/pb
         susyLumi = 60000
-        return data2012()
-#        return ( data() +
+#        return data2012()
+        return ( #data() +
 #                 qcd_func(smLumi) + #g_jets_func(eL) +
 #                 ttbar_mg(smLumi, era = era) + ewk(smLumi, era = era) +
-#                 susy(susyLumi)
+#                 susy(susyLumi))
+                  smst1())
 #                 ) if params["tanBeta"]==None else scan(params["tanBeta"])
 #
 
@@ -532,8 +528,8 @@ class hadronicLook(supy.analysis) :
                              pegMinimum = 0.1,
                              blackList = ["lumiHisto","xsHisto","nJobsHisto"],
                              )
-        pl.plotAll()
-        #self.makeEfficiencyPlots(org, tag, sampleName = "LM1")
+        #pl.plotAll()
+        self.makeEfficiencyPlots(org, org.tag, sampleName = "t1_400_300")
 
     def makeIndividualPlots(self, org) :
         #plot all
@@ -609,7 +605,8 @@ class hadronicLook(supy.analysis) :
 
         def numerAndDenom(org, var) :
             d = {}
-            for selection in org.selections :
+            for selection in org.steps :
+                #print selection.name, selection.title
                 if selection.name!= "passFilter" : continue
                 if   "htLabel1" in selection.title : label = "before"
                 elif "htLabel2" in selection.title : label = "after"
