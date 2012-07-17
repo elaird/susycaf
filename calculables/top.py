@@ -247,6 +247,43 @@ class Beta(wrappedChain.calculable) :
     def update(self, _) :
         self.value = self.source[self.CosThetaStarAvg] * math.sqrt(self.source[self.Alpha])
 ######################################
+class genCosThetaStar(wrappedChain.calculable) :
+    def update(self,_) :
+        '''Cosine angle between colliding and resulting particle in center of mass frame, three cases:
+
+        case qqbar -> ttbarX : between light quark and top quark
+        case gq(bar) -> ttbarX : between light (anti)quark and top (anti)quark
+        case gg -> ttbarX : between arbitrary gluon and top quark
+        '''
+        id = self.source['genPdgId']
+        p4 = self.source['genP4']
+        beta = (p4[4]+p4[5]).BoostToCM()
+        boost = r.Math.Boost(beta.x(),beta.y(),beta.z())
+
+        iQs = [i for i in [4,5] if id[i]!=21]
+        iQ = max(iQs,key=lambda i:id[i]) if iQs else 4
+        iTop = 6 if id[6]*id[iQ] > 0 else 7
+
+        self.value = r.Math.VectorUtil.CosTheta( boost(p4[iTop]), boost(p4[iQ]) )
+class genCosThetaStarBar(wrappedChain.calculable) :
+    def update(self,_) :
+        '''Cosine angle between colliding and resulting particle in center of mass frame, three cases:
+
+        case qqbar -> ttbarX : between light quark and top quark
+        case gq(bar) -> ttbarX : between light (anti)quark and top (anti)quark
+        case gg -> ttbarX : between arbitrary gluon and top quark
+        '''
+        id = self.source['genPdgId']
+        p4 = self.source['genP4']
+        beta = (p4[4]+p4[5]).BoostToCM()
+        boost = r.Math.Boost(beta.x(),beta.y(),beta.z())
+
+        iQs = [i for i in [4,5] if id[i]!=21]
+        iQ = max(iQs,key=lambda i:id[i]) if iQs else 4
+        iTbar = 6 if id[6]*id[iQ] < 0 else 7
+
+        self.value = r.Math.VectorUtil.CosTheta( boost(p4[iTbar]), boost(p4[iQ]) )
+######################################
 class __CosThetaStar__(wrappedChain.calculable) :
     def __init__(self, collection = None, topKey = 't', boostz = "BoostZ") :
         self.fixes = collection
