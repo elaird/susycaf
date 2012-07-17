@@ -90,6 +90,34 @@ class IDtight(wrappedChain.calculable) :
                          self.source[self.NumberOfValidPixelHits],
                          self.source[self.GlobalTrackDxy])    
 ##############################
+class IdPog2012Tight(wrappedChain.calculable) :
+    def __init__(self, collection = None) :
+        self.fixes = collection
+        self.stash(["IsGlobalMuon","IsPFMuon","GlobalTracknormalizedChi2", "GlobalTracknumberOfValidMuonHits",
+                    "NumberOfMatchedStations", "InnerTrackDxy", "InnerTrackDz",
+                    "NumberOfValidPixelHits", "NumberOfTrackerLayersWithMeasurement"
+                    ])
+        self.moreName = "https://twiki.cern.ch/twiki/bin/view/CMSPublic/SWGuideMuonId#Tight_Muon"
+
+    def update(self,ignored) :
+        self.value = []
+
+        gm = self.source[self.IsGlobalMuon]
+        pf = self.source[self.IsPFMuon]
+        chi2 = self.source[self.GlobalTracknormalizedChi2]
+        mHits = self.source[self.GlobalTracknumberOfValidMuonHits]
+        mStations = self.source[self.NumberOfMatchedStations]
+        dxy = self.source[self.InnerTrackDxy]
+        dz = self.source[self.InnerTrackDz]
+        pHits = self.source[self.NumberOfValidPixelHits]
+        tLayers = self.source[self.NumberOfTrackerLayersWithMeasurement]
+
+        for i in range(gm.size()) :
+            reqs = [gm.at(i), pf.at(i), chi2.at(i)<10.0, mHits.at(i)>0,
+                    mStations.at(i)>1, dxy.at(i)<0.2, dz.at(i)<0.5,
+                    pHits.at(i)>0, tLayers.at(i)>5]
+            self.value.append(all(reqs))
+##############################
 class CombinedRelativeIso(wrappedChain.calculable) :
     def __init__(self, collection = None) :
         self.fixes = collection

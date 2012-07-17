@@ -189,8 +189,9 @@ class WrappedSeedTime(wrappedChain.calculable) :
             self.value = self.source[self.SeedTime]
 ####################################
 class CombinedIsoDR03RhoCorrected(wrappedChain.calculable) :
-    def __init__(self, collection = None) :
+    def __init__(self, collection = None, areaEff = [0.093+0.0281, 0.080+0.021+0.009][1]) :
         self.fixes = collection
+        self.areaEff = areaEff
         self.stash(["EcalRecHitEtConeDR03", "HcalTowSumEtConeDR03", "TrkSumPtHollowConeDR03"])
 
     def update(self, _) :
@@ -198,12 +199,13 @@ class CombinedIsoDR03RhoCorrected(wrappedChain.calculable) :
         e = self.source[self.EcalRecHitEtConeDR03]
         h = self.source[self.HcalTowSumEtConeDR03]
         t = self.source[self.TrkSumPtHollowConeDR03]
-        rho = self.source["rho"]
+        rho = self.source["rho25"]
         for i in range(e.size()) :
-            self.value.append(e.at(i) + h.at(i) + t.at(i) - rho*(0.093+0.0281))
+            self.value.append(e.at(i) + h.at(i) + t.at(i) - rho*self.areaEff)
 ####################################
 class IDRA3(wrappedChain.calculable) :
     #https://indico.cern.ch/getFile.py/access?contribId=2&resId=0&materialId=slides&confId=188427
+    #SUS-12-018 AN: http://cms.cern.ch/iCMS/jsp/openfile.jsp?tp=draft&files=AN2012_212_v3.pdf
     def __init__(self, collection = None) :
         self.fixes = collection
         self.stash(["CombinedIsoDR03RhoCorrected", "HadronicOverEm", "SigmaIetaIeta", "HasPixelSeed", "R9"])
