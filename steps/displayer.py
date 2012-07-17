@@ -248,8 +248,9 @@ class displayer(supy.steps.displayer) :
         isPf = "PF" in jets[0]
         
         p4Vector         = eventVars['%sCorrectedP4%s'%jets]
-        corrVector       = eventVars['%sCorrFactor%s'      %jets2]
-
+        corrVector       = eventVars['%sCorrFactor%s'%jets2]
+        csv              = eventVars['%sCombinedSecondaryVertexBJetTags%s'%jets2]
+        
         if not isPf :
             jetEmfVector  = eventVars['%sEmEnergyFraction%s'%jets2]
             jetFHpdVector = eventVars['%sJetIDFHPD%s'       %jets2]
@@ -273,8 +274,8 @@ class displayer(supy.steps.displayer) :
             tight = eventVars["%sPFJetIDtight%s"%jets2]
             
         self.printText(self.renamedDesc(jets[0]+jets[1]))
-        self.printText("ID   pT  eta  phi%s"%("   EMF  fHPD  fRBX N90 corr" if not isPf else "   CHF  NHF  CEF  NEF CM corr"))
-        self.printText("-----------------%s"%("---------------------------" if not isPf else "-----------------------------"))
+        self.printText("ID   pT  eta  phi%s"%("   EMF  fHPD  fRBX N90 corr     csv" if not isPf else "   CHF  NHF  CEF  NEF CM corr     csv"))
+        self.printText("-----------------%s"%("-----------------------------------" if not isPf else "-------------------------------------"))
 
         nJets = p4Vector.size()
         for iJet in range(nJets) :
@@ -287,9 +288,9 @@ class displayer(supy.steps.displayer) :
             outString+="%5.0f %4.1f %4.1f"%(jet.pt(), jet.eta(), jet.phi())
 
             if not isPf :
-                outString+=" %5.2f %5.2f %5.2f %3d %4.2f"%(jetEmfVector.at(iJet), jetFHpdVector.at(iJet), jetFRbxVector.at(iJet), jetN90Vector.at(iJet), corrVector.at(iJet))
+                outString+=" %5.2f %5.2f %5.2f %3d %4.2f %7.3f"%(jetEmfVector.at(iJet), jetFHpdVector.at(iJet), jetFRbxVector.at(iJet), jetN90Vector.at(iJet), corrVector.at(iJet), csv.at(iJet))
             else :
-                outString+=" %5.3f %4.2f %4.2f %4.2f%3d %4.2f"%(chf.at(iJet), nhf.at(iJet), cef.at(iJet), nef.at(iJet), cm.at(iJet), corrVector.at(iJet))
+                outString+=" %5.3f %4.2f %4.2f %4.2f%3d %4.2f %7.3f"%(chf.at(iJet), nhf.at(iJet), cef.at(iJet), nef.at(iJet), cm.at(iJet), corrVector.at(iJet), csv.at(iJet))
             self.printText(outString)
 
     def printGenJets(self, eventVars, params, coords, nMax) :
@@ -909,13 +910,13 @@ class displayer(supy.steps.displayer) :
 
         if self.printExtraText :
             self.printVertices(eventVars, params = defaults, coords = {"x":x1, "y":yy}, nMax = 3)
-            self.printJets(    eventVars, params = defaults, coords = {"x":x0, "y":yy-7*s}, jets = self.jets, nMax = 7)
+            self.printJets(    eventVars, params = smaller, coords = {"x":x0, "y":yy-7*s}, jets = self.jets, nMax = 7)
 
             if self.doGenJets :
                 self.printGenJets(  eventVars, params = defaults, coords = {"x":x0,      "y":yy-18*s}, nMax = 7)
                 self.printGenParticles(eventVars,params=defaults, coords = {"x":x0+0.40, "y":yy-18*s}, nMax = 7)
             if self.jetsOtherAlgo :
-                self.printJets(     eventVars, params = defaults, coords = {"x":x0,      "y":yy-18*s}, jets = self.jetsOtherAlgo, nMax = 7)
+                self.printJets(     eventVars, params = smaller, coords = {"x":x0,      "y":yy-18*s}, jets = self.jetsOtherAlgo, nMax = 7)
             if self.photons :
                 self.printPhotons(  eventVars, params = defaults, coords = {"x":x0,      "y":yy-40*s}, photons = self.photons, nMax = 3)
             if self.electrons :
