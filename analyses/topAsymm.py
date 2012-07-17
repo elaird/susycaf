@@ -35,13 +35,13 @@ class topAsymm(supy.analysis) :
             }
 
         leptons = {
-            'name'     : [                  'muon',              'electron'],
-            'ptMin'    : [                   20.0 ,                   30.0 ],
-            'etaMax'   : [                    2.1 ,                    9.0 ],
-            'iso'      : [   'CombinedRelativeIso',           'IsoCombined'],
-            'triggers' : [       self.mutriggers(),                   None ],
-            'isoNormal': [             {"max":0.10},            {'max':0.07}],#0.06 for endcap electron !!!!!
-            'isoInvert': [ {"min":0.15, "max":0.55}, {'min':0.07, 'max':.55}] #check inverted iso max for electron
+            'name'     : [                  'muon',                'electron'],
+            'ptMin'    : [                   20.0 ,                     30.0 ],
+            'etaMax'   : [                    2.1 ,                      2.5 ],
+            'iso'      : [    'CombinedRelativeIso',    'IsoCombinedAdjusted'],
+            'triggers' : [       self.mutriggers(),         self.eltriggers()],
+            'isoNormal': [             {"max":0.10},             {'max':0.09}],
+            'isoInvert': [ {"min":0.15, "max":0.55}, {'min':0.14, 'max':0.55}]
             }
 
         #btag working points: https://twiki.cern.ch/twiki/bin/viewauth/CMS/BTagPerformanceOP
@@ -55,7 +55,7 @@ class topAsymm(supy.analysis) :
                  "unreliable": self.unreliableTriggers(),
                  "bVar" : "CSV", # "Combined Secondary Vertex"
                  "objects": self.vary([ ( objects['label'][index], dict((key,val[index]) for key,val in objects.iteritems())) for index in range(2) if objects['label'][index] in ['pf']]),
-                 "lepton" : self.vary([ ( leptons['name'][index], dict((key,val[index]) for key,val in leptons.iteritems())) for index in range(2) if leptons['name'][index] in ['muon','electron'][:1]]),
+                 "lepton" : self.vary([ ( leptons['name'][index], dict((key,val[index]) for key,val in leptons.iteritems())) for index in range(2) if leptons['name'][index] in ['muon','electron'][:2]]),
                  "reweights" : self.vary([ ( reweights['label'][index], dict((key,val[index]) for key,val in reweights.iteritems())) for index in range(3) if reweights['label'][index] in ['pu']]),
                  "selection" : self.vary({"top" : {"bCut":bCut["normal"],  "iso":"isoNormal"},
                                           "QCD" : {"bCut":bCut["normal"],  "iso":"isoInvert"}
@@ -98,20 +98,22 @@ class topAsymm(supy.analysis) :
 
     @staticmethod
     def eltriggers() :
-        return ["HLT_Ele25_CaloIdVT_TrkIdT_CentralTriJet30",
-                "HLT_Ele25_CaloIdVT_TrkIdT_TriCentralJet30",
-                "HLT_Ele25_CaloIdVT_CaloIsoT_TrkIdT_TrkIsoT_TriCentralJet30",
-                "HLT_Ele25_CaloIdVT_CaloIsoT_TrkIdT_TrkIsoT_TriCentralPFJet30"]
+        return zip(["%s_v%d"%(s,i) for s in
+                    ["HLT_Ele25_CaloIdVT_TrkIdT_CentralTriJet30",
+                     "HLT_Ele25_CaloIdVT_TrkIdT_TriCentralJet30",
+                     "HLT_Ele25_CaloIdVT_CaloIsoT_TrkIdT_TrkIsoT_TriCentralPFJet30",
+                     "HLT_Ele25_CaloIdVT_CaloIsoT_TrkIdT_TrkIsoT_TriCentralJet30"]
+                    for i in range(20) ], 20*4*[25])
 
     ########################################################################################
 
-    def listOfSampleDictionaries(self) : return [getattr(samples,item) for item in ['muon16', 'top16', 'ewk16', 'qcd16']]
+    def listOfSampleDictionaries(self) : return [getattr(samples,item) for item in ['muon16', 'electron16', 'top16', 'ewk16', 'qcd16']]
 
     def data(self,pars) :
         return { "muon" : supy.samples.specify( names = ['SingleMu.2011A',
                                                          'SingleMu.2011B'], weights = 'tw'),
-                 "electron" : supy.samples.specify( names = ['SingleEl.2011A',
-                                                             'SingleEl.2011B'], weights = 'tw')
+                 "electron" : supy.samples.specify( names = ['EleHad.2011A',
+                                                             'EleHad.2011B'], weights = 'tw')
                  }[pars['lepton']['name']]
 
     @staticmethod
@@ -120,8 +122,10 @@ class topAsymm(supy.analysis) :
 
     def listOfSamples(self,pars) :
         rw = pars['reweights']['abbr']
+        lname = pars['lepton']["name"]
 
         def qcd_py6_mu(eL = None) :
+            if lname == "electron" : return []
             return supy.samples.specify( names = ["qcd_mu_15_20",
                                                   "qcd_mu_20_30",
                                                   "qcd_mu_30_50",
@@ -129,14 +133,12 @@ class topAsymm(supy.analysis) :
                                                   "qcd_mu_80_120",
                                                   "qcd_mu_120_150",
                                                   "qcd_mu_150"],  weights = ['tw',rw], effectiveLumi = eL )     if 'Wlv' not in pars['tag'] else []
-        def qcd_mg(eL = None) :
-            return supy.samples.specify( names = ["qcd_mg_ht_50_100",
-                                                  "qcd_mg_ht_100_250",
-                                                  "qcd_mg_ht_250_500",
-                                                  "qcd_mg_ht_500_1000",
-                                                  "qcd_mg_ht_1000_inf"],  weights = ['tw',rw], effectiveLumi = eL )     if 'Wlv' not in pars['tag'] else []
         def ewk(eL = None) :
-            return supy.samples.specify( names = ["wj_lv_mg","dyj_ll_mg"], effectiveLumi = eL, color = 28, weights = ['tw',rw] ) if "QCD" not in pars['tag'] else []
+            return supy.samples.specify( names = [#"wj_lv_mg",
+                                                  "dyj_ll_mg",
+                                                  "w2j_mg",
+                                                  "w3j_mg",
+                                                  "w4j_mg"], effectiveLumi = eL, color = 28, weights = ['tw',rw] ) if "QCD" not in pars['tag'] else []
 
         def single_top(eL = None) :
             return supy.samples.specify( names = self.single_top(),
@@ -156,7 +158,7 @@ class topAsymm(supy.analysis) :
                                              ]], [])
                     )[: 2 if "QCD" in pars['tag'] else 2 if 'Wlv' in pars['tag'] else None]
         
-        return  ( self.data(pars) + qcd_py6_mu() + ewk() + ttbar_mg(5e4) + single_top() )
+        return  ( self.data(pars) + qcd_py6_mu() + ewk() + ttbar_mg(8e4) + single_top() )
 
 
     ########################################################################################
@@ -169,9 +171,19 @@ class topAsymm(supy.analysis) :
         calcs += supy.calculables.fromCollections(calculables.top,[('genTop',""),('fitTop',"")])
         calcs += [
             calculables.jet.IndicesBtagged(obj["jet"],pars["bVar"]),
+
             calculables.jet.Indices(       obj["jet"],      ptMin = 20, etaMax = 3.1, flagName = "JetIDloose"),
-            calculables.electron.Indices(  obj["electron"], ptMin = 10, simpleEleID = "80", useCombinedIso = True),
-            calculables.muon.Indices(      obj["muon"],     ptMin = 10, combinedRelIsoMax = 0.25, ID = "ID_TOPPAG"),
+            calculables.jet.Indices(       obj["jet"],      ptMin = 25, etaMax = 2.4, flagName = "JetIDloose", extraName = "triggering"),
+
+            calculables.electron.Indices_TopPAG(  obj["electron"], ptMin = 30, absEtaMax = 2.5, id = "ID70"),
+            calculables.muon.Indices(             obj["muon"],     ptMin = 20, absEtaMax = 2.1, ID = "ID_TOPPAG",
+
+                                                  combinedRelIsoMax = 0.25, ISO = "CombinedRelativeIso"), #these two are kind of irrelevant, since we use IndicesAnyIsoIsoOrder
+
+            calculables.electron.IndicesIsoLoose( obj["electron"], ptMin = 15, absEtaMax = 2.5, iso = "IsoCombinedAdjusted", isoMax = 0.15),
+            calculables.muon.IndicesIsoLoose( obj["muon"], ptMin = 10, absEtaMax = 2.5, iso = "CombinedRelativeIso", isoMax = 0.20 ),
+
+            calculables.electron.IsoCombinedAdjusted(obj["electron"], barrelCIso = 0.09, endcapCIso = 0.06 ), # VBTF 0.85
             calculables.muon.IndicesTriggering(lepton),
             calculables.muon.IndicesAnyIsoIsoOrder(lepton, pars["lepton"]["iso"]),
             calculables.muon.MinJetDR(lepton, obj["jet"], jetPtMin = 30),
@@ -191,6 +203,8 @@ class topAsymm(supy.analysis) :
             calculables.top.IndicesGenTopPQHL( obj['jet'] ),
             calculables.top.IndicesGenTopExtra (obj['jet'] ),
             calculables.top.genTopRecoIndex(),
+            calculables.top.TopReconstruction(),
+            calculables.top.TTbarSignExpectation(nSamples = 16, qDirFunc = "qDirExpectation_EtaSum"),
 
             calculables.other.Mt( lepton, "mixedSumP4", allowNonIso = True, isSumP4 = True),
             calculables.other.Covariance(('met','PF')),
@@ -205,14 +219,17 @@ class topAsymm(supy.analysis) :
             supy.calculables.other.abbreviation( "TrkCountingHighEffBJetTags", "TCHE", fixes = calculables.jet.xcStrip(obj['jet']) ),
             supy.calculables.other.abbreviation( "CombinedSecondaryVertexBJetTags", "CSV", fixes = calculables.jet.xcStrip(obj['jet']) ),
             supy.calculables.other.abbreviation( pars['reweights']['var'], pars['reweights']['abbr'] ),
-            supy.calculables.other.abbreviation( 'muonTriggerWeightPF', 'tw' ),
+            supy.calculables.other.abbreviation( {'muon':'muonTriggerWeightPF','electron':"CrossTriggerWeight"}[pars['lepton']['name']], 'tw' ),
+            supy.calculables.other.abbreviation( "xcak5JetPFCorrectedP4Pat","xcak5JetPFCorrectedP4Pattriggering"),
             ]
         return calcs
     ########################################################################################
 
     def listOfSteps(self, pars) :
         obj = pars["objects"]
-        lepton = obj[pars["lepton"]["name"]]
+        lname = pars["lepton"]["name"]
+        lepton = obj[lname]
+        otherLepton = obj[{'electron':'muon','muon':'electron'}[lname]]
         lPtMin = pars["lepton"]["ptMin"]
         lIndices = 'IndicesAnyIsoIsoOrder'.join(lepton)
         lIso = pars['lepton']['iso'].join(lepton)
@@ -245,33 +262,32 @@ class topAsymm(supy.analysis) :
              , ssteps.histos.value(obj["sumPt"],50,0,1500)
              , ssteps.histos.value("rho",100,0,40)
 
-             , ssteps.filters.label('trigger reweighting')
-             , self.triggerWeight(pars, [ss.weightedName for ss in self.data(pars)])
+             , ssteps.filters.label('trigger reweighting'),
+             self.triggerWeight(pars, [ss.weightedName for ss in self.data(pars)])
              , steps.trigger.lowestUnPrescaledTriggerHistogrammer().onlyData()
              
              ####################################
              , ssteps.filters.label('selection'),
-             ssteps.histos.value( lIso, 100, 0, 1, indices = lIndices, index = 1),
-             ssteps.filters.multiplicity( max=1, var = "Indices".join(lepton) ),
-             ssteps.filters.multiplicity( max=0, var = "Indices".join(obj['electron' if pars['lepton']['name']=='muon' else 'muon'])),
-             ssteps.filters.multiplicity( max=0, var = "IndicesOther".join(obj['muon']))
+
+             ssteps.filters.multiplicity( min=1, var = "IndicesAnyIso".join(lepton) )
+             , ssteps.histos.multiplicity("Indices".join(obj["jet"])),
+             ssteps.filters.multiplicity("Indices".join(obj["jet"]), **pars["nJets"])
              
+             , ssteps.histos.value( lIso, 100, 0, 1, indices = "IndicesIsoLoose".join(lepton), index = 1),
+             ssteps.filters.multiplicity( max=1, var = "IndicesIsoLoose".join(lepton) ),
+             ssteps.filters.multiplicity( max=0, var = "IndicesIsoLoose".join(otherLepton) )
+             
+             , ssteps.histos.absEta("P4".join(lepton), 100,0,4, indices = lIndices, index = 0)
+             , ssteps.histos.pt("P4".join(lepton), 200,0,200, indices = lIndices, index = 0)
+             , ssteps.histos.value("MinJetDR".join(lepton), 100,0,2, indices = lIndices, index = 0),
+             ssteps.filters.value("MinJetDR".join(lepton), min = 0.3, indices = lIndices, index = 0)
+ 
              , ssteps.histos.pt("mixedSumP4",100,0,300),
              ssteps.filters.value('ecalDeadCellTPFilterFlag',min=1),
              steps.jet.failedJetVeto( obj["jet"], ptMin = 20, id = "PFJetIDloose"),
              steps.jet.forwardJetVeto( obj["jet"], ptMax = 50, etaMin = 3.1)
-             , ssteps.histos.pt("mixedSumP4",100,0,300),
-             ssteps.filters.pt("mixedSumP4",min=20)
-
-             , ssteps.histos.absEta("P4".join(lepton), 100,0,4, indices = lIndices, index = 0),
-             ssteps.filters.absEta("P4".join(lepton), max = pars['lepton']['etaMax'], indices = lIndices, index = 0)
-             , ssteps.histos.pt("P4".join(lepton), 200,0,200, indices = lIndices, index = 0),
-             ssteps.filters.pt("P4".join(lepton), min = lPtMin, indices = lIndices, index = 0)
-             , ssteps.histos.value("MinJetDR".join(lepton), 100,0,2, indices = lIndices, index = 0),
-             ssteps.filters.value("MinJetDR".join(lepton), min = 0.3, indices = lIndices, index = 0)
-
-             , ssteps.histos.multiplicity("Indices".join(obj["jet"])),
-             ssteps.filters.multiplicity("Indices".join(obj["jet"]), **pars["nJets"])
+             , ssteps.histos.pt("mixedSumP4",100,0,300)
+             #ssteps.filters.pt("mixedSumP4",min=20)
 
              , ssteps.histos.value( lIso, 55,0,1.1, indices = lIndices, index=0),
              ssteps.filters.value( lIso, indices = lIndices, index = 0, **lIsoMinMax)
@@ -281,35 +297,15 @@ class topAsymm(supy.analysis) :
              , ssteps.histos.value(bVar, 51,-0.02,1, indices = "IndicesBtagged".join(obj["jet"]), index = 0)
              , ssteps.histos.value(bVar, 51,-0.02,1, indices = "IndicesBtagged".join(obj["jet"]), index = 1)
              , ssteps.histos.value(bVar, 51,-0.02,1, indices = "IndicesBtagged".join(obj["jet"]), index = 2),
-             ssteps.filters.value(bVar, indices = "IndicesBtagged".join(obj["jet"]), index = 0, min = 0.0),
              ssteps.filters.value(bVar, indices = "IndicesBtagged".join(obj["jet"]), **pars["selection"]["bCut"])
              
-             , ssteps.histos.multiplicity("IndicesGenPileup".join(obj['jet'])).onlySim()
-             , ssteps.histos.value( 'vertexDzSeparation', 100,0,10)
-             , ssteps.histos.value( 'vertexTrackPurity',  100,0,1 )
-             , steps.top.pileupJets().onlySim()
              , ssteps.filters.label('top reco'),
              ssteps.filters.multiplicity("TopReconstruction",min=1)
              , ssteps.filters.label("selection complete")
 
              , steps.top.channelClassification().onlySim()
              , steps.top.combinatorialFrequency().onlySim()
-             , ssteps.filters.label('gen top kinfit ')
-             , steps.top.kinFitLook('genTopRecoIndex')
-             #, steps.top.kinematics('genTop')
-             , steps.top.resolutions('genTopRecoIndex')
-             , ssteps.filters.label('reco top kinfit ')
-             , steps.top.kinFitLook('fitTopRecoIndex')
-             , steps.top.kinematics('fitTop')
-             , steps.top.resolutions('fitTopRecoIndex')
-             ####################################
              #, steps.displayer.ttbar(jets=obj["jet"], met=obj['met'], muons = obj['muon'], electrons = obj['electron'])
-
-             , ssteps.histos.multiplicity("Indices".join(obj["jet"]))
-             , ssteps.histos.value("M3".join(obj['jet']), 20,0,800)
-             , ssteps.histos.pt("P4".join(lepton), 200,0,200, indices = lIndices, index = 0)
-             , ssteps.histos.absEta("P4".join(lepton), 100,0,4, indices = lIndices, index = 0)
-             
              ####################################
              , ssteps.filters.label('discriminants')
              , ssteps.histos.value("KarlsruheDiscriminant", 28, -320, 800 )
@@ -319,16 +315,46 @@ class topAsymm(supy.analysis) :
              , ssteps.filters.label('top:W'),   self.discriminantTopW(pars)
              , ssteps.filters.label('top:QCD'), self.discriminantTopQCD(pars)
              , ssteps.filters.label('W:QCD'),   self.discriminantWQCD(pars)
-             , calculables.gen.qDirProbPlus('fitTopSumP4Eta', 10, 'top_muon_pf_%s'%rw, 'ttj_mg.wTopAsymP00.tw.%s'%rw, path = self.globalStem)
+             , calculables.gen.qDirExpectation_('fitTopSumP4Eta', 8, 'top_muon_pf_%s'%rw, 'ttj_mg.wTopAsymP00.tw.%s'%rw)
+             , calculables.gen.qDirExpectation_SumRapidities('top_muon_pf_%s'%rw, 'ttj_mg.wTopAsymP00.tw.%s'%rw)
+             , calculables.gen.qDirExpectation_EtaSum('top_muon_pf_%s'%rw, 'ttj_mg.wTopAsymP00.tw.%s'%rw)
+             , calculables.gen.qDirExpectation_RapiditySum('top_muon_pf_%s'%rw, 'ttj_mg.wTopAsymP00.tw.%s'%rw)
+             ####################################
+             , ssteps.filters.label('gen top kinfit ')
+             , steps.top.kinFitLook('genTopRecoIndex')
+             #, steps.top.kinematics('genTop')
+             , steps.top.resolutions('genTopRecoIndex')
+             , ssteps.filters.label('reco top kinfit ')
+             , steps.top.kinFitLook('fitTopRecoIndex')
+             , steps.top.kinematics('fitTop')
+             , steps.top.resolutions('fitTopRecoIndex')
+             ####################################
 
+             , ssteps.histos.value("M3".join(obj['jet']), 20,0,800)
+             , ssteps.histos.multiplicity("Indices".join(obj["jet"]))
+             , ssteps.filters.label('object pt')
+             , ssteps.histos.pt("mixedSumP4",100,1,201)
+             , ssteps.histos.pt("P4".join(lepton), 100,1,201, indices = lIndices, index = 0)
+             , ssteps.histos.pt("CorrectedP4".join(obj['jet']), 100,1,201, indices = "Indices".join(obj['jet']), index = 0)
+             , ssteps.histos.pt("CorrectedP4".join(obj['jet']), 100,1,201, indices = "Indices".join(obj['jet']), index = 1)
+             , ssteps.histos.pt("CorrectedP4".join(obj['jet']), 100,1,201, indices = "Indices".join(obj['jet']), index = 2)
+             , ssteps.histos.pt("CorrectedP4".join(obj['jet']), 100,1,201, indices = "Indices".join(obj['jet']), index = 3)
+             , ssteps.filters.label('object eta')
+             , ssteps.histos.absEta("P4".join(lepton), 100,0,4, indices = lIndices, index = 0)
+             , ssteps.histos.absEta("CorrectedP4".join(obj['jet']), 100,0,4, indices = "Indices".join(obj['jet']), index = 0)
+             , ssteps.histos.absEta("CorrectedP4".join(obj['jet']), 100,0,4, indices = "Indices".join(obj['jet']), index = 1)
+             , ssteps.histos.absEta("CorrectedP4".join(obj['jet']), 100,0,4, indices = "Indices".join(obj['jet']), index = 2)
+             , ssteps.histos.absEta("CorrectedP4".join(obj['jet']), 100,0,4, indices = "Indices".join(obj['jet']), index = 3)
+             
              , ssteps.filters.label('extended jets')
              , ssteps.histos.value('FourJetPtThreshold'.join(obj['jet']), 50,0,100)
              , ssteps.histos.value('fitTopJetPtMin', 50,0,100)
              , ssteps.histos.value('FourJetAbsEtaThreshold'.join(obj['jet']), 40,0,4)
              , ssteps.histos.value('fitTopJetAbsEtaMax', 40,0,4)
              
-             , ssteps.filters.label('signal distributions'), steps.top.Asymmetry(('fitTop',''), bins = 64)#640)
-             , ssteps.filters.label('spin distributions'),    steps.top.Spin(('fitTop',''))
+             , ssteps.filters.label('signal distributions'), steps.top.Asymmetry(('fitTop',''), bins = 41)#640)
+             , ssteps.filters.label('spin distributions'),   steps.top.Spin(('fitTop',''))
+             , ssteps.filters.label('sign check'),           steps.top.signCheck()
 
              #steps.histos.value('fitTopSumP4Eta', 12, -6, 6),
              #steps.filters.absEta('fitTopSumP4', min = 1),
@@ -355,34 +381,44 @@ class topAsymm(supy.analysis) :
 
     @staticmethod
     def triggerWeight(pars,samples) :
-        return calculables.trigger.TriggerWeight( samples,
-                                                  unreliable = pars['unreliable'],
-                                                  **dict(zip(['triggers','thresholds'], zip(*pars['lepton']['triggers']))))
+        triggers,thresholds = zip(*pars['lepton']['triggers'])
+        jets = pars['objects']['jet']
+        return { 'electron' : calculables.trigger.CrossTriggerWeight( samples = samples,
+                                                                      triggers = triggers,
+                                                                      jets = (jets[0],jets[1]+'triggering')),
+                 'muon'     : calculables.trigger.TriggerWeight( samples,
+                                                                 unreliable = pars['unreliable'],
+                                                                 triggers = triggers,
+                                                                 thresholds = thresholds )
+                 }[pars['lepton']['name']]
     
     @classmethod
-    def pileup(cls,pars) : 
+    def pileup(cls,pars) :
         rw = pars['reweights']['abbr']
         return supy.calculables.other.Target("pileupTrueNumInteractionsBX0", thisSample = pars['baseSample'],
                                              target = ("data/pileup_true_Cert_160404-180252_7TeV_ReRecoNov08_Collisions11_JSON.root","pileup"),
                                              groups = [('qcd_mu',[]),('wj_lv_mg',[]),('dyj_ll_mg',[]),
+                                                       ("w2j_mg",[]),("w3j_mg",[]),("w4j_mg",[]),
                                                        ('single_top', ['%s.tw.%s'%(s,rw) for s in cls.single_top()]),
                                                        ('ttj_mg',['ttj_mg%s.tw.%s'%(s,rw) for s in ['',
                                                                                                     '.wNonQQbar',
                                                                                                     '.wTopAsymP00']])]).onlySim()
     @classmethod
-    def ratio_vertices(cls,pars) : 
+    def ratio_vertices(cls,pars) :
         rw = pars['reweights']['abbr']
         return supy.calculables.other.Ratio("nVertex", binning = (20,-0.5,19.5), thisSample = pars['baseSample'],
                                             target = ("SingleMu",[]), groups = [('qcd_mu',[]),('wj_lv_mg',[]),('dyj_ll_mg',[]),
+                                                                                ("w2j_mg",[]),("w3j_mg",[]),("w4j_mg",[]),
                                                                                 ('single_top', ['%s.tw.%s'%(s,rw) for s in cls.single_top()]),
                                                                                 ('ttj_mg',['ttj_mg%s.tw.'%(s,rw) for s in ['',
                                                                                                                            '.wNonQQbar',
                                                                                                                            '.wTopAsymP00']])])
     @classmethod
-    def ratio_rho(cls,pars) : 
+    def ratio_rho(cls,pars) :
         rw = pars['reweights']['abbr']
         return supy.calculables.other.Ratio("rho", binning = (90,0,30), thisSample = pars['baseSample'],
                                             target = ("SingleMu",[]), groups = [('qcd_mu',[]),('wj_lv_mg',[]),('dyj_ll_mg',[]),
+                                                                                ("w2j_mg",[]),("w3j_mg",[]),("w4j_mg",[]),
                                                                                 ('single_top', ['%s.tw.s'%(s,rw) for s in cls.single_top()]),
                                                                                 ('ttj_mg',['ttj_mg%s.tw.%s'%(s,rw) for s in ['',
                                                                                                                              '.wNonQQbar',
@@ -390,9 +426,10 @@ class topAsymm(supy.analysis) :
     @staticmethod
     def discriminantQQgg(pars) :
         rw = pars['reweights']['abbr']
+        lname = pars['lepton']['name']
         return supy.calculables.other.Discriminant( fixes = ("","QQgg"),
-                                                    left = {"pre":"gg", "tag":"top_muon_pf_%s"%rw, "samples":['ttj_mg.wNonQQbar.tw.%s'%rw]},
-                                                    right = {"pre":"qq", "tag":"top_muon_pf_%s"%rw, "samples":['ttj_mg.wTopAsymP00.tw.%s'%rw]},
+                                                    left = {"pre":"gg", "tag":"top_%s_pf_%s"%(lname,rw), "samples":['ttj_mg.wNonQQbar.tw.%s'%rw]},
+                                                    right = {"pre":"qq", "tag":"top_%s_pf_%s"%(lname,rw), "samples":['ttj_mg.wTopAsymP00.tw.%s'%rw]},
                                                     dists = {"M3".join(pars["objects"]['jet']) : (20,0,600), # 0.047
                                                              "fitTopNtracksExtra" : (20,0,160),             
                                                              "tracksCountwithPrimaryHighPurityTracks" :  (20,0,250),               # 0.049
@@ -408,9 +445,10 @@ class topAsymm(supy.analysis) :
     def discriminantQQgg4Jet(pars) :
         rw = pars['reweights']['abbr']
         obj = pars['objects']
+        lname = pars['lepton']['name']
         return supy.calculables.other.Discriminant( fixes = ("","QQgg4Jet"),
-                                                    left = {"pre":"gg", "tag":"top_muon_pf_%s"%rw, "samples":['ttj_mg.wNonQQbar.tw.%s'%rw]},
-                                                    right = {"pre":"qq", "tag":"top_muon_pf_%s"%rw, "samples":['ttj_mg.wTopAsymP00.tw.%s'%rw]},
+                                                    left = {"pre":"gg", "tag":"top_%s_pf_%s"%(lname,rw), "samples":['ttj_mg.wNonQQbar.tw.%s'%rw]},
+                                                    right = {"pre":"qq", "tag":"top_%s_pf_%s"%(lname,rw), "samples":['ttj_mg.wTopAsymP00.tw.%s'%rw]},
                                                     dists = {'FourJetPtThreshold'.join(obj['jet']) : (25,0,100),
                                                              'FourJetAbsEtaThreshold'.join(obj['jet']) : (20,0,4),
                                                              },
@@ -419,9 +457,10 @@ class topAsymm(supy.analysis) :
     @staticmethod
     def discriminantTopW(pars) :
         rw = pars['reweights']['abbr']
+        lname = pars['lepton']['name']
         return supy.calculables.other.Discriminant( fixes = ("","TopW"),
-                                                    left = {"pre":"wj_lv_mg", "tag":"top_muon_pf_%s"%rw, "samples":[]},
-                                                    right = {"pre":"ttj_mg", "tag":"top_muon_pf_%s"%rw, "samples": ['ttj_mg.%s.tw.%s'%(s,rw) for s in ['wNonQQbar','wTopAsymP00']]},
+                                                    left = {"pre":"wj", "tag":"top_%s_pf_%s"%(lname,rw), "samples":['w%dj_mg.tw.%s'%(n,rw) for n in [2,3,4]]},
+                                                    right = {"pre":"ttj_mg", "tag":"top_%s_pf_%s"%(lname,rw), "samples": ['ttj_mg.%s.tw.%s'%(s,rw) for s in ['wNonQQbar','wTopAsymP00']]},
                                                     correlations = pars['discriminant2DPlots'],
                                                     dists = {"TopRatherThanWProbability" : (20,0.5,1),          # 0.185
                                                              "B0pt".join(pars['objects']["jet"]) : (20,0,200),  # 0.128
@@ -434,27 +473,33 @@ class topAsymm(supy.analysis) :
     @staticmethod
     def discriminantTopQCD(pars) :
         rw = pars['reweights']['abbr']
+        lname = pars['lepton']['name']
         tops = ['ttj_mg.%s.tw.%s'%(s,rw) for s in ['wNonQQbar','wTopAsymP00']]
-        lumi = 5008
+        datas = {"muon" : ["SingleMu.2011A.tw","SingltMu.2011B.tw"],
+                 "electron": ["EleHad.2011A.tw","EleHad.2011B.tw"]}[lname]
+        lumi = 5008 # FIXME HACK !!!
         return supy.calculables.other.Discriminant( fixes = ("","TopQCD"),
-                                                    left = {"pre":"Multijet", "tag":"QCD_muon_pf_%s"%rw, "samples":["SingleMu.2011A.tw","SingleMu.2011B.tw"]+tops, 'sf':[1,1,-lumi,-lumi]},
-                                                    right = {"pre":"ttj_mg", "tag":"top_muon_pf_%s"%rw, "samples": tops},
+                                                    left = {"pre":"Multijet", "tag":"QCD_%s_pf_%s"%(lname,rw), "samples":datas+tops, 'sf':[1,1,-lumi,-lumi]},
+                                                    right = {"pre":"ttj_mg", "tag":"top_%s_pf_%s"%(lname,rw), "samples": tops},
                                                     correlations = pars['discriminant2DPlots'],
-                                                    dists = {"Mt".join(pars['objects']['muon'])+"mixedSumP4" : (30,0,180), # 0.329
-                                                             "Kt".join(pars['objects']["jet"]) : (24,0,120),               # 0.079
+                                                    dists = {"Mt".join(pars['objects'][lname])+"mixedSumP4" : (10,0,100), # 0.329
+                                                             "Kt".join(pars['objects']["jet"]) : (12,0,120),              # 0.079
                                                              #"B0pt".join(pars['objects']["jet"]) : (30,0,300),
                                                              })
     @staticmethod
     def discriminantWQCD(pars) :
         rw = pars['reweights']['abbr']
+        lname = pars['lepton']['name']
         tops = ['ttj_mg.%s.tw.%s'%(s,rw) for s in ['wNonQQbar','wTopAsymP00']]
-        lumi = 5008
+        datas = {"muon" : ["SingleMu.2011A.tw","SingltMu.2011B.tw"],
+                 "electron": ["EleHad.2011A.tw","EleHad.2011B.tw"]}[lname]
+        lumi = 5008 # FIXME HACK !!!
         return supy.calculables.other.Discriminant( fixes = ("","WQCD"),
-                                                    left = {"pre":"wj_lv_mg", "tag":"top_muon_pf_%s"%rw, "samples":[]},
-                                                    right = {"pre":"Multijet", "tag":"QCD_muon_pf_%s"%rw, "samples":["SingleMu.2011A.tw","SingleMu.2011B.tw"]+tops, 'sf':[1,1,-lumi,-lumi]},
+                                                    left = {"pre":"wj", "tag":"top_%s_pf_%s"%(lname,rw), "samples":['w%dj_mg.tw.%s'%(n,rw) for n in [2,3,4]]},
+                                                    right = {"pre":"Multijet", "tag":"QCD_%s_pf_%s"%(lname,rw), "samples":datas+tops, 'sf':[1,1,-lumi,-lumi]},
                                                     correlations = pars['discriminant2DPlots'],
-                                                    dists = {"Mt".join(pars['objects']['muon'])+"mixedSumP4" : (30,0,180), # 0.395
-                                                             "B0pt".join(pars['objects']["jet"]) : (30,0,300),             # 0.122
+                                                    dists = {"Mt".join(pars['objects'][lname])+"mixedSumP4" : (10,0,100), # 0.395
+                                                             "B0pt".join(pars['objects']["jet"]) : (10,0,200),            # 0.122
                                                              })
     
     ########################################################################################
@@ -463,25 +508,27 @@ class topAsymm(supy.analysis) :
         super(topAsymm,self).concludeAll()
         #self.meldWpartitions()
         #self.meldQCDpartitions()
-        for rw in set([pars['reweights']['abbr'] for pars in self.readyConfs]) :
-            self.meldScale(rw)
-            self.plotMeldScale(rw)
-        #self.ensembleTest()
-        self.PEcurves()
+        for rw,lname in set([(pars['reweights']['abbr'],pars['lepton']['name']) for pars in self.readyConfs]) :
+            self.meldScale(rw,lname)
+            self.plotMeldScale(rw,lname)
+            #self.ensembleTest(rw,lname)
+        #self.PEcurves()
 
     def conclude(self,pars) :
         rw = pars['reweights']['abbr']
         org = self.organizer(pars, verbose = True )
         org.mergeSamples(targetSpec = {"name":"SingleMu.2011", "color":r.kBlack, "markerStyle":20}, allWithPrefix="SingleMu")
+        org.mergeSamples(targetSpec = {"name":"EleHad.2011", "color":r.kBlack, "markerStyle":20}, allWithPrefix="EleHad")
         org.mergeSamples(targetSpec = {"name":"multijet", "color":r.kBlue}, allWithPrefix="qcd_mu")
         org.mergeSamples(targetSpec = {"name":"t#bar{t}", "color":r.kViolet}, sources=["ttj_mg.wNonQQbar.tw.%s"%rw,"ttj_mg.wTopAsymP00.tw.%s"%rw], keepSources = True)
-        #org.mergeSamples(targetSpec = {"name":"t#bar{t}.q#bar{q}.N30", "color":r.kRed}, sources = ["ttj_mg.wTopAsymN30.tw.%s"%rw,"ttj_mg.wNonQQbar.tw.%s"%rw][:1])
-        #org.mergeSamples(targetSpec = {"name":"t#bar{t}.q#bar{q}.P30", "color":r.kGreen}, sources = ["ttj_mg.wTopAsymP30.tw.%s"%rw,"ttj_mg.wNonQQbar.tw.%s"%rw][:1])
-        org.mergeSamples(targetSpec = {"name":"W+jets", "color":28}, allWithPrefix="wj_lv_mg", keepSources = False )
-        org.mergeSamples(targetSpec = {"name":"DY+jets", "color":r.kYellow}, allWithPrefix="dyj_ll_mg", keepSources = False )
-        org.mergeSamples(targetSpec = {"name":"Single top", "color":r.kGray}, sources = ["%s.tw.%s"%(s,rw) for s in self.single_top()], keepSources = False )
+        org.mergeSamples(targetSpec = {"name":"t#bar{t}.q#bar{q}.N30", "color":r.kRed}, sources = ["ttj_mg.wTopAsymN30.tw.%s"%rw,"ttj_mg.wNonQQbar.tw.%s"%rw][:1])
+        org.mergeSamples(targetSpec = {"name":"t#bar{t}.q#bar{q}.P30", "color":r.kGreen}, sources = ["ttj_mg.wTopAsymP30.tw.%s"%rw,"ttj_mg.wNonQQbar.tw.%s"%rw][:1])
+        #org.mergeSamples(targetSpec = {"name":"W+jets", "color":28}, allWithPrefix="wj_lv_mg")
+        org.mergeSamples(targetSpec = {"name":"W+jets", "color":28}, sources = ["w%dj_mg.tw.%s"%(n,rw) for n in [2,3,4]])
+        org.mergeSamples(targetSpec = {"name":"DY+jets", "color":r.kYellow}, allWithPrefix="dyj_ll_mg")
+        org.mergeSamples(targetSpec = {"name":"Single top", "color":r.kGray}, sources = ["%s.tw.%s"%(s,rw) for s in self.single_top()])
         org.mergeSamples(targetSpec = {"name":"Standard Model", "color":r.kGreen+2}, sources = ["multijet","t#bar{t}","W+jets","DY+jets","Single top"], keepSources = True)
-        for ss in filter(lambda ss: 'ttj_mg' in ss['name'],org.samples) : org.drop(ss['name'])
+        #for ss in filter(lambda ss: 'ttj_mg' in ss['name'],org.samples) : org.drop(ss['name'])
 
         orgpdf = copy.deepcopy(org)
         orgpdf.scale( toPdf = True )
@@ -490,7 +537,8 @@ class topAsymm(supy.analysis) :
         names = [ss["name"] for ss in org.samples]
         kwargs = {"detailedCalculables": False,
                   "blackList":["lumiHisto","xsHisto","nJobsHisto"],
-                  "samplesForRatios" : next(iter(filter(lambda x: x[0] in names and x[1] in names, [("SingleMu.2011","Standard Model")])), ("","")),
+                  "samplesForRatios" : next(iter(filter(lambda x: x[0] in names and x[1] in names, [("SingleMu.2011","Standard Model"),
+                                                                                                    ("EleHad.2011","Standard Model")])), ("","")),
                   "sampleLabelsForRatios" : ("data","s.m."),
                   "detailedCalculables" : True,
                   "rowColors" : self.rowcolors,
@@ -506,82 +554,94 @@ class topAsymm(supy.analysis) :
                        "dependence2D" : True})
         supy.plotter(orgpdf, pdfFileName = self.pdfFileName(org.tag+"_pdf"), doLog = False, **kwargs ).plotAll()
 
-    def meldWpartitions(self,pars) :
-        rw = pars['reweights']['abbr']
-        samples = {"top_muon_pf_%s"%rw : ["w_"],
-                   "Wlv_muon_pf_%s"%rw : ["w_","SingleMu"],
-                   "QCD_muon_pf_%s"%rw : []}
-        organizers = [supy.organizer(tag, [s for s in self.sampleSpecs(tag) if any(item in s['name'] for item in samples[tag])])
-                      for tag in [p['tag'] for p in self.readyConfs]]
-        if len(organizers)<2 : return
-        for org in organizers :
-            org.mergeSamples(targetSpec = {"name":"Data 2011", "color":r.kBlack, "markerStyle":20}, allWithPrefix="SingleMu")
-            org.mergeSamples(targetSpec = {"name":"w_mg", "color":r.kRed if "Wlv" in org.tag else r.kBlue, "markerStyle": 22}, sources = ["wj_lv_mg.tw.%s"%rw])
-            org.scale(toPdf=True)
-
-        melded = supy.organizer.meld("wpartitions",filter(lambda o: o.samples, organizers))
-        pl = supy.plotter(melded,
-                          pdfFileName = self.pdfFileName(melded.tag),
-                          doLog = False,
-                          blackList = ["lumiHisto","xsHisto","nJobsHisto"],
-                          rowColors = self.rowcolors,
-                          rowCycle = 100,
-                          omit2D = True,
-                          ).plotAll()
+    #def meldWpartitions(self,pars) :
+    #    rw = pars['reweights']['abbr']
+    #    samples = {"top_muon_pf_%s"%rw : ["w_"],
+    #               "Wlv_muon_pf_%s"%rw : ["w_","SingleMu"],
+    #               "QCD_muon_pf_%s"%rw : []}
+    #    organizers = [supy.organizer(tag, [s for s in self.sampleSpecs(tag) if any(item in s['name'] for item in samples[tag])])
+    #                  for tag in [p['tag'] for p in self.readyConfs]]
+    #    if len(organizers)<2 : return
+    #    for org in organizers :
+    #        org.mergeSamples(targetSpec = {"name":"Data 2011", "color":r.kBlack, "markerStyle":20}, allWithPrefix="SingleMu")
+    #        org.mergeSamples(targetSpec = {"name":"w_mg", "color":r.kRed if "Wlv" in org.tag else r.kBlue, "markerStyle": 22}, sources = ["wj_lv_mg.tw.%s"%rw])
+    #        org.scale(toPdf=True)
+    #
+    #    melded = supy.organizer.meld("wpartitions",filter(lambda o: o.samples, organizers))
+    #    pl = supy.plotter(melded,
+    #                      pdfFileName = self.pdfFileName(melded.tag),
+    #                      doLog = False,
+    #                      blackList = ["lumiHisto","xsHisto","nJobsHisto"],
+    #                      rowColors = self.rowcolors,
+    #                      rowCycle = 100,
+    #                      omit2D = True,
+    #                      ).plotAll()
+    #    
+    #def meldQCDpartitions(self) :
+    #    samples = {"top_muon_pf_%s"%rw : ["qcd_mu"],
+    #               "Wlv_muon_pf_%s"%rw : [],
+    #               "QCD_muon_pf_%s"%rw : ["qcd_mu","SingleMu"]}
+    #    organizers = [supy.organizer(tag, [s for s in self.sampleSpecs(tag) if any(item in s['name'] for item in samples[tag])])
+    #                  for tag in [p['tag'] for p in self.readyConfs]]
+    #    if len(organizers)<2 : return
+    #    for org in organizers :
+    #        org.mergeSamples(targetSpec = {"name":"Data 2011", "color":r.kBlack, "markerStyle":20}, allWithPrefix="SingleMu")
+    #        org.mergeSamples(targetSpec = {"name":"qcd_mu", "color":r.kRed if "QCD" in org.tag else r.kBlue, "markerStyle": 22}, allWithPrefix="qcd_mu")
+    #        org.scale(toPdf=True)
+    #
+    #    melded = supy.organizer.meld("qcdPartitions",filter(lambda o: o.samples, organizers))
+    #    pl = supy.plotter(melded,
+    #                      pdfFileName = self.pdfFileName(melded.tag),
+    #                      doLog = False,
+    #                      blackList = ["lumiHisto","xsHisto","nJobsHisto"],
+    #                      rowColors = self.rowcolors,
+    #                      rowCycle = 100,
+    #                      omit2D = True,
+    #                      ).plotAll()
         
-    def meldQCDpartitions(self) :
-        samples = {"top_muon_pf_%s"%rw : ["qcd_mu"],
-                   "Wlv_muon_pf_%s"%rw : [],
-                   "QCD_muon_pf_%s"%rw : ["qcd_mu","SingleMu"]}
-        organizers = [supy.organizer(tag, [s for s in self.sampleSpecs(tag) if any(item in s['name'] for item in samples[tag])])
-                      for tag in [p['tag'] for p in self.readyConfs]]
-        if len(organizers)<2 : return
-        for org in organizers :
-            org.mergeSamples(targetSpec = {"name":"Data 2011", "color":r.kBlack, "markerStyle":20}, allWithPrefix="SingleMu")
-            org.mergeSamples(targetSpec = {"name":"qcd_mu", "color":r.kRed if "QCD" in org.tag else r.kBlue, "markerStyle": 22}, allWithPrefix="qcd_mu")
-            org.scale(toPdf=True)
-
-        melded = supy.organizer.meld("qcdPartitions",filter(lambda o: o.samples, organizers))
-        pl = supy.plotter(melded,
-                          pdfFileName = self.pdfFileName(melded.tag),
-                          doLog = False,
-                          blackList = ["lumiHisto","xsHisto","nJobsHisto"],
-                          rowColors = self.rowcolors,
-                          rowCycle = 100,
-                          omit2D = True,
-                          ).plotAll()
-        
-    def plotMeldScale(self, rw) :
+    def plotMeldScale(self, rw, lname) :
         if not hasattr(self,"orgMelded") : print "run meldScale() before plotMeldScale()"; return
         melded = copy.deepcopy(self.orgMelded)
         for ss in filter(lambda ss: 'ttj_mg' in ss['name'], melded.samples) : melded.drop(ss['name'])
-        pl = supy.plotter(melded, pdfFileName = self.pdfFileName(melded.tag),
-                          doLog = False,
-                          blackList = ["lumiHisto","xsHisto","nJobsHisto"],
-                          rowColors = self.rowcolors,
-                          samplesForRatios = ("top.Data 2011","S.M."),
-                          sampleLabelsForRatios = ('data','s.m.'),
-                          rowCycle = 100,
-                          omit2D = True,
-                          pageNumbers = False,
-                          ).plotAll()
+        for log,label in [(False,""),(True,"_log")] : 
+            pl = supy.plotter(melded, pdfFileName = self.pdfFileName(melded.tag + label),
+                              doLog = log,
+                              blackList = ["lumiHisto","xsHisto","nJobsHisto"],
+                              rowColors = self.rowcolors,
+                              samplesForRatios = ("top.Data 2011","S.M."),
+                              sampleLabelsForRatios = ('data','s.m.'),
+                              rowCycle = 100,
+                              omit2D = True,
+                              pageNumbers = False,
+                              ).plotAll()
         
-    def meldScale(self,rw) :
-        meldSamples = {"top_muon_pf_%s"%rw : ["SingleMu","ttj_mg","wj_lv_mg","dyj_ll_mg"]+self.single_top(),
-                       #"Wlv_muon_pf_%s"%rw : ["w_jets"],
-                       "QCD_muon_pf_%s"%rw : ["SingleMu","ttj_mg"]}
+    def meldScale(self,rw,lname) :
+        meldSamples = {"top_%s_pf_%s"%(lname,rw) : [{ 'muon':"SingleMu",
+                                                      'electron':'EleHad'}[lname],
+                                                    "ttj_mg",
+                                                    #"wj_lv_mg",
+                                                    "dyj_ll_mg"]+self.single_top()+["w%dj_mg"%n for n in [2,3,4]],
+                       #"Wlv_%s_pf_%s"%(lname,rw) : ["w_jets"],
+                       "QCD_%s_pf_%s"%(lname,rw) : [{ 'muon':"SingleMu",
+                                                      'electron':'EleHad'}[lname],
+                                                    "ttj_mg"]}
         
         organizers = [supy.organizer(tag, [s for s in self.sampleSpecs(tag) if any(item in s['name'] for item in meldSamples[tag])])
                       for tag in [p['tag'] for p in self.readyConfs if p["tag"] in meldSamples]]
         if len(organizers) < len(meldSamples) : return
         for org in organizers :
             org.mergeSamples(targetSpec = {"name":"t#bar{t}", "color":r.kViolet}, sources=["ttj_mg.wNonQQbar.tw.%s"%rw,"ttj_mg.wTopAsymP00.tw.%s"%rw], keepSources = True)
-            org.mergeSamples(targetSpec = {"name":"W", "color":r.kRed}, allWithPrefix = "wj_lv_mg")
+            #org.mergeSamples(targetSpec = {"name":"W", "color":r.kRed}, allWithPrefix = "wj_lv_mg")
+            org.mergeSamples(targetSpec = {"name":"W", "color":r.kRed}, sources = ["w%dj_mg.tw.%s"%(n,rw) for n in [2,3,4]] )
             org.mergeSamples(targetSpec = {"name":"DY", "color":28}, allWithPrefix = "dyj_ll_mg")
             org.mergeSamples(targetSpec = {"name":"Single", "color":r.kGray}, sources = ["%s.tw.%s"%(s,rw) for s in self.single_top()], keepSources = False )
-            org.mergeSamples(targetSpec = {"name":"Data 2011", "color":r.kBlack, "markerStyle":20}, allWithPrefix="SingleMu")
+            org.mergeSamples(targetSpec = {"name":"Data 2011", "color":r.kBlack, "markerStyle":20}, allWithPrefix={'muon':"SingleMu",'electron':"EleHad"}[lname])
             org.scale()
-            if "QCD_" in org.tag : org.mergeSamples(targetSpec = {"name":"multijet","color":r.kBlue}, sources=["Data 2011",'t#bar{t}'], scaleFactors = [1,-1], force=True)
+            if "QCD_" in org.tag :
+                org.mergeSamples(targetSpec = {"name":"multijet","color":r.kBlue},
+                                 sources=["Data 2011",'t#bar{t}'],
+                                 scaleFactors = [1,-1],
+                                 force=True, keepSources = False)
 
         self.orgMelded = supy.organizer.meld(organizers = organizers)
 
@@ -616,7 +676,7 @@ class topAsymm(supy.analysis) :
             from supy.utils.fractions import componentSolver,drawComponentSolver
             cs = componentSolver(observed, templates, 1e4, base = np.sum(bases, axis=0) )
             stuff = drawComponentSolver( cs, mfCanvas, distName = dist,
-                                        templateNames = [t.replace("top.ttj_mg.wTopAsymP00.tw.%s"%rw,"q#bar{q}-->t#bar{t}").replace("top.ttj_mg.wNonQQbar.tw.%s"%rw,"gg-->t#bar{t}").replace("QCD.Data 2011","Multijet").replace("top.W","W+jets").replace('top.',"") for t in  templateSamples])
+                                         templateNames = [t.replace("top.ttj_mg.wTopAsymP00.tw.%s"%rw,"q#bar{q}-->t#bar{t}").replace("top.ttj_mg.wNonQQbar.tw.%s"%rw,"gg-->t#bar{t}").replace("QCD.Data 2011","Multijet").replace("top.W","W+jets").replace('top.',"") for t in  templateSamples])
             printMF()
             return distTup,cs
 
@@ -645,7 +705,7 @@ class topAsymm(supy.analysis) :
 
         templateSamples = ['top.t#bar{t}'] # hack !!
         self.orgMelded.mergeSamples(targetSpec = {"name":"S.M.", "color":r.kGreen+2}, sources = templateSamples + baseSamples , keepSources = True, force = True)
-        for ss in filter(lambda ss: 'ttj_mg' in ss['name'],self.orgMelded.samples) : self.orgMelded.drop(ss['name'])
+        #for ss in filter(lambda ss: 'ttj_mg' in ss['name'],self.orgMelded.samples) : self.orgMelded.drop(ss['name'])
         self.orgMelded.drop('bg')
         
     def PEcurves(self) :
@@ -680,13 +740,13 @@ class topAsymm(supy.analysis) :
         return
 
 
-    def templates(self, iStep, dist, qqFrac, pars) :
-        rw = pars['reweights']['abbr']
+    def templates(self, iStep, dist, qqFrac, rw) :
         if not hasattr(self,'orgMelded') : print 'run meldScale() before asking for templates()'; return
         topQQs = [s['name'] for s in self.orgMelded.samples if 'wTopAsym' in s['name']]
-        asymm = [eval(name.replace("top.ttj_mg.wTopAsym","").replace(".tw.%s"%rw,"").replace("P",".").replace("N","-.")) for name in topQQs]
+        asymm = [eval(name.replace("top.ttj_mg.wTopAsym","").replace(".tw.%s"%rw,"").replace("P",".").replace("N","-.")) for name in topQQs if 'QCD' not in name]
         distTup = self.orgMelded.steps[iStep][dist]
-        edges = supy.utils.edgesRebinned( distTup[ self.orgMelded.indexOfSampleWithName("S.M.") ], targetUncRel = 0.015, offset = 2 )
+        hist = distTup[ self.orgMelded.indexOfSampleWithName("S.M.") ]
+        edges = supy.utils.edgesRebinned( hist, targetUncRel = 0.015, offset = 0 )
 
         def nparray(name, scaleToN = None) :
             hist_orig = distTup[ self.orgMelded.indexOfSampleWithName(name) ]
@@ -697,8 +757,10 @@ class topAsymm(supy.analysis) :
 
         nTT = sum(nparray('top.t#bar{t}'))
         observed = nparray('top.Data 2011')
-        base = ( nparray('QCD.Data 2011') +
-                 nparray('top.w_jets') +
+        base = ( nparray('QCD.multijet') +
+                 nparray('top.W') +
+                 nparray('top.DY') +
+                 nparray('top.Single') +
                  nparray('top.ttj_mg.wNonQQbar.tw.%s'%rw, scaleToN = (1-qqFrac) * nTT )
                  )
         templates = [base +  nparray(qqtt, qqFrac*nTT ) for qqtt in topQQs]
@@ -708,16 +770,17 @@ class topAsymm(supy.analysis) :
     def ensembleFileName(self, iStep, dist, qqFrac, suffix = '.pickleData') :
         return "%s/ensembles/%d_%s_%.3f%s"%(self.globalStem,iStep,dist,qqFrac,suffix)
 
-    def ensembleTest(self) :
+    def ensembleTest(self,rw) :
         qqFracs = sorted([0.10, 0.12, 0.15, 0.20, 0.25, 0.30, 0.40, 0.60, 1.0])
-        dists = ['lHadtDeltaY',
+        dists = [#'lHadtDeltaY',
                  'ttbarDeltaAbsY',
-                 'leptonRelativeY',
-                 'ttbarSignedDeltaY'
+                 #'leptonRelativeY',
+                 #'ttbarSignedDeltaY',
+                 'ttbarSignExpectation'
                 ]
-        args = sum([[(iStep, dist, qqFrac, pars) for iStep in list(self.orgMelded.indicesOfStepsWithKey(dist))[:None] for qqFrac in qqFracs] for dist in dists],[])
+        args = sum([[(iStep, dist, qqFrac, rw) for iStep in list(self.orgMelded.indicesOfStepsWithKey(dist))[:None] for qqFrac in qqFracs] for dist in dists],[])
         supy.utils.operateOnListUsingQueue(6, supy.utils.qWorker(self.pickleEnsemble), args)
-        ensembles = dict([(arg,supy.utils.readPickle(self.ensembleFileName(*arg))) for arg in args])
+        ensembles = dict([(arg[:-1],supy.utils.readPickle(self.ensembleFileName(*arg[:-1]))) for arg in args])
 
         for iStep in sorted(set([iStep for iStep,dist,qqFrac in ensembles])) :
             canvas = r.TCanvas()
@@ -736,9 +799,9 @@ class topAsymm(supy.analysis) :
             legend.Draw()
             supy.utils.tCanvasPrintPdf(canvas, '%s/sensitivity_%d'%(self.globalStem,iStep))
                 
-    def pickleEnsemble(self, iStep, dist, qqFrac, pars) :
+    def pickleEnsemble(self, iStep, dist, qqFrac, rw) :
         supy.utils.mkdir(self.globalStem+'/ensembles')
-        templates,observed = self.templates(iStep, dist, qqFrac, pars)
+        templates,observed = self.templates(iStep, dist, qqFrac, rw)
         ensemble = supy.utils.templateFit.templateEnsembles(2e3, *zip(*templates) )
         supy.utils.writePickle(self.ensembleFileName(iStep,dist,qqFrac), ensemble)
 

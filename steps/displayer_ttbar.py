@@ -76,7 +76,7 @@ class ttbar(supy.steps.displayer) :
         self.rhoPhiPad = r.TPad("rhoPhiPad", "rhoPhiPad", rhoPhiCorners['x1'], rhoPhiCorners['y1'], rhoPhiCorners['x2'], rhoPhiCorners['y2'] )
         self.legendPad = r.TPad("legendPad", "legendPad", legendCorners["x1"], legendCorners["y1"], legendCorners["x2"], legendCorners["y2"] )
         self.narrowPad = r.TPad("narrowPad", "narrowPad", narrowCorners["x1"], narrowCorners["y1"], narrowCorners["x2"], narrowCorners["y2"] )
-
+        self.tmpLV = supy.utils.LorentzV()
     
     def drawSkeleton(self, color) :
         coords = self.rhoPhiCoords
@@ -207,7 +207,7 @@ class ttbar(supy.steps.displayer) :
         scale = 3.5
         self.line.SetLineWidth(2); self.line.SetLineColor(r.kGray);  self.line.DrawLine( scale * xm, 3.6, scale * xp, 3.6 )
 
-        if reco['lepBound'] : self.drawLepBoundCurve(reco['lep'])
+        #if reco['lepBound'] : self.drawLepBoundCurve(reco['lep'])
 
     def drawLepBoundCurve(self, lep) :
         self.rhoPhiPad.cd()
@@ -228,17 +228,29 @@ class ttbar(supy.steps.displayer) :
 
     def drawMet(self, eV, color, lineWidth) :
         if not self.met: return
-        self.legendFunc(color, name = "met%s"%self.met, desc = "MET (%s)"%self.met)
+        reco = eV['TopReconstruction'][0]
+        met = -reco['sumP4']
+        self.legendFunc(color, name = "hadFit corr. MET", desc = "MET (%s)"%self.met)
         self.line.SetLineColor(color)
-        self.etaPhiPad.cd();  self.line.DrawLine( -3, eV[self.met].phi(), 3, eV[self.met].phi()  )
-        self.rhoPhiPad.cd();  self.drawP4(self.rhoPhiCoords, eV[self.met], color, lineWidth, self.arrow.GetDefaultArrowSize() )
+        self.etaPhiPad.cd();  self.line.DrawLine( -3, met.phi(), 3, met.phi()  )
+        self.rhoPhiPad.cd();  self.drawP4(self.rhoPhiCoords, met, color, lineWidth, self.arrow.GetDefaultArrowSize() )
 
         coords=self.rhoPhiCoords
-        x0 = coords['x0']+self.scaleRho(eV[self.met].px())
-        y0 = coords['x0']+self.scaleRho(eV[self.met].py())
-        eig,Rinv = np.linalg.eig(eV["metCovariancePF"])
-        self.metunc.DrawEllipse(x0,y0,self.scaleRho(math.sqrt(eig[0])),self.scaleRho(math.sqrt(eig[1])),0,360, 360*math.acos(Rinv[0][0])/math.pi)
+        x0 = coords['x0']+self.scaleRho(met.px())
+        y0 = coords['y0']+self.scaleRho(met.py())
+        eig,R = np.linalg.eig(reco['nuErr2'])
+        self.metunc.DrawEllipse(x0,y0,
+                                self.scaleRho(math.sqrt(eig[0])),
+                                self.scaleRho(math.sqrt(eig[1])), 0,360, -180*math.atan2(R[0,1],R[0,0])/math.pi)
 
+        Ellipse,solutions = [reco[item] for item in ("nuEllipse","nuSolutions")]
+        sols = [Ellipse.dot([math.cos(t),math.sin(t),1]) for t in np.arange(0,2*math.pi,2*math.pi/64)]
+        for x,y,z in sols :
+            self.tmpLV.SetPxPyPzE(x,y,z,0)
+            for mode in [0,1] : self.drawMarker(self.tmpLV, r.kOrange+2,0.2,6,mode)
+        for x,y,z in [Ellipse.dot(s) for s in solutions] :
+            self.tmpLV.SetPxPyPzE(x,y,z,0)
+            for mode in [0,1] : self.drawMarker(self.tmpLV, r.kBlack,0.5,5,mode)
 
     def drawJets(self, eV, color, lineWidth) :
         if not self.jets : return
