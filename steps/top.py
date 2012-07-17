@@ -1,5 +1,5 @@
 import math,itertools,ROOT as r, numpy as np
-from supy import analysisStep,steps
+from supy import analysisStep,steps,calculables
 try:
     import scipy.stats
 except:
@@ -109,6 +109,18 @@ class signCheck(analysisStep) :
         signGenTT_DDY = 1 if genTT_DDY > 0 else -1 if genTT_DDY<0 else 0
         self.book.fill( ev["TTbarSignExpectation"] * signGenTT_DDY, "TTbarSignExpectation_trueSign", 41, -1, 1, title = ";<sign #Delta y>_{t#bar{t}} . trueSign;events / bin")
         self.book.fill( ev["TTbarSignExpectation"] * signGenTT_DDY, "TTbarSignExpectation_trueSign_2bin", 2, -1, 1, title = ";<sign #Delta y>_{t#bar{t}} . trueSign;events / bin")
+
+
+        #nuIndex = ev['genTTbarIndices']['nu']
+        #if nuIndex == None : return
+        #nu = ev['genP4'][nuIndex]
+        #reco = ev["TopReconstruction"]
+        #genIndex = ev['genTopRecoIndex']
+        #self.book.fill( reco[0]['nu'].z() - nu.z(), "DeltaNuZ_fitReco", 20, -100, 100, title = ";fitReco #Delta z_{#nu};events / bin")
+        #self.book.fill( 1 if reco[0]['nu'].z()* nu.z()>0 else -1, "SignNuZ_fitReco", 20, -100, 100, title = ";fitReco sign z_{#nu};events / bin")
+        #if genIndex < 0 : return
+        #self.book.fill( reco[genIndex]['nu'].z() - nu.z(), "DeltaNuZ_genReco", 20, -100, 100, title = ";genReco #Delta z_{#nu};events / bin")
+        #self.book.fill( 1 if reco[genIndex]['nu'].z()* nu.z()>0 else -1, "SignNuZ_genReco", 20, -100, 100, title = ";genReco sign z_{#nu};events / bin")
 #####################################
 class Spin(analysisStep) :
     def __init__(self, collection) :
@@ -561,3 +573,82 @@ class mcTruthAsymmetryBinned(analysisStep) :
         r.gROOT.cd()
         file.Close()
         #print "Output updated with %s."%asymmByBinVar.GetName()
+######################
+class collisionType(calculables.secondary) :
+    def uponAcceptance(self,ev) :
+        id = ev['genPdgId']
+        nGlu = len([i for i in id[4:6] if i==21])
+        self.book.fill(nGlu, 'nCollidingGluons', 3,-0.5,2.5, title = ';N colliding gluons;events / bin')
+        glubar = nGlu==1 and filter(lambda i: id[i]<0,[4,5])
+        self.book.fill(ev['genCosThetaStar'],'cosThetaStar_%dglu'%nGlu + ('bar' if glubar else ''), 100,-1,1,
+                       title = ";cos#theta* (%d glu)%s;events / bin"%(nGlu,'(bar)' if glubar else ''))
+        self.book.fill(ev['genCosThetaStarBar'],'cosThetaStarBar_%dglu'%nGlu + ('bar' if glubar else ''), 100,-1,1,
+                       title = ";cos#bar{#theta}* (%d glu)%s;events / bin"%(nGlu,'(bar)' if glubar else ''))
+        p4 = ev['genP4']
+        system = p4[4]+p4[5]
+        self.book.fill( system.E(), 'sqrtshat_%dglu'%nGlu, 100,0,2000, title = ';#sqrt{#hat{s}} (%d colliding gluons);events / bin'%nGlu )
+
+        iQs = [i for i in [4,5] if id[i]!=21]
+        iQ = max(iQs, key = lambda i : id[i]) if nGlu!=2 else 4
+        self.book.fill( system.z() * (1 if p4[iQ].z() > 0 else -1) * (-1 if glubar else 1), 'systemZbyQdir_%dglu'%nGlu, 100,-3000,3000,
+                        title = ";(p_{z} system) * sign(p_{z} quark) , %d colliding gluons;events / bin"%nGlu )
+
+    def organize(self,org) : org.scale(5000)
+
+    def reportCache(self) :
+        fileName = '/'.join(self.outputFileName.split('/')[:-1]+[self.name])
+        optstat = r.gStyle.GetOptStat()
+        r.gStyle.SetOptStat(0)
+        c = r.TCanvas()
+        c.Print(fileName+'.pdf[')
+
+        samples = ['ttj_mg','ttj_ph'][::-1]
+        names = [(0,''),(1,''),(1,'bar'),(2,'')]
+        for name in names :
+            pattern = 'cosThetaStar%s'+'_%dglu%s'%name
+            hists = self.fromCache( samples, [pattern%'',pattern%'Bar'])
+            toDraw = []
+            for s in samples :
+                hdiff = hists[s][pattern%''].Clone('diff')
+                hsum = hists[s][pattern%''].Clone('sum')
+                hdiff.Add(hists[s][pattern%'Bar'],-1)
+                hsum.Add(hists[s][pattern%'Bar'])
+                hdiff.SetLineColor(r.kRed if s=='ttj_ph' else r.kBlack)
+                hdiff.SetTitle('N_{t}-N_{#bar{t}}')
+                hperc = hdiff.Clone('perc')
+                hperc.Divide(hsum)
+                hperc.GetYaxis().SetTitle('\%')
+                hperc.SetTitle('(N_{t}-N_{#bar{t}}) / (N_{t}+N_{#bar{t}})')
+                toDraw+=[hdiff,hperc]
+            toDraw[0].Draw('hist'); toDraw[2].Draw('hist same'); c.Print(fileName+'.pdf')
+            toDraw[1].Draw('hist'); toDraw[3].Draw('hist same'); c.Print(fileName+'.pdf')
+        c.Print(fileName+'.pdf]')
+        r.gStyle.SetOptStat(optstat)
+        print "Wrote file: %s.pdf"%fileName
+            
+
+class mcQuestions(analysisStep) :
+
+    def uponAcceptance(self,ev) :
+        p4 = ev['genP4']
+        id = ev['genPdgId']
+        qqbar = p4[4] + p4[5]
+        ttbar = p4[6] + p4[7]
+        qqcmzboost = r.Math.BoostZ( qqbar.BoostToCM().z() )
+        beta = qqbar.BoostToCM()
+        qqcmboost = r.Math.Boost( beta.x(), beta.y(), beta.z() )
+        glus = [i for i in range(8,12) if id[i]==21]
+        nglu = len(glus)
+        qqbarMttbar = qqbar - ttbar
+        
+        self.book.fill(nglu, 'N gluons', 5,-0.5,4.5, title = 'N gluons')
+        self.book.fill(qqbar.pt() , 'qqbarpt%d'%nglu, 100,0,50, title = ';q#bar{q} pt, nGlu=%d;'%nglu)
+        self.book.fill(ttbar.pt() , 'ttbarpt%d'%nglu, 100,0,50, title = ';t#bar{t} pt, nGlu=%d;'%nglu)
+        self.book.fill(sum([p4[i] for i in glus],-qqbarMttbar).pt(), 'qqbarMttbarglus%d'%nglu, 10,0,20, title = ';(q#bar{q} - t#bar{t} - glus) pt, nGlu=%d'%nglu)
+        if id[8]==21 :
+            for i in glus : 
+                cmzGlu = qqcmzboost( p4[i] )
+                cmGlu  = qqcmboost( p4[i] )
+                self.book.fill(cmGlu.P(), 'cmgluP', 200,0,200, title = ';q#bar{q}cm gluP')
+                self.book.fill(cmzGlu.pt(), 'cmzgluPt', 200,0,200, title = ';q#bar{q}cm_{z} gluP_{T}')
+                self.book.fill(abs(cmzGlu.eta()), 'cmzgluAbsEta', 100,0,5.5, title = ';|cmz glu #eta|')
