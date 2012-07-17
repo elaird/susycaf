@@ -6,12 +6,20 @@ class xcJet_SingleLepton(wrappedChain.calculable) :
     @property
     def name(self) : return self.name_
 
-    def __init__(self, xcjets = None, leptons = None, indices = None ) :
+    def __init__(self, xcjets = None, leptons = None, indices = None, jesAbs = 1, jesRel = 0) :
         self.name_ = "CorrectedP4".join(xcjets)
         self.p4jet = self.name_[2:]
         self.p4lep = "P4".join(leptons)
         self.indices = indices.join(leptons)
         self.moreName = self.p4jet +" without " + self.p4lep + self.indices.join(['[','[0]]'])
+        self.jesAbs,self.jesRel = jesAbs,jesRel
+        if jesAbs!=1 or jesRel!=0 :
+            self.moreName2 += "jes corr: %.2f*(1+%.2f|eta|) data only"%(jesAbs,jesRel)
+
+
+    def jes(self, p4) :
+        return  ( p4 if not (self.source['isRealData'] and (self.jesAbs!=1 or self.jesRel!=0)) else
+                  p4 * self.jesAbs*(1+self.jesRel*abs(p4.eta())) )
 
     def update(self,_) :
         jets = self.source[self.p4jet]
@@ -19,9 +27,9 @@ class xcJet_SingleLepton(wrappedChain.calculable) :
         self.value = utils.vector()
         for iJet in range(len(jets)) :
             jet = jets[iJet]
-            self.value.push_back( jet - lep
-                                  if lep and 0.5>r.Math.VectorUtil.DeltaR(jet,lep) else
-                                  jet )
+            self.value.push_back( self.jes( next( j if j.M()>0 else utils.LorentzV(1,jet.eta(),jet.phi(),0) for j in [jet - lep])
+                                            if lep and 0.5>r.Math.VectorUtil.DeltaR(jet,lep) else
+                                            jet ) )
 ##############################
 class xcJet(wrappedChain.calculable) :
     @property
