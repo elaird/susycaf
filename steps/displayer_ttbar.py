@@ -1,5 +1,9 @@
-import math,os,collections,configuration, ROOT as r,numpy as np
+import math,os,collections,configuration, ROOT as r
 import supy
+try:
+    import numpy as np
+except:
+    pass
 #####################################
 class ttbar(supy.steps.displayer) :
     
