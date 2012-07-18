@@ -1,5 +1,10 @@
-import math,itertools,ROOT as r, numpy as np
+import math,itertools,ROOT as r
 from supy import analysisStep,steps
+try:
+    import numpy as np
+except:
+    pass
+
 try:
     import scipy.stats
 except:
