@@ -215,6 +215,8 @@ mc.add("lm13",'%s/%s/LM13%s")'%(srm, lmDir, lmTag), xs = 6.899  )
 #SMS
 mc.add("t1.ted", '%s/elaird//ICF/automated/2011_03_09_13_08_06/")'%srm, xs = 1.0) #dummy xs
 mc.add("t1.yos", '%s/yeshaq//ICF/automated/2012_07_02_17_24_20/")'%pnfs, xs = {"LO":107.5}["LO"]) #dummy xs
+mc.add("t2tt.yos", '%s/yeshaq//ICF/automated/2012_07_10_16_39_39/")'%pnfs, xs = {"LO":107.5}["LO"]) #dummy xs
+mc.add("t2bb.yos", '%s/yeshaq//ICF/automated/2012_07_10_16_50_17/")'%pnfs, xs = {"LO":107.5}["LO"]) #dummy xs
 mc.add("t1tttt.chr", '%s/clucas//ICF/automated/2012_06_04_18_26_52/")'%pnfs, xs = 1.0) #dummy xs
 mc.add("t2.ted", '%s/elaird/ICF/automated/2011_03_08_23_04_26/")'%srm, lumi = 1.0) #dummy xs
 
