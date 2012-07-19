@@ -90,7 +90,7 @@ class hadronicLook2011(supy.analysis) :
                  "lowPtName" : "lowPt",
                  "highPtThreshold" : 50.0,
                  "highPtName" : "highPt",
-                 "tanBeta" : [None, 3, 10, 50][0],
+                 "signalScan" : True,
                  "thresholds": self.vary(dict( [("275",        (275.0, 325.0, 100.0, 50.0)),#0
                                                 ("325",        (325.0, 375.0, 100.0, 50.0)),#1
                                                 ("375",        (375.0, None,  100.0, 50.0)),#2
@@ -178,9 +178,9 @@ class hadronicLook2011(supy.analysis) :
         _etRatherThanPt = params["etRatherThanPt"]
         _et = "Et" if _etRatherThanPt else "Pt"
 
-        scanBefore = [supy.steps.filters.label("scanBefore"), steps.gen.scanHistogrammer(tanBeta = params["tanBeta"])] if params["tanBeta"]!=None else []
+        scanBefore = [supy.steps.filters.label("scanBefore"), steps.gen.scanHistogrammer(htVar = "%sSum%s%s"%(_jet[0], _et, _jet[1]), befOrAf = "Before")] if params["signalScan"]!=None else []
         scanAfter = [supy.steps.filters.label("scanAfter"),
-                     steps.gen.scanHistogrammer(tanBeta = params["tanBeta"], htVar = "%sSum%s%s"%(_jet[0], _et, _jet[1]))] if params["tanBeta"]!=None else []
+                     steps.gen.scanHistogrammer(htVar = "%sSum%s%s"%(_jet[0], _et, _jet[1]), befOrAf = "After")] if params["signalScan"]!=None else []
         htUpper = [steps.other.variableLessFilter(params["thresholds"][1],"%sSum%s%s"%(_jet[0], _et, _jet[1]), "GeV")] if params["thresholds"][1]!=None else []
         return scanBefore + [
             supy.steps.printer.progressPrinter(),
@@ -321,17 +321,15 @@ class hadronicLook2011(supy.analysis) :
             
 
     def listOfSampleDictionaries(self) :
-        #return [samples.ht17]
-        #sampleDict.add("Data_High_HT", '["~/nobackup/supy-output/hadronicLook/675_ge2_caloAK5JetMet_recoLepPhot_pythia6/High_HT_skim.root"]', lumi = 1.1e3)
-        #return [sampleDict]
         sampleDict = supy.samples.SampleHolder()
-   
+        #sampleDict.add("Data_High_HT", '["~/nobackup/supy-output/hadronicLook/675_ge2_caloAK5JetMet_recoLepPhot_pythia6/High_HT_skim.root"]', lumi = 1.1e3)
         sampleDict.add("t1_1000_50", '["/uscms/home/yeshaq/nobackup/supy-output/smsSkim1000_50/t1_1000_50.root"]', xs = 1.0)
         sampleDict.add("t1_1000_600", '["/uscms/home/yeshaq/nobackup/supy-output/smsSkim1000_600/t1_1000_600.root"]', xs = 1.0)
         sampleDict.add("t1_400_300", '["/uscms/home/yeshaq/nobackup/supy-output/smsSkim400_300/t1_400_300.root"]', xs = 1.0)        
         sampleDict.add("t1_3_points", '["/uscms/home/yeshaq/nobackup/supy-output/smsSkim/sms_3_points.root"]', xs = 1.0)
 
-        return [sampleDict]
+        #return [sampleDict]
+        return [samples.ht17, samples.mc, sampleDict]
             
     def listOfSamples(self,params) :
         from supy.samples import specify
@@ -452,9 +450,15 @@ class hadronicLook2011(supy.analysis) :
             return specify(names = "lm6", effectiveLumi = eL, color = r.kRed)
             
         def smst1() :
+            out = []
+            
+            out += specify(names = "t1.yos")#, nFilesMax = 1, nEventsMax = 10000)
+            out += specify(names = "t2tt.yos")#, nFilesMax = 1, nEventsMax = 10000)
+            out += specify(names = "t2bb.yos")#, nFilesMax = 1, nEventsMax = 200)
+            
+            return out
+#            return specify(names = "t1_3_points")
 
-            return specify(names = "t1_400_300")
-        
         def scan(tanBeta) :
             return specify(names = "scan_tanbeta%d"%tanBeta, color = r.kMagenta, nFilesMax = 1)
                      
@@ -505,7 +509,7 @@ class hadronicLook2011(supy.analysis) :
         #utils.printSkimResults(org)            
 
         self.mergeSamples(org)
-        #org.scale() if not self.parameters()["tanBeta"] else org.scale(100.0)
+        org.scale() if not self.parameters()["signalScan"] else org.scale(100.0)
         
         self.makeStandardPlots(org)
         #self.makeIndividualPlots(org)
@@ -529,7 +533,7 @@ class hadronicLook2011(supy.analysis) :
                              blackList = ["lumiHisto","xsHisto","nJobsHisto"],
                              )
         #pl.plotAll()
-        self.makeEfficiencyPlots(org, org.tag, sampleName = "t1_400_300")
+        self.makeEfficiencyPlots(org, org.tag, sampleName = ["t1.yos", "t2tt.yos"])
 
     def makeIndividualPlots(self, org) :
         #plot all
@@ -606,14 +610,22 @@ class hadronicLook2011(supy.analysis) :
         def numerAndDenom(org, var) :
             d = {}
             for selection in org.steps :
-                #print selection.name, selection.title
-                if selection.name!= "passFilter" : continue
-                if   "htLabel1" in selection.title : label = "before"
-                elif "htLabel2" in selection.title : label = "after"
-                else : continue
-                if var in selection :
-                    d[label] = selection[var][sampleIndex(org, sampleName)].Clone(label)
+                print selection.name, selection.title
+                if selection.name!= "scanHistogrammer" : continue
+                #if   "scanBefore" in selection.title : label = "before"
+                #elif "scanAfter" in selection.title : label = "after"
+                #else : continue
+                #print var, selection.title, selection
                 
+                if "ht_375_Before" in selection :
+                    label = "before"
+                    name = "ht_375_Before"
+                elif "ht_375_After" in selection :
+                    label = "after"
+                    name = "ht_375_After"
+                
+                d[label] = selection[name][sampleIndex(org, sampleName)].Clone(label)
+
             return d
 
         keep = []
@@ -627,12 +639,14 @@ class hadronicLook2011(supy.analysis) :
         assert len(self.parameters()["objects"])==1
         for key,value in self.parameters()["objects"].iteritems() :
             jet = value["jet"]
-
+            
         for variable in ["%sSumEt%s"%jet] :
             histos = numerAndDenom(org, variable)
             if "before" not in histos or "after" not in histos : continue
             result = histos["after"].Clone(variable)
-            result.Scale(1.0/histos["before"].Integral(0, histos["before"].GetNbinsX()+1))
+            result.Divide(histos["before"])
+#            result.Scale(1.0/histos["before"].Integral(0, histos["before"].GetNbinsX()+1, 0))
+#            result.Scale(1.0/histos["before"].Integral(0, histos["before"].GetNbinsX()+1, 0, histos["before"].GetNbinsY()+1))
             result.SetMarkerStyle(20)
             result.SetStats(False)
             if result.ClassName()[2]=="1" :
