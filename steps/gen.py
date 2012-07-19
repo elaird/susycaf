@@ -75,26 +75,26 @@ class ParticleCountFilter(analysisStep) :
         return True
 #####################################
 class scanHistogrammer(analysisStep) :
-    def __init__(self, tanBeta, htVar = "") :
+    def __init__(self, htVar = "", befOrAf = "") :
         self.tanBetaThreshold = 0.1
-        for item in ["tanBeta", "htVar"] :
+        for item in ["htVar"] :
             setattr(self, item, eval(item))
-        self.moreName = "tanBeta=%g;%s"%(self.tanBeta, self.htVar)
+        self.moreName = self.htVar
 
-        self.m0Nbins = 150
-        self.m0Lo =    0.0
-        self.m0Hi = 1500.0
+        self.m0Nbins =  44
+        self.m0Lo =    100
+        self.m0Hi = 1200.0
 
-        self.m12Nbins = 100
-        self.m12Lo =    0.0
-        self.m12Hi = 1000.0
+        self.m12Nbins =  44
+        self.m12Lo =     50
+        self.m12Hi = 1150.0
 
         self.bins = (self.m0Nbins, self.m12Nbins)
         self.lo = (self.m0Lo, self.m12Lo)
         self.hi = (self.m0Hi, self.m12Hi)
 
-        self.htBins = self.pairs([250, 300, 350, 450]) + self.pairs([275, 325] + [375+100*i for i in range(6)])
-        self.htStrings = self.strings(self.htBins)
+        self.htBins = self.pairs([250, 300, 350, 450]) + self.pairs([275, 325] + [375+100*i for i in range(6)]) + self.pairs([375])
+        self.htStrings = self.strings(self.htBins, befOrAf)
         
     def pairs(self, l) :
         out = []
@@ -102,10 +102,10 @@ class scanHistogrammer(analysisStep) :
             out.append( (lower, upper) )
         return out
 
-    def strings(self, pairs) :
+    def strings(self, pairs, befOrAf) :
         out = []
         for lower,upper in pairs :
-            out.append("ht_%d%s"%(lower, "_%d"%upper if upper else ""))
+            out.append("ht_%d%s%s"%(lower, "_%d"%upper if upper else "", "_%s"%befOrAf))
         return out
 
     def htIn(self, ht, lower, upper) :
@@ -114,17 +114,18 @@ class scanHistogrammer(analysisStep) :
         return True
 
     def uponAcceptance (self, eventVars) :
-        if abs(eventVars["susyScantanbeta"]-self.tanBeta)>self.tanBetaThreshold : return
+        #if abs(eventVars["susyScantanbeta"]-self.tanBeta)>self.tanBetaThreshold : return
 
-        xs = eventVars["susyScanCrossSection"]
-        m0 = eventVars["susyScanM0"]
-        m12 = eventVars["susyScanM12"]
+        #xs = eventVars["susyScanCrossSection"]
+        m0 = eventVars["susyScanmGL"]
+        m12 = eventVars["susyScanmLSP"]
 
-        title = ";m_{0} (GeV);m_{1/2} (GeV)"
-
+        #title = ";m_{0} (GeV);m_{1/2} (GeV)"
+        title = ";m_{gluino} (GeV);m_{LSP} (GeV)"
+        
         if not self.htVar :
             self.book.fill( (m0, m12), "nEvents", self.bins, self.lo, self.hi,         title = "%s;%s"%(title,"nEvents"))
-            self.book.fill( (m0, m12), "XS",      self.bins, self.lo, self.hi, w = xs, title = "%s;%s"%(title,"XS"))
+         #   self.book.fill( (m0, m12), "XS",      self.bins, self.lo, self.hi, w = xs, title = "%s;%s"%(title,"XS"))
         else :
             ht = eventVars[self.htVar]
             for name,pair in zip(self.htStrings, self.htBins) :
