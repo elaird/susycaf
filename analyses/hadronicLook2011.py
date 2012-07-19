@@ -533,7 +533,9 @@ class hadronicLook2011(supy.analysis) :
                              blackList = ["lumiHisto","xsHisto","nJobsHisto"],
                              )
         #pl.plotAll()
-        self.makeEfficiencyPlots(org, org.tag, sampleName = ["t1.yos", "t2tt.yos"])
+        smsSamples = ["t1.yos", "t2tt.yos","t2bb.yos"]
+        for smsSample in smsSamples :
+            self.makeEfficiencyPlots(org, org.tag, sampleName = smsSample)
 
     def makeIndividualPlots(self, org) :
         #plot all
@@ -610,7 +612,6 @@ class hadronicLook2011(supy.analysis) :
         def numerAndDenom(org, var) :
             d = {}
             for selection in org.steps :
-                print selection.name, selection.title
                 if selection.name!= "scanHistogrammer" : continue
                 #if   "scanBefore" in selection.title : label = "before"
                 #elif "scanAfter" in selection.title : label = "after"
@@ -629,11 +630,12 @@ class hadronicLook2011(supy.analysis) :
             return d
 
         keep = []
+        file = r.TFile("%s_%s.root"%(sampleName, tag), "RECREATE")
         canvas = r.TCanvas()
         canvas.SetRightMargin(0.2)
         canvas.SetTickx()
         canvas.SetTicky()
-        psFileName = "%s.ps"%tag
+        psFileName = "%s_%s.ps"%(sampleName, tag) 
         canvas.Print(psFileName+"[","Lanscape")
 
         assert len(self.parameters()["objects"])==1
@@ -658,8 +660,8 @@ class hadronicLook2011(supy.analysis) :
                 result.GetZaxis().SetTitle("efficiency")
                 result.Draw("colz")
             canvas.Print(psFileName,"Lanscape")
-
+            result.Write()
         canvas.Print(psFileName+"]","Lanscape")                
         os.system("ps2pdf "+psFileName)
         os.remove(psFileName)
-
+        file.Close()
