@@ -377,3 +377,29 @@ class qDirExpectation_RapiditySum(qDirExpectation) :
         self.tag = tag
         self.sample = sample
 
+##############################
+class isrWeight(wrappedChain.calculable) :
+    def __init__(self, model = "", var = "") :
+        assert model in ["T1", "T2"],model
+        self.model = model
+        self.var = var
+        self.histos = {}
+
+    def setup(self) :
+        f = r.TFile("data/ISRWeights_Topology%s.root"%self.model)
+        for item in f.GetListOfKeys() :
+            name = item.GetName()
+            h = f.Get(name).Clone()
+            h.SetDirectory(0)
+            assert name.startswith("h_ISRWeight_lastPt_")
+            mX,mY = name.split("_")[-2:]
+            self.histos[(float(mX),float(mY))] = h
+        f.Close()
+
+    def update(self,_) :
+        if not self.histos :
+            self.setup()
+
+        h = self.histos[(self.source["susyScanmGL"], self.source["susyScanmLSP"])]
+        self.value = h.GetBinContent(h.FindBin(300.0))
+        print "ERROR: using fixed value of 300.0"
