@@ -99,7 +99,7 @@ class hadronicLook2011(supy.analysis) :
                                                 ("675",        (675.0, None,  100.0, 50.0)),#5
                                                 ][2:3] )),
                  "triggerList" : triggers_mht_2011, 
-                 "isrVariation" : self.vary({"":False,"isrVariation":True}), 
+                 "isrVariation" : self.vary(dict([("",False), ("isrVariation",True)][1:])),
                  }
 
     def ra1Cosmetics(self) : return False
@@ -453,8 +453,8 @@ class hadronicLook2011(supy.analysis) :
             
         def sms() :
             out = []
-            t1weight = calculables.isrWeight(model = "T1")
-            t2weight = calculables.isrWeight(model = "T2")
+            t1weight = calculables.gen.isrWeight(model = "T1")
+            t2weight = calculables.gen.isrWeight(model = "T2")
             
             out += specify(names = "t1_400_300", weights = [t1weight] if params["isrVariation"] else [], nFilesMax = 1, nEventsMax = 1000)
             #out += specify(names = "t1.yos", weights = [t1weight] if params["isrVariation"] else [])#, nFilesMax = 1, nEventsMax = 10000)
@@ -539,7 +539,7 @@ class hadronicLook2011(supy.analysis) :
                              )
         #pl.plotAll()
         #smsSamples = ["t1.yos", "t2tt.yos","t2bb.yos"]
-        smsSamples = ["t1_400_300"]
+        smsSamples = ["t1_400_300", "t1_400_300.isrWeight"][1:]
 
         for smsSample in smsSamples :
             self.makeEfficiencyPlots(org, org.tag, sampleName = smsSample)
@@ -618,8 +618,8 @@ class hadronicLook2011(supy.analysis) :
 
         def numerAndDenom(org, var) :
             d = {}
+            print org
             for selection in org.steps :
-                print selection.title
                 if selection.name!= "scanHistogrammer" : continue
                 #if   "scanBefore" in selection.title : label = "before"
                 #elif "scanAfter" in selection.title : label = "after"
