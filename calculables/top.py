@@ -588,11 +588,11 @@ class TopReconstruction(wrappedChain.calculable) :
                                "lepBound" : lepFit.bound,     "hadWraw" : hadFit.rawW, "lepWraw" : lepFit.rawW,
                                "sumP4": sumP4 - b + lepFit.fitB,
                                "nuErr2":nuErr2_b,
-                               "residuals" : dict( zip(["lep"+i for i in "BSLT"],  lepFit.residualsBSLT ) +
+                               "residuals" : dict( zip(["lep"+i for i in "BSLWT"],  lepFit.residualsBSLWT ) +
                                                    zip(["had"+i for i in "PQBWT"], hadFit.residualsPQBWT ) ),
                                "nuEllipse"       : lepFit.Ellipse,
                                "nuSolutions"     : lepFit.solutions,
-                               "nuChi2Matrix"    : lepFit.M
+                               "nuChi2Matrix"    : lepFit.X
                                })
                 recos[-1]["key"] = recos[-1]['chi2'] - 2*math.log(recos[-1]['probability'])
 
