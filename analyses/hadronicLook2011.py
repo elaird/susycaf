@@ -98,7 +98,7 @@ class hadronicLook2011(supy.analysis) :
                                                 ("675",        (675.0, None,  100.0, 50.0)),#5
                                                 ][2:3] )),
                  "triggerList" : triggers_mht_2011, 
-                 "isrVariation" : self.vary(dict([("",False), ("isrVariation",True)][1:])),
+                 "isrVariation" : self.vary(dict([("",False), ("isrVariation",True)])),
                  }
 
     def ra1Cosmetics(self) : return False
@@ -178,13 +178,19 @@ class hadronicLook2011(supy.analysis) :
         _etRatherThanPt = params["etRatherThanPt"]
         _et = "Et" if _etRatherThanPt else "Pt"
 
-        scanBefore = [supy.steps.filters.label("scanBefore"),
-                      steps.gen.scanHistogrammer(htVar = "%sSum%s%s"%(_jet[0], _et, _jet[1]), befOrAf = "Before"),
-                      supy.steps.histos.pt("susyIniSumP4", 100, 0.0, 1000.0),
-                      supy.steps.histos.value("isrWeight", 100, 0.0, 2.0),
-                      ] if params["signalScan"]!=None else []
-        scanAfter = [supy.steps.filters.label("scanAfter"),
-                     steps.gen.scanHistogrammer(htVar = "%sSum%s%s"%(_jet[0], _et, _jet[1]), befOrAf = "After")] if params["signalScan"]!=None else []
+        scanBefore = []
+        scanAfter = []
+        if params["signalScan"] :
+            scanBefore = [supy.steps.filters.label("scanBefore"),
+                          steps.gen.scanHistogrammer(htVar = "%sSum%s%s"%(_jet[0], _et, _jet[1]), befOrAf = "Before"),
+                          ]
+            scanAfter = [supy.steps.filters.label("scanAfter"),
+                         steps.gen.scanHistogrammer(htVar = "%sSum%s%s"%(_jet[0], _et, _jet[1]), befOrAf = "After"),
+                         ]
+            if params["isrVariation"] :
+                scanBefore += [supy.steps.histos.pt("susyIniSumP4", 100, 0.0, 1000.0),
+                               supy.steps.histos.value("isrWeight", 100, 0.0, 2.0),
+                               ]
         htUpper = [steps.other.variableLessFilter(params["thresholds"][1],"%sSum%s%s"%(_jet[0], _et, _jet[1]), "GeV")] if params["thresholds"][1]!=None else []
         return scanBefore + [
             supy.steps.printer.progressPrinter(),
