@@ -84,7 +84,6 @@ class hadronicLook2011(supy.analysis) :
         
         return { "objects": objects,
                  "nJetsMinMax" :      self.vary(dict([ ("ge2",(2,None)),  ("2",(2,2)),  ("ge3",(3,None)),  ("3",(3,3)) ]       [0:1] )),
-                 "mcSoup" :           self.vary(dict([ ("pythia6","py6"), ("pythia8","py8"), ("madgraph","mg") ] [0:1] )),
                  "etRatherThanPt" : [True,False][0],
                  "lowPtThreshold" : 30.0,
                  "lowPtName" : "lowPt",
@@ -179,7 +178,11 @@ class hadronicLook2011(supy.analysis) :
         _etRatherThanPt = params["etRatherThanPt"]
         _et = "Et" if _etRatherThanPt else "Pt"
 
-        scanBefore = [supy.steps.filters.label("scanBefore"), steps.gen.scanHistogrammer(htVar = "%sSum%s%s"%(_jet[0], _et, _jet[1]), befOrAf = "Before")] if params["signalScan"]!=None else []
+        scanBefore = [supy.steps.filters.label("scanBefore"),
+                      steps.gen.scanHistogrammer(htVar = "%sSum%s%s"%(_jet[0], _et, _jet[1]), befOrAf = "Before"),
+                      supy.steps.histos.pt("susyIniSumP4", 100, 0.0, 1000.0),
+                      supy.steps.histos.value("isrWeight", 100, 0.0, 2.0),
+                      ] if params["signalScan"]!=None else []
         scanAfter = [supy.steps.filters.label("scanAfter"),
                      steps.gen.scanHistogrammer(htVar = "%sSum%s%s"%(_jet[0], _et, _jet[1]), befOrAf = "After")] if params["signalScan"]!=None else []
         htUpper = [steps.other.variableLessFilter(params["thresholds"][1],"%sSum%s%s"%(_jet[0], _et, _jet[1]), "GeV")] if params["thresholds"][1]!=None else []
@@ -288,18 +291,18 @@ class hadronicLook2011(supy.analysis) :
             #steps.other.skimmer(),
             #steps.other.duplicateEventCheck(),
             #steps.other.cutBitHistogrammer(self.togglePfJet(_jet), self.togglePfMet(_met)),
-            #steps.Print.eventPrinter(),
-            #steps.Print.jetPrinter(_jet),
+            #steps.printer.eventPrinter(),
+            #steps.printer.jetPrinter(_jet),
 
-            #steps.Print.particleP4Printer(_muon),
-            #steps.Print.particleP4Printer(_photon),
-            #steps.Print.recHitPrinter("clusterPF","Ecal"),
-            #steps.Print.htMhtPrinter(_jet),
-            #steps.Print.alphaTPrinter(_jet,_etRatherThanPt),
-            #steps.Gen.genParticlePrinter(minPt = 10.0, minStatus = 3),
+            #steps.printer.particleP4Printer(_muon),
+            #steps.printer.particleP4Printer(_photon),
+            #steps.printer.recHitPrinter("clusterPF","Ecal"),
+            #steps.printer.htMhtPrinter(_jet),
+            #steps.printer.alphaTPrinter(_jet,_etRatherThanPt),
+            #steps.gen.particlePrinter(minPt = 10.0, minStatus = 3),
                    
             #steps.other.pickEventSpecMaker(),
-            #steps.Displayer.displayer(jets = _jet,
+            #steps.displayer.displayer(jets = _jet,
             #                          muons = _muon,
             #                          met       = params["objects"]["met"],
             #                          electrons = params["objects"]["electron"],
@@ -469,7 +472,7 @@ class hadronicLook2011(supy.analysis) :
                      
         qcd_func,g_jets_func = {"py6": (qcd_py6,g_jets_py6),
                                 "py8": (qcd_py8,g_jets_py6), # no g_jets_py8 available
-                                "mg" : (qcd_mg, g_jets_mg ) }[params["mcSoup"]]
+                                "mg" : (qcd_mg, g_jets_mg ) }["py6"]
         #era = "spring11"
         era = "summer11"
         smLumi = 30000 # 1/pb
@@ -537,12 +540,12 @@ class hadronicLook2011(supy.analysis) :
                              pegMinimum = 0.1,
                              blackList = ["lumiHisto","xsHisto","nJobsHisto"],
                              )
-        #pl.plotAll()
-        #smsSamples = ["t1.yos", "t2tt.yos","t2bb.yos"]
-        smsSamples = ["t1_400_300", "t1_400_300.isrWeight"][1:]
-
-        for smsSample in smsSamples :
-            self.makeEfficiencyPlots(org, org.tag, sampleName = smsSample)
+        pl.plotAll()
+        ##smsSamples = ["t1.yos", "t2tt.yos","t2bb.yos"]
+        #smsSamples = ["t1_400_300", "t1_400_300.isrWeight"][1:]
+        #
+        #for smsSample in smsSamples :
+        #    self.makeEfficiencyPlots(org, org.tag, sampleName = smsSample)
 
     def makeIndividualPlots(self, org) :
         #plot all
@@ -618,7 +621,7 @@ class hadronicLook2011(supy.analysis) :
 
         def numerAndDenom(org, var) :
             d = {}
-            print org
+            #print org
             for selection in org.steps :
                 if selection.name!= "scanHistogrammer" : continue
                 #if   "scanBefore" in selection.title : label = "before"
