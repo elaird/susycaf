@@ -66,7 +66,7 @@ class photonLook(supy.analysis) :
                  calculables.jet.IndicesBtagged2(obj["jet"], tag = "CombinedSecondaryVertexBJetTags", threshold = 0.679),
 
                  
-                 calculables.muon.Indices( obj["muon"], ptMin = 10, ID = "IdPog2012Tight", usePfIso = True, pfRelIsoMax = 0.20),
+                 calculables.muon.Indices( obj["muon"], ptMin = 10, isoMax = 0.20, ISO = "PfIsolationR04DeltaBCorrected", ID = "IdPog2012Tight"),
                  calculables.electron.Indices( obj["electron"], ptMin = 10, flag2012 = "Veto"),
                  calculables.photon.Indices(obj["photon"], ptMin = 25, flagName = params["photonId"]),
                  calculables.photon.CombinedIsoDR03RhoCorrected(obj["photon"]),

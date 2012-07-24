@@ -329,7 +329,8 @@ class anyTrigger(analysisStep) :
     def __init__(self, sortedListOfPaths = [], unreliable = {}) :
         self.sortedListOfPaths = sortedListOfPaths
         self.unreliable = unreliable
-        self.moreName = "any of "+','.join(self.sortedListOfPaths).replace("HLT_","")
+        
+        self.moreName = "any of "+utils.contract(self.sortedListOfPaths)
         
     def select(self, ev) :
         return any(ev['triggered'][item] for item in self.sortedListOfPaths if item not in self.unreliable or ev['prescaled'][item] not in self.unreliable[item])

@@ -162,20 +162,16 @@ class IndicesNonIso(calculables.IndicesOther) :
         self.moreName = "pass ptMin & id; fail iso"
 ##############################
 class Indices(wrappedChain.calculable) :
-    def __init__(self, collection = None, ptMin = None, combinedRelIsoMax = None, requireIsGlobal = True,
-                 ID = "IDtight", usePfIso = False, pfRelIsoMax = None) :
+    def __init__(self, collection = None, ptMin = None, isoMax = None, requireIsGlobal = True , ID = "IDtight", ISO = "CombinedRelativeIso", absEtaMax = 1000) :
         self.fixes = collection
         self.requireIsGlobal = requireIsGlobal
-        self.usePfIso = usePfIso
-        self.stash(["IndicesNonIso","IndicesOther","P4","IsGlobalMuon"] + (["PfIsolationR04DeltaBCorrected"] if self.usePfIso else ["CombinedRelativeIso"]))
+        self.stash(["IndicesNonIso","IndicesOther","P4","IsGlobalMuon"])
         self.ID = ID.join(collection)
+        self.ISO = ISO.join(collection)
         self.ptMin = ptMin
-        if self.usePfIso :
-            self.relIsoMax = pfRelIsoMax
-            self.moreName = "%s; pt>%.1f GeV; pfRelIso<%.2f"%( ID, ptMin, self.relIsoMax )
-        else :
-            self.relIsoMax = combinedRelIsoMax
-            self.moreName = "%s; pt>%.1f GeV; cmbRelIso<%.2f"%( ID, ptMin, combinedRelIsoMax )
+        self.absEtaMax = absEtaMax
+        self.isoMax = isoMax
+        self.moreName = "%s; pt>%.1f GeV; %s<%.2f"%( ID, ptMin, ISO, isoMax )
 
     def update(self,ignored) :
         self.value = []
@@ -183,13 +179,15 @@ class Indices(wrappedChain.calculable) :
         other  = self.source[self.IndicesOther]
         p4s    = self.source[self.P4]
         id  = self.source[self.ID]
-        relIso = self.source[self.PfIsolationR04DeltaBCorrected] if self.usePfIso else self.source[self.CombinedRelativeIso]
+        iso = self.source[self.ISO]
         isGlobal = self.source[self.IsGlobalMuon]
         for i in range(p4s.size()) :
-            if p4s.at(i).pt() < self.ptMin : continue
+            p4 = p4s.at(i)
+            if p4.pt() < self.ptMin : continue
             if self.requireIsGlobal and not isGlobal.at(i) : continue
+            if self.absEtaMax < abs(p4.eta()) : continue
             if id[i] :
-                if relIso[i] < self.relIsoMax :
+                if iso[i] < self.isoMax :
                     self.value.append(i)
                 else: nonIso.append(i)
             else: other.append(i)
@@ -322,3 +320,25 @@ class MinJetDR(wrappedChain.calculable) :
         jet = self.source[self.CorrectedP4]
         for iMu in range(len(mu)) :
             self.value.append( min([r.Math.VectorUtil.DeltaR(mu[iMu],jet[iJet]) for iJet in self.source[self.Indices] if self.ptMin < jet[iJet].pt() ]+[5]) )
+##############################
+class IndicesIsoLoose(wrappedChain.calculable) :
+    def __init__(self,collection = None, ptMin = None, absEtaMax = None , iso = "PFIsoRel", isoMax = None) :
+        self.fixes = collection
+        self.stash(["IsGlobalMuon","P4"])
+        self.ptMin = ptMin
+        self.absEtaMax = absEtaMax
+        self.iso = iso.join(collection)
+        self.isoMax = isoMax
+    
+    def update(self,_) :
+        self.value = []
+        p4s = self.source[self.P4]
+        isos = self.source[self.iso]
+        isGlobal = self.source[self.IsGlobalMuon]
+        for i in range(len(p4s)) :
+            p4 = p4s[i]
+            if p4.pt() < self.ptMin : break
+            if ( abs(p4.eta()) < self.absEtaMax and
+                 isos[i] < self.isoMax and
+                 isGlobal[i]
+                 ) : self.value.append(i)
