@@ -99,7 +99,7 @@ class hadronicLook2011(supy.analysis) :
                                                 ("675",        (675.0, None,  100.0, 50.0)),#5
                                                 ][2:3] )),
                  "triggerList" : triggers_mht_2011, 
-                 "isrVariation" : self.vary({"":False,"isrVariation":True}), 
+                 "isrVariation" : self.vary(dict([("",False), ("isrVariation",True)][1:])),
                  }
 
     def ra1Cosmetics(self) : return False
@@ -145,7 +145,7 @@ class hadronicLook2011(supy.analysis) :
             calculables.xclean.IndicesUnmatched(collection = obj["photon"], xcjets = obj["jet"], DR = 0.5),
             calculables.xclean.IndicesUnmatched(collection = obj["electron"], xcjets = obj["jet"], DR = 0.5),
 
-            calculables.muon.Indices( obj["muon"], ptMin = 10, combinedRelIsoMax = 0.15),
+            calculables.muon.Indices( obj["muon"], ptMin = 10, isoMax = 0.15),
             calculables.electron.Indices( obj["electron"], ptMin = 10, simpleEleID = "95", useCombinedIso = True),
             calculables.photon.Indices(obj["photon"], ptMin = 25, flagName = "photonIDLooseFromTwikiPat"),
             
@@ -326,7 +326,8 @@ class hadronicLook2011(supy.analysis) :
         #sampleDict.add("Data_High_HT", '["~/nobackup/supy-output/hadronicLook/675_ge2_caloAK5JetMet_recoLepPhot_pythia6/High_HT_skim.root"]', lumi = 1.1e3)
         sampleDict.add("t1_1000_50", '["/uscms/home/yeshaq/nobackup/supy-output/smsSkim1000_50/t1_1000_50.root"]', xs = 1.0)
         sampleDict.add("t1_1000_600", '["/uscms/home/yeshaq/nobackup/supy-output/smsSkim1000_600/t1_1000_600.root"]', xs = 1.0)
-        sampleDict.add("t1_400_300", '["/uscms/home/yeshaq/nobackup/supy-output/smsSkim400_300/t1_400_300.root"]', xs = 1.0)        
+        #sampleDict.add("t1_400_300", '["/uscms/home/yeshaq/nobackup/supy-output/smsSkim400_300/t1_400_300.root"]', xs = 1.0)
+        sampleDict.add("t1_400_300", '["t1_400_300.root"]', xs = 1.0)
         sampleDict.add("t1_3_points", '["/uscms/home/yeshaq/nobackup/supy-output/smsSkim/sms_3_points.root"]', xs = 1.0)
 
         #return [sampleDict]
@@ -452,10 +453,11 @@ class hadronicLook2011(supy.analysis) :
             
         def sms() :
             out = []
-            t1weight = calculables.isrWeight(model = "T1")
-            t2weight = calculables.isrWeight(model = "T2")
+            t1weight = calculables.gen.isrWeight(model = "T1")
+            t2weight = calculables.gen.isrWeight(model = "T2")
             
-            out += specify(names = "t1.yos", weights = [t1weight] if params["isrVariation"] else [])#, nFilesMax = 1, nEventsMax = 10000)
+            out += specify(names = "t1_400_300", weights = [t1weight] if params["isrVariation"] else [], nFilesMax = 1, nEventsMax = 1000)
+            #out += specify(names = "t1.yos", weights = [t1weight] if params["isrVariation"] else [])#, nFilesMax = 1, nEventsMax = 10000)
             #out += specify(names = "t2tt.yos")#, nFilesMax = 1, nEventsMax = 10000)
             #out += specify(names = "t2bb.yos")#, nFilesMax = 1, nEventsMax = 200)
             
@@ -536,8 +538,8 @@ class hadronicLook2011(supy.analysis) :
                              blackList = ["lumiHisto","xsHisto","nJobsHisto"],
                              )
         #pl.plotAll()
-        smsSamples = ["t1.yos", "t2tt.yos","t2bb.yos"]
-        #smsSamples = ["t1_400_300"]
+        #smsSamples = ["t1.yos", "t2tt.yos","t2bb.yos"]
+        smsSamples = ["t1_400_300", "t1_400_300.isrWeight"][1:]
 
         for smsSample in smsSamples :
             self.makeEfficiencyPlots(org, org.tag, sampleName = smsSample)
@@ -616,8 +618,8 @@ class hadronicLook2011(supy.analysis) :
 
         def numerAndDenom(org, var) :
             d = {}
+            print org
             for selection in org.steps :
-                print selection.title
                 if selection.name!= "scanHistogrammer" : continue
                 #if   "scanBefore" in selection.title : label = "before"
                 #elif "scanAfter" in selection.title : label = "after"

@@ -486,11 +486,16 @@ class SemileptonicTopIndex(wrappedChain.calculable) :
         self.value = next( iter(self.source["IndicesAnyIsoIsoOrder".join(self.source["TopLeptons"])]), None )
 #####################################
 class TopReconstruction(wrappedChain.calculable) :
-    def __init__(self) :
+    def __init__(self, bscale = 1.1, eCoupling = 0.55, v2had = False, v2lep = True ) :
         theta = math.pi/6
         self.ellipseR = np.array([[math.cos(theta),-math.sin(theta)],[math.sin(theta), math.cos(theta)]])
         self.epsilon = 1e-7
-        self.bscale = 1.1
+        for item in ['bscale',    # factor by which to scale hypothesized b jets
+                     'eCoupling', # percentage of jet resolution used to sharpen MET resolution
+                     'v2had',     # v2 (1parameter,3residuals) is twice as fast as v1 (3parameters,5residuals) but 5% less accurate
+                     'v2lep'      # no comment: read the codes
+                     ] : setattr(self,item,eval(item))
+        self.moreName = "bscale:%.1f; eCoupl:%.2f; v%dhad; v%dlep"%(bscale,eCoupling,v2had+1,v2lep+1)
 
     def update(self,_) :
         
@@ -501,60 +506,103 @@ class TopReconstruction(wrappedChain.calculable) :
                        for item in ["Charge","P4"])
 
         topP = self.source["TopComboQQBBProbability"]
-        maxP = self.source["TopComboQQBBMaxProbability"]
         bIndices = jets["IndicesBtagged"][:5] #consider only the first few b-tagged jets as possible b-candidates
-        ntrk = self.source["CountwithPrimaryHighPurityTracks".join(self.source["TopJets"]["fixesStripped"])]
         
-        recos = []        
+        recos = []
         for iPQH in itertools.permutations(jets["Indices"],3) :
             if iPQH[0]>iPQH[1] : continue
             if iPQH[2] not in bIndices : continue
             if np.dot(*(2*[self.ellipseR.dot(jets["ComboPQBDeltaRawMassWTop"][iPQH]) / [35,70]])) > 1 : continue # elliptical window on raw masses
 
-            hadFit = utils.fitKinematic.leastsqHadronicTop(*zip(*((jets["CorrectedP4"][i]*(self.bscale if i==2 else 1), jets["Resolution"][i]) for i in iPQH)), widthW = 4./2 ) #tuned w width
-            sumP4 = self.source["mixedSumP4"] - hadFit.rawT + hadFit.fitT
-            nuErr = self.source["metCovariancePF"] - sum( jets["CovariantResolution2"][i] for i in iPQH )
-            nuXY = -np.array([sumP4.x(), sumP4.y()])
+            hadFit = utils.fitKinematic.leastsqHadronicTop2(*zip(*((jets["CorrectedP4"][i]*(self.bscale if i==2 else 1), jets["Resolution"][i]) for i in iPQH)) ) if self.v2had else \
+                     utils.fitKinematic.leastsqHadronicTop( *zip(*((jets["CorrectedP4"][i]*(self.bscale if i==2 else 1), jets["Resolution"][i]) for i in iPQH)), widthW = 4./2 ) #tuned w width
 
-            for iL in bIndices :
-                if iL in iPQH : continue
+            sumP4 = self.source["mixedSumP4"] - hadFit.rawT + hadFit.fitT
+            nuXY = -np.array([sumP4.x(), sumP4.y()])
+            nuErr2 = sum([-self.eCoupling*jets["CovariantResolution2"][i] for i in iPQH], self.source["metCovariancePF"])
+
+            for iL in set(bIndices)-set(iPQH) :
                 iPQHL = iPQH+(iL,)
                 iQQBB = iPQHL[:2]+tuple(sorted(iPQHL[2:]))
-                
-                #if sorted([ntrk[i] for i in iPQHL])[1]<4 : continue
-                #if sorted([ntrk[i] for i in iPQHL])[0]<3 : continue
-                #if sorted([ntrk[i] for i in iPQHL])[1]<3 : continue
+                b = jets["CorrectedP4"][iL]
+                nuXY_b = nuXY - (self.bscale - 1)*np.array([b.y(),b.y()])
+                nuErr2_b = nuErr2-self.eCoupling*jets["CovariantResolution2"][iL]
+                lepFit = utils.fitKinematic.leastsqLeptonicTop2( b*self.bscale, jets["Resolution"][iL], lepton["P4"], nuXY_b, nuErr2_b) if self.v2lep else \
+                         min( utils.fitKinematic.leastsqLeptonicTop( b*self.bscale, jets["Resolution"][iL], lepton["P4"], nuXY_b, nuErr2_b, zPlus = True ),
+                              utils.fitKinematic.leastsqLeptonicTop( b*self.bscale, jets["Resolution"][iL], lepton["P4"], nuXY_b, nuErr2_b, zPlus = False ),
+                              key = lambda x: x.chi2 )
+                tt = hadFit.fitT + lepFit.fitT
+                iX,ttx = min( [(None,tt)]+[(i,tt+jets["CorrectedP4"][i]) for i in jets["Indices"] if i not in iPQHL], key = lambda lv : lv[1].pt() )
+                recos.append( {"nu"   : lepFit.fitNu,       "hadP" : hadFit.fitJ[0],
+                               "lep"  : lepFit.mu,          "hadQ" : hadFit.fitJ[1],
+                               "lepB" : lepFit.fitB,        "hadB" : hadFit.fitJ[2],
+                               "lepW" : lepFit.fitW,        "hadW" : hadFit.fitW,
+                               "lepTopP4" : lepFit.fitT,    "hadTopP4": hadFit.fitT,
+                               "lepChi2" : lepFit.chi2,     "hadChi2" : hadFit.chi2,
+                               "chi2" : hadFit.chi2 + lepFit.chi2,
+                               "probability" : max(self.epsilon,topP[iQQBB]),
 
-                for zPlus in [0,1] :
-                    lepFit = utils.fitKinematic.leastsqLeptonicTop( jets["CorrectedP4"][iL]*self.bscale, jets["Resolution"][iL], lepton["P4"], nuXY, nuErr-jets["CovariantResolution2"][iL], zPlus = zPlus )
-                    tt = hadFit.fitT + lepFit.fitT
-                    iX,ttx = min( [(None,tt)]+[(i,tt+jets["CorrectedP4"][i]) for i in jets["Indices"] if i not in iPQHL], key = lambda lv : lv[1].pt() )
-                    recos.append( {"nu"   : lepFit.fitNu,       "hadP" : hadFit.fitJ[0],
-                                   "lep"  : lepFit.mu,          "hadQ" : hadFit.fitJ[1],
-                                   "lepB" : lepFit.fitB,        "hadB" : hadFit.fitJ[2],
-                                   "lepW" : lepFit.fitW,        "hadW" : hadFit.fitW,   
-                                   "lepTopP4" : lepFit.fitT,    "hadTopP4": hadFit.fitT,
-                                   "lepChi2" : lepFit.chi2,     "hadChi2" : hadFit.chi2,
-                                   "chi2" : hadFit.chi2 + lepFit.chi2,
-                                   "probability" : max(self.epsilon,topP[iQQBB]),
-                                   "key" : hadFit.chi2 + lepFit.chi2 - 2*math.log(max(self.epsilon,topP[iQQBB])),
+                               "top"  : lepFit.fitT if lepton["Charge"] > 0 else hadFit.fitT,
+                               "tbar" : hadFit.fitT if lepton["Charge"] > 0 else lepFit.fitT,
+                               "ttx" : ttx, "iX" : iX,
 
-                                   "top"  : lepFit.fitT if lepton["Charge"] > 0 else hadFit.fitT,
-                                   "tbar" : hadFit.fitT if lepton["Charge"] > 0 else lepFit.fitT,
-                                   "ttx" : ttx, "iX" : iX,
+                               "iPQHL": iPQHL,
+                               "lepCharge": lepton["Charge"], "hadTraw" : hadFit.rawT, "lepTraw" : lepFit.rawT,
+                               "lepBound" : lepFit.bound,     "hadWraw" : hadFit.rawW, "lepWraw" : lepFit.rawW,
+                               "sumP4": sumP4 - b + lepFit.fitB,
+                               "nuErr2":nuErr2_b,
+                               "residuals" : dict( zip(["lep"+i for i in "BSLT"],  lepFit.residualsBSLT ) +
+                                                   zip(["had"+i for i in "PQBWT"], hadFit.residualsPQBWT ) ),
+                               "nuEllipse"       : lepFit.Ellipse,
+                               "nuSolutions"     : lepFit.solutions,
+                               "nuChi2Matrix"    : lepFit.M
+                               })
+                recos[-1]["key"] = recos[-1]['chi2'] - 2*math.log(recos[-1]['probability'])
 
-                                   "iPQHL": iPQHL,
-                                   "lepCharge": lepton["Charge"], "hadTraw" : hadFit.rawT, "lepTraw" : lepFit.rawT,
-                                   "lepBound" : lepFit.bound,     "hadWraw" : hadFit.rawW, "lepWraw" : lepFit.rawW,
-                                   "sumP4": sumP4,
-                                   "residuals" : dict( zip(["lep"+i for i in "BSLT"],  lepFit.residualsBSLT ) +
-                                                       zip(["had"+i for i in "PQBWT"], hadFit.residualsPQBWT ) )
-                                   })
-                if 0.01 > r.Math.VectorUtil.DeltaR(recos[-2]['nu'],recos[-1]['nu']) :
-                    recos.pop(max(-1,-2, key = lambda i: recos[i]['lepChi2']))
-                    
         self.value = sorted( recos,  key = lambda x: x["key"] )
+
+######################################
+class TTbarSignExpectation(wrappedChain.calculable) :
+
+    def __init__(self, nSamples = 16, qDirFunc = None ) :
+        self.nSamples = nSamples
+        self.qDirFunc = qDirFunc
+        self.moreName = "%d samples; %s"%(nSamples,qDirFunc)
+        self.nu = utils.LorentzV()
+
+    def signExpect(self,topReco) :
+        samples = []
+        lep = topReco['lepTopP4']
+        had = topReco['hadTopP4']
+        had_y = had.Rapidity()
+        hadIsTop = topReco['lepCharge'] < 0
+        bmu = topReco['lep'] + topReco['lepB']
+        qDirFunc = self.source[self.qDirFunc] if self.qDirFunc else (lambda L,H : 1 if L.Rapidity()+H.Rapidity() > 0 else -1)
         
+        c,s = topReco['nuSolutions'][0][:2]
+        Ellipse = topReco['nuEllipse']
+        M = topReco['nuChi2Matrix']
+        if not (s or c) : return qDirFunc(had,lep) * (-1)**(hadIsTop^( lep.Rapidity() < had_y))
+        tau_0 = math.atan2(s,c)
+        for tau in np.arange(tau_0, tau_0 + 2*math.pi, 2*math.pi/self.nSamples)[::-1] :
+            sol = np.array([math.cos(tau),math.sin(tau),1])
+            chi2 = sol.T.dot(M.dot(sol))
+            x,y,z = Ellipse.dot(sol)
+            self.nu.SetPxPyPzE(x,y,z,0); self.nu.SetM(0)
+            lep = bmu + self.nu
+            samples.append( (math.exp(-0.5*chi2),
+                             qDirFunc(had,lep) * (-1)**(hadIsTop^( lep.Rapidity() < had_y ) ) ) )
+
+        xw = sum(p*sdy for p,sdy in samples)
+        w = sum(p for p,sdy in samples)
+        return xw / w if w else 0
+
+    def update(self,_) :
+        signs = [ (math.exp(-0.5*reco['key']),
+                   self.signExpect(reco)) for reco in self.source["TopReconstruction"]]
+        xw = sum(p*sign for p,sign in signs)
+        w = sum(p for p,sign in signs)
+        self.value =  xw / w if w else 0
 ######################################
 class kinfitFailureModes(wrappedChain.calculable) :
     def update(self,_) : 
