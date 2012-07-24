@@ -74,7 +74,7 @@ class scanHistogrammer(analysisStep) :
         self.lo = (self.m0Lo, self.m12Lo)
         self.hi = (self.m0Hi, self.m12Hi)
 
-        self.htBins = self.pairs([250, 300, 350, 450]) + self.pairs([275, 325] + [375+100*i for i in range(6)]) + self.pairs([375])
+        self.htBins = self.pairs([275, 325] + [375+100*i for i in range(6)]) + self.pairs([375])
         self.htStrings = self.strings(self.htBins, befOrAf)
         
     def pairs(self, l) :
