@@ -110,17 +110,6 @@ class signCheck(analysisStep) :
         self.book.fill( ev["TTbarSignExpectation"] * signGenTT_DDY, "TTbarSignExpectation_trueSign", 41, -1, 1, title = ";<sign #Delta y>_{t#bar{t}} . trueSign;events / bin")
         self.book.fill( ev["TTbarSignExpectation"] * signGenTT_DDY, "TTbarSignExpectation_trueSign_2bin", 2, -1, 1, title = ";<sign #Delta y>_{t#bar{t}} . trueSign;events / bin")
 
-
-        #nuIndex = ev['genTTbarIndices']['nu']
-        #if nuIndex == None : return
-        #nu = ev['genP4'][nuIndex]
-        #reco = ev["TopReconstruction"]
-        #genIndex = ev['genTopRecoIndex']
-        #self.book.fill( reco[0]['nu'].z() - nu.z(), "DeltaNuZ_fitReco", 20, -100, 100, title = ";fitReco #Delta z_{#nu};events / bin")
-        #self.book.fill( 1 if reco[0]['nu'].z()* nu.z()>0 else -1, "SignNuZ_fitReco", 20, -100, 100, title = ";fitReco sign z_{#nu};events / bin")
-        #if genIndex < 0 : return
-        #self.book.fill( reco[genIndex]['nu'].z() - nu.z(), "DeltaNuZ_genReco", 20, -100, 100, title = ";genReco #Delta z_{#nu};events / bin")
-        #self.book.fill( 1 if reco[genIndex]['nu'].z()* nu.z()>0 else -1, "SignNuZ_genReco", 20, -100, 100, title = ";genReco sign z_{#nu};events / bin")
 #####################################
 class Spin(analysisStep) :
     def __init__(self, collection) :
