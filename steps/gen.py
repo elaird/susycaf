@@ -1,30 +1,11 @@
 import collections, ROOT as r
 from supy import utils,analysisStep
 #####################################
-pdgLookupExists=False
 try:
     import pdgLookup
-    pdgLookupExists=True
+    pdgLookupExists = True
 except ImportError:
-    pass
-#####################################
-class susyScanPointPrinter(analysisStep) :
-
-    def __init__(self) :
-        self.leavesToPrint=["susyScanA0",
-                            "susyScanCrossSection",
-                            "susyScanM0",
-                            "susyScanM12",
-                            "susyScanMu",
-                            "susyScanRun",
-                            "susyScantanbeta"
-                            ]
-        
-    def uponAcceptance (self,eventVars) :
-        outString=""
-        for leafName in self.leavesToPrint :
-            outString+=leafName.replace("susyScan","")+" = "+str(eventVars[leafName])+"\t"
-        print outString
+    pdgLookupExists = False
 #####################################
 class genJetPrinter(analysisStep) :
 
@@ -193,7 +174,7 @@ class genParticleCountHistogrammer(analysisStep) :
         self.book.fill( (m0, m12), self.histoBaseName+"XS", self.bins, self.lo, self.hi,
                                    w = xs, title = self.histoBaseName+"XS;m_{0} (GeV);m_{1/2} (GeV)")
 #####################################
-class genParticlePrinter(analysisStep) :
+class particlePrinter(analysisStep) :
 
     def __init__(self,minPt=-1.0,minStatus=-1):
         self.oneP4=utils.LorentzV()
@@ -209,9 +190,9 @@ class genParticlePrinter(analysisStep) :
         mothers=set(eventVars["genMotherIndex"])
         print "pthat: ",eventVars["genpthat"]
         print "mothers: ",mothers
-        print "---------------------------------------------------------------------------"
-        print " i  st    mo         id            name        E        pt       eta    phi"
-        print "---------------------------------------------------------------------------"
+        print "-----------------------------------------------------------------------------------"
+        print " i  st    mo         id            name        E        pt       eta    phi    mass"
+        print "-----------------------------------------------------------------------------------"
 
         size=len(eventVars["genP4"])
         for iGen in range(size) :
@@ -236,6 +217,7 @@ class genParticlePrinter(analysisStep) :
             outString+="  %#8.1f"%p4.pt()
             outString+="  %#8.1f"%p4.eta()
             outString+="  %#5.1f"%p4.phi()
+            outString+="  %#6.1f"%p4.mass()
             #outString+="  %#5.1f"%p4.mass()
         
             if not (iGen in mothers) :
