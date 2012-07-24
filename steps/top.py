@@ -614,7 +614,7 @@ class collisionType(calculables.secondary) :
         c.Print(fileName+'.pdf]')
         r.gStyle.SetOptStat(optstat)
         print "Wrote file: %s.pdf"%fileName
-            
+
 
 class mcQuestions(analysisStep) :
 
@@ -629,13 +629,13 @@ class mcQuestions(analysisStep) :
         glus = [i for i in range(8,12) if id[i]==21]
         nglu = len(glus)
         qqbarMttbar = qqbar - ttbar
-        
+
         self.book.fill(nglu, 'N gluons', 5,-0.5,4.5, title = 'N gluons')
         self.book.fill(qqbar.pt() , 'qqbarpt%d'%nglu, 100,0,50, title = ';q#bar{q} pt, nGlu=%d;'%nglu)
         self.book.fill(ttbar.pt() , 'ttbarpt%d'%nglu, 100,0,50, title = ';t#bar{t} pt, nGlu=%d;'%nglu)
         self.book.fill(sum([p4[i] for i in glus],-qqbarMttbar).pt(), 'qqbarMttbarglus%d'%nglu, 10,0,20, title = ';(q#bar{q} - t#bar{t} - glus) pt, nGlu=%d'%nglu)
         if id[8]==21 :
-            for i in glus : 
+            for i in glus :
                 cmzGlu = qqcmzboost( p4[i] )
                 cmGlu  = qqcmboost( p4[i] )
                 self.book.fill(cmGlu.P(), 'cmgluP', 200,0,200, title = ';q#bar{q}cm gluP')
