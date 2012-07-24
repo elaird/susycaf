@@ -98,7 +98,8 @@ class hadronicLook2011(supy.analysis) :
                                                 ("275_scaled", (275.0, 325.0,  73.3, 36.7)),#4
                                                 ("675",        (675.0, None,  100.0, 50.0)),#5
                                                 ][2:3] )),
-                 "triggerList": triggers_mht_2011, 
+                 "triggerList" : triggers_mht_2011, 
+                 "isrVariation" : self.vary({"":False,"isrVariation":True}), 
                  }
 
     def ra1Cosmetics(self) : return False
@@ -449,15 +450,17 @@ class hadronicLook2011(supy.analysis) :
 
             return specify(names = "lm6", effectiveLumi = eL, color = r.kRed)
             
-        def smst1() :
+        def sms() :
             out = []
+            t1weight = calculables.isrWeight(model = "T1")
+            t2weight = calculables.isrWeight(model = "T2")
             
-            out += specify(names = "t1.yos")#, nFilesMax = 1, nEventsMax = 10000)
-            out += specify(names = "t2tt.yos")#, nFilesMax = 1, nEventsMax = 10000)
-            out += specify(names = "t2bb.yos")#, nFilesMax = 1, nEventsMax = 200)
+            out += specify(names = "t1.yos", weights = [t1weight] if params["isrVariation"] else [])#, nFilesMax = 1, nEventsMax = 10000)
+            #out += specify(names = "t2tt.yos")#, nFilesMax = 1, nEventsMax = 10000)
+            #out += specify(names = "t2bb.yos")#, nFilesMax = 1, nEventsMax = 200)
             
             return out
-#            return specify(names = "t1_3_points")
+            #return specify(names = "t1_400_300")
 
         def scan(tanBeta) :
             return specify(names = "scan_tanbeta%d"%tanBeta, color = r.kMagenta, nFilesMax = 1)
@@ -474,7 +477,7 @@ class hadronicLook2011(supy.analysis) :
 #                 qcd_func(smLumi) + #g_jets_func(eL) +
 #                 ttbar_mg(smLumi, era = era) + ewk(smLumi, era = era) +
 #                 susy(susyLumi))
-                  smst1())
+                  sms())
 #                 ) if params["tanBeta"]==None else scan(params["tanBeta"])
 #
 
@@ -534,6 +537,8 @@ class hadronicLook2011(supy.analysis) :
                              )
         #pl.plotAll()
         smsSamples = ["t1.yos", "t2tt.yos","t2bb.yos"]
+        #smsSamples = ["t1_400_300"]
+
         for smsSample in smsSamples :
             self.makeEfficiencyPlots(org, org.tag, sampleName = smsSample)
 
@@ -612,6 +617,7 @@ class hadronicLook2011(supy.analysis) :
         def numerAndDenom(org, var) :
             d = {}
             for selection in org.steps :
+                print selection.title
                 if selection.name!= "scanHistogrammer" : continue
                 #if   "scanBefore" in selection.title : label = "before"
                 #elif "scanAfter" in selection.title : label = "after"
