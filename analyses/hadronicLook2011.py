@@ -96,7 +96,7 @@ class hadronicLook2011(supy.analysis) :
                                                 ("325_scaled", (325.0, 375.0,  86.7, 43.3)),#3
                                                 ("275_scaled", (275.0, 325.0,  73.3, 36.7)),#4
                                                 ("675",        (675.0, None,  100.0, 50.0)),#5
-                                                ][2:3] )),
+                                                ][3:5] )),
                  "triggerList" : triggers_mht_2011, 
                  "isrVariation" : self.vary(dict([("",False), ("isrVariation",True)])),
                  }
@@ -191,7 +191,7 @@ class hadronicLook2011(supy.analysis) :
                 scanBefore += [supy.steps.histos.pt("susyIniSumP4", 100, 0.0, 1000.0),
                                supy.steps.histos.value("isrWeight", 100, 0.0, 2.0),
                                ]
-        htUpper = [steps.other.variableLessFilter(params["thresholds"][1],"%sSum%s%s"%(_jet[0], _et, _jet[1]), "GeV")] if params["thresholds"][1]!=None else []
+        htUpper = [supy.steps.filters.value("%sSum%s%s"%(_jet[0], _et, _jet[1]), max = params["thresholds"][1])] if params["thresholds"][1]!=None else []
         return scanBefore + [
             supy.steps.printer.progressPrinter(),
             #steps.trigger.lowestUnPrescaledTriggerFilter(),
@@ -335,8 +335,8 @@ class hadronicLook2011(supy.analysis) :
         #sampleDict.add("Data_High_HT", '["~/nobackup/supy-output/hadronicLook/675_ge2_caloAK5JetMet_recoLepPhot_pythia6/High_HT_skim.root"]', lumi = 1.1e3)
         sampleDict.add("t1_1000_50", '["/uscms/home/yeshaq/nobackup/supy-output/smsSkim1000_50/t1_1000_50.root"]', xs = 1.0)
         sampleDict.add("t1_1000_600", '["/uscms/home/yeshaq/nobackup/supy-output/smsSkim1000_600/t1_1000_600.root"]', xs = 1.0)
-        #sampleDict.add("t1_400_300", '["/uscms/home/yeshaq/nobackup/supy-output/smsSkim400_300/t1_400_300.root"]', xs = 1.0)
-        sampleDict.add("t1_400_300", '["t1_400_300.root"]', xs = 1.0)
+        sampleDict.add("t1_400_300", '["/uscms/home/yeshaq/nobackup/supy-output/smsSkim400_300/t1_400_300.root"]', xs = 1.0)
+#        sampleDict.add("t1_400_300", '["t1_400_300.root"]', xs = 1.0)
         sampleDict.add("t1_3_points", '["/uscms/home/yeshaq/nobackup/supy-output/smsSkim/sms_3_points.root"]', xs = 1.0)
 
         #return [sampleDict]
@@ -465,10 +465,13 @@ class hadronicLook2011(supy.analysis) :
             t1weight = calculables.gen.isrWeight(model = "T1")
             t2weight = calculables.gen.isrWeight(model = "T2")
             
-            out += specify(names = "t1_400_300", weights = [t1weight] if params["isrVariation"] else [], nFilesMax = 1, nEventsMax = 1000)
-            #out += specify(names = "t1.yos", weights = [t1weight] if params["isrVariation"] else [])#, nFilesMax = 1, nEventsMax = 10000)
-            #out += specify(names = "t2tt.yos")#, nFilesMax = 1, nEventsMax = 10000)
-            #out += specify(names = "t2bb.yos")#, nFilesMax = 1, nEventsMax = 200)
+            #out += specify(names = "t1_400_300", weights = [t1weight] if params["isrVariation"] else [], nFilesMax = 1, nEventsMax = 1000)
+            out += specify(names = "t1.yos", weights = [t1weight] if params["isrVariation"] else [])#, nFilesMax = 1, nEventsMax = 200)
+            out += specify(names = "t2.yos", weights = [t2weight] if params["isrVariation"] else [])#, nFilesMax = 1, nEventsMax = 200)
+            out += specify(names = "t2tt.yos", weights = [t2weight] if params["isrVariation"] else [])#, nFilesMax = 1, nEventsMax = 200)
+            out += specify(names = "t2bb.yos", weights = [t2weight] if params["isrVariation"] else [])#, nFilesMax = 1, nEventsMax = 200)
+            out += specify(names = "t1tttt.yos", weights = [t1weight] if params["isrVariation"] else [])#, nFilesMax = 1, nEventsMax = 200)
+            out += specify(names = "t1bbbb.yos", weights = [t1weight] if params["isrVariation"] else [])#, nFilesMax = 1, nEventsMax = 200)
             
             return out
             #return specify(names = "t1_400_300")
@@ -546,12 +549,10 @@ class hadronicLook2011(supy.analysis) :
                              pegMinimum = 0.1,
                              blackList = ["lumiHisto","xsHisto","nJobsHisto"],
                              )
-        pl.plotAll()
-        ##smsSamples = ["t1.yos", "t2tt.yos","t2bb.yos"]
-        #smsSamples = ["t1_400_300", "t1_400_300.isrWeight"][1:]
-        #
-        #for smsSample in smsSamples :
-        #    self.makeEfficiencyPlots(org, org.tag, sampleName = smsSample)
+        #pl.plotAll()
+
+        for dct in org.samples :
+                self.makeEfficiencyPlots(org, org.tag, sampleName = dct["name"])
 
     def makeIndividualPlots(self, org) :
         #plot all
@@ -620,14 +621,22 @@ class hadronicLook2011(supy.analysis) :
 
 
     def makeEfficiencyPlots(self, org, tag, sampleName) :
+        
+
         def sampleIndex(org, name) :
             for iSample,sample in enumerate(org.samples) :
-                if sample["name"]==name : return iSample
+                #print "---We're in sampleIndex---\n"
+                #print org.samples
+                #print "name = %s"%name, "and sample['name'] = ", sample["name"]
+                #print "--------------------------\n"
+                if sample["name"]==name :
+                    #print "iSample = %s"%iSample, "\n\n\n\n\n"
+                    return iSample                
             assert False, "could not find sample %s"%name
 
         def numerAndDenom(org, var) :
             d = {}
-            #print org
+        
             for selection in org.steps :
                 if selection.name!= "scanHistogrammer" : continue
                 #if   "scanBefore" in selection.title : label = "before"
