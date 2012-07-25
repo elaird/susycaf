@@ -286,7 +286,7 @@ class topAsymm(supy.analysis) :
  
              , ssteps.histos.pt("mixedSumP4",100,0,300),
              ssteps.filters.value('ecalDeadCellTPFilterFlag',min=1),
-             steps.jet.failedJetVeto( obj["jet"], ptMin = 20, id = "PFJetIDloose"),
+             steps.jet.failedJetVeto( obj["jet"], ptMin = 20, id = "PFJetIDloose")
              , ssteps.histos.pt("mixedSumP4",100,0,300)
 
              , ssteps.histos.value( lIso, 55,0,1.1, indices = lIndices, index=0),
