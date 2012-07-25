@@ -125,7 +125,7 @@ class topAsymm(supy.analysis) :
         lname = pars['lepton']["name"]
 
         def qcd_py6_mu(eL = None) :
-            if lname == "electron" : return []
+            if True or lname == "electron" : return []
             return supy.samples.specify( names = ["qcd_mu_15_20",
                                                   "qcd_mu_20_30",
                                                   "qcd_mu_30_50",
@@ -149,12 +149,14 @@ class topAsymm(supy.analysis) :
                     sum( [supy.samples.specify( names = "ttj_mg", effectiveLumi = eL, 
                                                 color = color, weights = [ calculables.top.wTopAsym(asym, R_sm = -0.05), 'tw',rw ] )
                           for asym,color in [(0.0,r.kOrange),
-                                             #(-0.3,r.kGreen),(0.3,r.kRed),
+                                             (-0.3,r.kGreen),(0.3,r.kRed),
                                              #(-0.6,r.kYellow),(0.6,r.kYellow),
                                              #(-0.5,r.kYellow),(0.5,r.kYellow),
                                              #(-0.4,r.kYellow),(0.4,r.kYellow),
-                                             #(-0.2,r.kYellow),(0.2,r.kYellow),
-                                             #(-0.1,r.kYellow),(0.1,r.kYellow),
+                                             #(-0.2,r.kYellow),
+                                             (0.2,r.kYellow),
+                                             #(-0.1,r.kYellow),
+                                             (0.1,r.kYellow),
                                              ]], [])
                     )[: 2 if "QCD" in pars['tag'] else 2 if 'Wlv' in pars['tag'] else None]
         
@@ -285,9 +287,7 @@ class topAsymm(supy.analysis) :
              , ssteps.histos.pt("mixedSumP4",100,0,300),
              ssteps.filters.value('ecalDeadCellTPFilterFlag',min=1),
              steps.jet.failedJetVeto( obj["jet"], ptMin = 20, id = "PFJetIDloose"),
-             steps.jet.forwardJetVeto( obj["jet"], ptMax = 50, etaMin = 3.1)
              , ssteps.histos.pt("mixedSumP4",100,0,300)
-             #ssteps.filters.pt("mixedSumP4",min=20)
 
              , ssteps.histos.value( lIso, 55,0,1.1, indices = lIndices, index=0),
              ssteps.filters.value( lIso, indices = lIndices, index = 0, **lIsoMinMax)
