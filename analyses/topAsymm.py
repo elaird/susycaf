@@ -148,15 +148,16 @@ class topAsymm(supy.analysis) :
             return (supy.samples.specify(names = "ttj_mg", effectiveLumi = eL, color = r.kBlue, weights = ["wNonQQbar",'tw',rw] ) +
                     sum( [supy.samples.specify( names = "ttj_mg", effectiveLumi = eL, 
                                                 color = color, weights = [ calculables.top.wTopAsym(asym, R_sm = -0.05), 'tw',rw ] )
-                          for asym,color in [(0.0,r.kOrange),
-                                             (-0.3,r.kGreen),(0.3,r.kRed),
+                          for asym,color in [(-0.3,r.kBlue),
+                                             ( 0.0,r.kBlack),
+                                             ( 0.1,r.kGreen),
+                                             ( 0.2,r.kOrange),
+                                             ( 0.3,r.kRed),
                                              #(-0.6,r.kYellow),(0.6,r.kYellow),
                                              #(-0.5,r.kYellow),(0.5,r.kYellow),
                                              #(-0.4,r.kYellow),(0.4,r.kYellow),
                                              #(-0.2,r.kYellow),
-                                             (0.2,r.kYellow),
                                              #(-0.1,r.kYellow),
-                                             (0.1,r.kYellow),
                                              ]], [])
                     )[: 2 if "QCD" in pars['tag'] else 2 if 'Wlv' in pars['tag'] else None]
         
@@ -505,14 +506,36 @@ class topAsymm(supy.analysis) :
     ########################################################################################
     def concludeAll(self) :
         self.rowcolors = 2*[13] + 2*[45]
-        super(topAsymm,self).concludeAll()
+        #super(topAsymm,self).concludeAll()
         #self.meldWpartitions()
         #self.meldQCDpartitions()
         for rw,lname in set([(pars['reweights']['abbr'],pars['lepton']['name']) for pars in self.readyConfs]) :
             self.meldScale(rw,lname)
-            self.plotMeldScale(rw,lname)
+            #self.plotMeldScale(rw,lname)
             #self.ensembleTest(rw,lname)
         #self.PEcurves()
+        #self.grant_proposal_plots()
+
+    def grant_proposal_plots(self) :
+        pars = next((pars for pars in self.readyConfs if "top_" in pars["tag"]),None)
+        rw = pars['reweights']['abbr']
+        if not pars : return
+        org = self.organizer( pars, verbose = True )
+        org.scale( toPdf = True )
+        names = ["N30","P00","P10","P20","P30"]
+        new = dict([("ttj_mg.wTopAsym%s.tw.%s"%(name,rw), name.replace('P',' +').replace('N',' -').replace("00"," 0")) for name in names])
+        specs = [{"plotName":"ttbarDeltaAbsY",
+                  "stepName":"Asymmetry",
+                  "stepDesc":"with 41 bins.",
+                  "newTitle":";|y_{t}| - |y_{#bar{t}}|;probability density",
+                  "legendCoords": (0.7, 0.7, 0.92, 0.92),
+                  "legendTitle" : "Asymmetry (%)",
+                  "stamp" : False}
+                 ]
+        kwargs = {"showStatBox":False, "anMode":True}
+        pl = supy.plotter(org, pdfFileName = self.pdfFileName(org.tag+"_ind"), doLog = False, **kwargs).individualPlots(specs, newSampleNames = new)
+        pl = supy.plotter(org, pdfFileName = self.pdfFileName(org.tag+"_ind_log"), doLog = True, pegMinimum=0.001, **kwargs).individualPlots(specs, newSampleNames = new)
+
 
     def conclude(self,pars) :
         rw = pars['reweights']['abbr']
@@ -553,7 +576,7 @@ class topAsymm(supy.analysis) :
                        "omit2D" : False,
                        "dependence2D" : True})
         supy.plotter(orgpdf, pdfFileName = self.pdfFileName(org.tag+"_pdf"), doLog = False, **kwargs ).plotAll()
-
+            
     #def meldWpartitions(self,pars) :
     #    rw = pars['reweights']['abbr']
     #    samples = {"top_muon_pf_%s"%rw : ["w_"],
@@ -628,6 +651,7 @@ class topAsymm(supy.analysis) :
         
         organizers = [supy.organizer(tag, [s for s in self.sampleSpecs(tag) if any(item in s['name'] for item in meldSamples[tag])])
                       for tag in [p['tag'] for p in self.readyConfs if p["tag"] in meldSamples]]
+
         if len(organizers) < len(meldSamples) : return
         for org in organizers :
             org.mergeSamples(targetSpec = {"name":"t#bar{t}", "color":r.kViolet}, sources=["ttj_mg.wNonQQbar.tw.%s"%rw,"ttj_mg.wTopAsymP00.tw.%s"%rw], keepSources = True)
@@ -650,7 +674,7 @@ class topAsymm(supy.analysis) :
 
         mfCanvas = r.TCanvas()
         def printMF(open = False, close = False) :
-            name = "%s/measuredFractions.pdf"%self.globalStem
+            name = "%s/%s_measuredFractions.pdf"%(self.globalStem, "mu" if "_muon_" in organizers[0].tag else "el")
             mfCanvas.Print(name + ("[" if open else "]" if close else ""), "pdf" if open else "")
             if close : print supy.utils.hyphens, '\n', name, " has been written."
         printMF(open=True)
