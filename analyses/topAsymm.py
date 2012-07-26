@@ -576,52 +576,7 @@ class topAsymm(supy.analysis) :
                        "omit2D" : False,
                        "dependence2D" : True})
         supy.plotter(orgpdf, pdfFileName = self.pdfFileName(org.tag+"_pdf"), doLog = False, **kwargs ).plotAll()
-            
-    #def meldWpartitions(self,pars) :
-    #    rw = pars['reweights']['abbr']
-    #    samples = {"top_muon_pf_%s"%rw : ["w_"],
-    #               "Wlv_muon_pf_%s"%rw : ["w_","SingleMu"],
-    #               "QCD_muon_pf_%s"%rw : []}
-    #    organizers = [supy.organizer(tag, [s for s in self.sampleSpecs(tag) if any(item in s['name'] for item in samples[tag])])
-    #                  for tag in [p['tag'] for p in self.readyConfs]]
-    #    if len(organizers)<2 : return
-    #    for org in organizers :
-    #        org.mergeSamples(targetSpec = {"name":"Data 2011", "color":r.kBlack, "markerStyle":20}, allWithPrefix="SingleMu")
-    #        org.mergeSamples(targetSpec = {"name":"w_mg", "color":r.kRed if "Wlv" in org.tag else r.kBlue, "markerStyle": 22}, sources = ["wj_lv_mg.tw.%s"%rw])
-    #        org.scale(toPdf=True)
-    #
-    #    melded = supy.organizer.meld("wpartitions",filter(lambda o: o.samples, organizers))
-    #    pl = supy.plotter(melded,
-    #                      pdfFileName = self.pdfFileName(melded.tag),
-    #                      doLog = False,
-    #                      blackList = ["lumiHisto","xsHisto","nJobsHisto"],
-    #                      rowColors = self.rowcolors,
-    #                      rowCycle = 100,
-    #                      omit2D = True,
-    #                      ).plotAll()
-    #    
-    #def meldQCDpartitions(self) :
-    #    samples = {"top_muon_pf_%s"%rw : ["qcd_mu"],
-    #               "Wlv_muon_pf_%s"%rw : [],
-    #               "QCD_muon_pf_%s"%rw : ["qcd_mu","SingleMu"]}
-    #    organizers = [supy.organizer(tag, [s for s in self.sampleSpecs(tag) if any(item in s['name'] for item in samples[tag])])
-    #                  for tag in [p['tag'] for p in self.readyConfs]]
-    #    if len(organizers)<2 : return
-    #    for org in organizers :
-    #        org.mergeSamples(targetSpec = {"name":"Data 2011", "color":r.kBlack, "markerStyle":20}, allWithPrefix="SingleMu")
-    #        org.mergeSamples(targetSpec = {"name":"qcd_mu", "color":r.kRed if "QCD" in org.tag else r.kBlue, "markerStyle": 22}, allWithPrefix="qcd_mu")
-    #        org.scale(toPdf=True)
-    #
-    #    melded = supy.organizer.meld("qcdPartitions",filter(lambda o: o.samples, organizers))
-    #    pl = supy.plotter(melded,
-    #                      pdfFileName = self.pdfFileName(melded.tag),
-    #                      doLog = False,
-    #                      blackList = ["lumiHisto","xsHisto","nJobsHisto"],
-    #                      rowColors = self.rowcolors,
-    #                      rowCycle = 100,
-    #                      omit2D = True,
-    #                      ).plotAll()
-        
+
     def plotMeldScale(self, rw, lname) :
         if not hasattr(self,"orgMelded") : print "run meldScale() before plotMeldScale()"; return
         melded = copy.deepcopy(self.orgMelded)
@@ -862,3 +817,49 @@ class topAsymm(supy.analysis) :
         #canvas.Print(outName+'.ps]')
         #os.system('ps2pdf %s.ps %s.pdf'%(outName,outName))
         #os.system('rm %s.ps'%outName)
+
+
+    #def meldWpartitions(self,pars) :
+    #    rw = pars['reweights']['abbr']
+    #    samples = {"top_muon_pf_%s"%rw : ["w_"],
+    #               "Wlv_muon_pf_%s"%rw : ["w_","SingleMu"],
+    #               "QCD_muon_pf_%s"%rw : []}
+    #    organizers = [supy.organizer(tag, [s for s in self.sampleSpecs(tag) if any(item in s['name'] for item in samples[tag])])
+    #                  for tag in [p['tag'] for p in self.readyConfs]]
+    #    if len(organizers)<2 : return
+    #    for org in organizers :
+    #        org.mergeSamples(targetSpec = {"name":"Data 2011", "color":r.kBlack, "markerStyle":20}, allWithPrefix="SingleMu")
+    #        org.mergeSamples(targetSpec = {"name":"w_mg", "color":r.kRed if "Wlv" in org.tag else r.kBlue, "markerStyle": 22}, sources = ["wj_lv_mg.tw.%s"%rw])
+    #        org.scale(toPdf=True)
+    #
+    #    melded = supy.organizer.meld("wpartitions",filter(lambda o: o.samples, organizers))
+    #    pl = supy.plotter(melded,
+    #                      pdfFileName = self.pdfFileName(melded.tag),
+    #                      doLog = False,
+    #                      blackList = ["lumiHisto","xsHisto","nJobsHisto"],
+    #                      rowColors = self.rowcolors,
+    #                      rowCycle = 100,
+    #                      omit2D = True,
+    #                      ).plotAll()
+    #    
+    #def meldQCDpartitions(self) :
+    #    samples = {"top_muon_pf_%s"%rw : ["qcd_mu"],
+    #               "Wlv_muon_pf_%s"%rw : [],
+    #               "QCD_muon_pf_%s"%rw : ["qcd_mu","SingleMu"]}
+    #    organizers = [supy.organizer(tag, [s for s in self.sampleSpecs(tag) if any(item in s['name'] for item in samples[tag])])
+    #                  for tag in [p['tag'] for p in self.readyConfs]]
+    #    if len(organizers)<2 : return
+    #    for org in organizers :
+    #        org.mergeSamples(targetSpec = {"name":"Data 2011", "color":r.kBlack, "markerStyle":20}, allWithPrefix="SingleMu")
+    #        org.mergeSamples(targetSpec = {"name":"qcd_mu", "color":r.kRed if "QCD" in org.tag else r.kBlue, "markerStyle": 22}, allWithPrefix="qcd_mu")
+    #        org.scale(toPdf=True)
+    #
+    #    melded = supy.organizer.meld("qcdPartitions",filter(lambda o: o.samples, organizers))
+    #    pl = supy.plotter(melded,
+    #                      pdfFileName = self.pdfFileName(melded.tag),
+    #                      doLog = False,
+    #                      blackList = ["lumiHisto","xsHisto","nJobsHisto"],
+    #                      rowColors = self.rowcolors,
+    #                      rowCycle = 100,
+    #                      omit2D = True,
+    #                      ).plotAll()
