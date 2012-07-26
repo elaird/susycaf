@@ -149,10 +149,10 @@ class topAsymm(supy.analysis) :
                     sum( [supy.samples.specify( names = "ttj_mg", effectiveLumi = eL, 
                                                 color = color, weights = [ calculables.top.wTopAsym(asym, R_sm = -0.05), 'tw',rw ] )
                           for asym,color in [( 0.0,r.kBlack),
-                                             (-0.3,r.kBlue),
                                              ( 0.1,r.kGreen),
                                              ( 0.2,r.kOrange),
                                              ( 0.3,r.kRed),
+                                             (-0.3,r.kBlue),
                                              #(-0.6,r.kYellow),(0.6,r.kYellow),
                                              #(-0.5,r.kYellow),(0.5,r.kYellow),
                                              #(-0.4,r.kYellow),(0.4,r.kYellow),
@@ -520,22 +520,23 @@ class topAsymm(supy.analysis) :
         if not pars : return
         rw = pars['reweights']['abbr']
         names = ["N30","P00","P10","P20","P30"]
-        new = dict([("ttj_mg.wTopAsym%s.tw.%s"%(name,rw), name.replace('P',' +').replace('N',' -').replace("00"," 0")) for name in names])
+        new = dict([("ttj_mg.wTopAsym%s.tw.%s"%(name,rw), name.replace("P00","  0").replace('P',' +').replace('N','  -')) for name in names])
         org = self.organizer( pars, verbose = True )
         [org.drop(ss['name']) for ss in org.samples if not any(name in ss['name'] for name in names)]
         org.scale( toPdf = True )
-        specs = [{"plotName":"ttbarDeltaAbsY",
-                  "stepName":"Asymmetry",
-                  "stepDesc":"with 41 bins.",
-                  "newTitle":";|y_{t}| - |y_{#bar{t}}|;probability density",
-                  "legendCoords": (0.7, 0.7, 0.92, 0.92),
-                  "legendTitle" : "Asymmetry (%)",
-                  "stamp" : False}
+        spec = {"stepName":"Asymmetry",
+                "stepDesc":"with 41 bins.",
+                "legendCoords": (0.18, 0.7, 0.4, 0.92),
+                "legendTitle" : "Asymmetry (%)",
+                "stamp" : False}
+        specs = [dict(spec,**{"plotName":"ttbarDeltaAbsY",
+                              "newTitle":";|y_{t}| - |y_{#bar{t}}|;probability density"}),
+                 dict(spec,**{"plotName":"ttbarSignExpectation",
+                              "newTitle":";#LT sgn(boost) #upoint sgn(#Delta^{}y) #GT;probability density"})
                  ]
         kwargs = {"showStatBox":False, "anMode":True}
         pl = supy.plotter(org, pdfFileName = self.pdfFileName(org.tag+"_ind"), doLog = False, **kwargs).individualPlots(specs, newSampleNames = new)
         pl = supy.plotter(org, pdfFileName = self.pdfFileName(org.tag+"_ind_log"), doLog = True, pegMinimum=0.001, **kwargs).individualPlots(specs, newSampleNames = new)
-
 
     def conclude(self,pars) :
         rw = pars['reweights']['abbr']
@@ -592,6 +593,21 @@ class topAsymm(supy.analysis) :
                               omit2D = True,
                               pageNumbers = False,
                               ).plotAll()
+
+    def plotQQGGmeasured(self, org, rw) :
+        melded = copy.deepcopy(org)
+        melded.mergeSamples( targetSpec = {"name":"qqggBgStack", "fillColor":r.kRed,"color":r.kRed,"markerStyle":1, "goptions" : "hist"}, sources = ['bg','top.ttj_mg.wTopAsymP00.tw.%s'%rw,'top.ttj_mg.wNonQQbar.tw.%s'%rw], keepSources = True, force = True )
+        melded.mergeSamples( targetSpec = {"name":"ggBgStack", "fillColor":r.kGreen,"color":r.kGreen,"markerStyle":1, "goptions" : "hist"}, sources = ['bg','top.ttj_mg.wNonQQbar.tw.%s'%rw], keepSources = True, force = True )
+        new = {"ggBgStack" : "gg->t#bar{t}", "qqggBgStack":"q#bar{q}->t#bar{t}","bg":"background","top.Data 2011":"Data 2011"}
+        [melded.drop(ss['name']) for ss in melded.samples if ss['name'] not in new]
+        spec = {"stepName":"DiscriminantQQgg",
+                "stepDesc":None,
+                "legendCoords": (0.6, 0.7, 0.82, 0.92),
+                "stamp" : True,
+                "order" : ["qqggBgStack","ggBgStack","bg","top.Data 2011"]}
+        specs = [dict(spec,**{"plotName":"fitTopAbsSumRapidities","newTitle":";|y_{t}+y_{#bar{t}}|;events"})]
+        kwargs = {"showStatBox":False, "anMode":True}
+        supy.plotter(melded, pdfFileName = self.pdfFileName(org.tag+"_ind"), doLog = False, **kwargs).individualPlots(specs, newSampleNames = new)
         
     def meldScale(self,rw,lname) :
         meldSamples = {"top_%s_pf_%s"%(lname,rw) : [{ 'muon':"SingleMu",
@@ -628,11 +644,8 @@ class topAsymm(supy.analysis) :
         baseSamples = ['top.Single','top.DY']
 
         mfCanvas = r.TCanvas()
-        def printMF(open = False, close = False) :
-            name = "%s/%s_measuredFractions.pdf"%(self.globalStem, lname )
-            mfCanvas.Print(name + ("[" if open else "]" if close else ""), "pdf" if open else "")
-            if close : print supy.utils.hyphens, '\n', name, " has been written."
-        printMF(open=True)
+        mfFileName = "%s/%s_measuredFractions"%(self.globalStem, lname )
+        supy.utils.tCanvasPrintPdf( mvCanvas, mfFileName, option = '[')
         
         def measureFractions(dist, rebin = 1) :
             before = next(org.indicesOfStep("label","selection complete"))
@@ -656,7 +669,7 @@ class topAsymm(supy.analysis) :
             cs = componentSolver(observed, templates, 1e4, base = np.sum(bases, axis=0) )
             stuff = drawComponentSolver( cs, mfCanvas, distName = dist,
                                          templateNames = [t.replace("top.ttj_mg.wTopAsymP00.tw.%s"%rw,"q#bar{q}-->t#bar{t}").replace("top.ttj_mg.wNonQQbar.tw.%s"%rw,"gg-->t#bar{t}").replace("QCD.Data 2011","Multijet").replace("top.W","W+jets").replace('top.',"") for t in  templateSamples])
-            printMF()
+            supy.utils.tCanvasPrintPdf( mvCanvas, mfFileName)
             return distTup,cs
 
         def mf2(dist) : return measureFractions(dist,2)
@@ -667,16 +680,17 @@ class topAsymm(supy.analysis) :
         for iSample,ss in enumerate(org.samples) :
             if ss['name'] in fractions : org.scaleOneRaw(iSample, fractions[ss['name']] * sum(cs.observed) / distTup[iSample].Integral(0,distTup[iSample].GetNbinsX()+1))
 
-        org.mergeSamples(targetSpec = {"name":"bg", "color":r.kWhite}, sources = set(baseSamples + templateSamples) - set(['top.t#bar{t}']), keepSources = True, force = True)
+        org.mergeSamples(targetSpec = {"name":"bg", "color":r.kBlack,"fillColor":r.kGray, "markerStyle":1, "goptions":"hist"}, sources = set(baseSamples + templateSamples) - set(['top.t#bar{t}']), keepSources = True, force = True)
         templateSamples = ['top.ttj_mg.wTopAsymP00.tw.%s'%rw,'top.ttj_mg.wNonQQbar.tw.%s'%rw]
         baseSamples = ['bg']
-        distTup,cs = map(measureFractions,["tracksCountwithPrimaryHighPurityTracks","fitTopNtracksExtra","fitTopFifthJet","xcak5JetPFM3Pat","fitTopAbsSumRapidities"])[0]
+        distTup,cs = map(measureFractions,["tracksCountwithPrimaryHighPurityTracks","fitTopNtracksExtra","fitTopFifthJet","xcak5JetPFM3Pat","fitTopAbsSumRapidities"])[-1]
                                            #"xcak5JetPFFourJetPtThresholdPat","xcak5JetPFFourJetAbsEtaThresholdPat","fitTopPartonXlo"])[0]
-        printMF(close=True)
+        supy.utils.tCanvasPrintPdf( mvCanvas, mfFileName, option = ']')
 
         #fractions = dict(zip(templateSamples,cs.fractions))
         #for iSample,ss in enumerate(org.samples) :
         #    if ss['name'] in fractions : org.scaleOneRaw(iSample, fractions[ss['name']] * sum(cs.observed) / distTup[iSample].Integral(0,distTup[iSample].GetNbinsX()+1))
+        #self.plotQQGGmeasured(org, rw)
 
         #org.drop("top.t#bar{t}")
         #org.mergeSamples(targetSpec = {"name":"top.t#bar{t}", "color":r.kViolet}, sources = templateSamples, keepSources = True, force = True)
@@ -686,7 +700,7 @@ class topAsymm(supy.analysis) :
         org.mergeSamples(targetSpec = {"name":"S.M.", "color":r.kGreen+2}, sources = templateSamples + baseSamples , keepSources = True, force = True)
         #for ss in filter(lambda ss: 'ttj_mg' in ss['name'],org.samples) : org.drop(ss['name'])
         org.drop('bg')
-        
+
     def PEcurves(self, rw, lname) :
         if (lname,rw) not in self.orgMelded : return
         org = self.orgMelded[(lname,rw)]
