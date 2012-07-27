@@ -1,5 +1,5 @@
 import supy,steps,calculables,samples
-import os,math,copy,ROOT as r, numpy as np
+import os,math,copy,itertools,ROOT as r, numpy as np
 
 class topAsymm(supy.analysis) :
     ''' Analysis for measurement of production asymmetry in top/anti-top pairs
@@ -506,6 +506,7 @@ class topAsymm(supy.analysis) :
     ########################################################################################
     def concludeAll(self) :
         self.orgMelded = {}
+        self.graphs = {}
         self.rowcolors = 2*[13] + 2*[45]
         super(topAsymm,self).concludeAll()
         for rw,lname in set([(pars['reweights']['abbr'],pars['lepton']['name']) for pars in self.readyConfs]) :
@@ -513,6 +514,7 @@ class topAsymm(supy.analysis) :
             self.plotMeldScale(rw,lname)
             self.PEcurves(rw,lname)
             self.ensembleTest(rw,lname)
+        self.sensitivity_graphs()
         #self.grant_proposal_plots()
 
     def grant_proposal_plots(self) :
@@ -645,7 +647,7 @@ class topAsymm(supy.analysis) :
 
         mfCanvas = r.TCanvas()
         mfFileName = "%s/%s_measuredFractions"%(self.globalStem, lname )
-        supy.utils.tCanvasPrintPdf( mvCanvas, mfFileName, option = '[')
+        supy.utils.tCanvasPrintPdf( mfCanvas, mfFileName, option = '[', verbose = False)
         
         def measureFractions(dist, rebin = 1) :
             before = next(org.indicesOfStep("label","selection complete"))
@@ -669,7 +671,7 @@ class topAsymm(supy.analysis) :
             cs = componentSolver(observed, templates, 1e4, base = np.sum(bases, axis=0) )
             stuff = drawComponentSolver( cs, mfCanvas, distName = dist,
                                          templateNames = [t.replace("top.ttj_mg.wTopAsymP00.tw.%s"%rw,"q#bar{q}-->t#bar{t}").replace("top.ttj_mg.wNonQQbar.tw.%s"%rw,"gg-->t#bar{t}").replace("QCD.Data 2011","Multijet").replace("top.W","W+jets").replace('top.',"") for t in  templateSamples])
-            supy.utils.tCanvasPrintPdf( mvCanvas, mfFileName)
+            supy.utils.tCanvasPrintPdf( mfCanvas, mfFileName, verbose = False)
             return distTup,cs
 
         def mf2(dist) : return measureFractions(dist,2)
@@ -685,7 +687,7 @@ class topAsymm(supy.analysis) :
         baseSamples = ['bg']
         distTup,cs = map(measureFractions,["tracksCountwithPrimaryHighPurityTracks","fitTopNtracksExtra","fitTopFifthJet","xcak5JetPFM3Pat","fitTopAbsSumRapidities"])[-1]
                                            #"xcak5JetPFFourJetPtThresholdPat","xcak5JetPFFourJetAbsEtaThresholdPat","fitTopPartonXlo"])[0]
-        supy.utils.tCanvasPrintPdf( mvCanvas, mfFileName, option = ']')
+        supy.utils.tCanvasPrintPdf( mfCanvas, mfFileName, option = ']')
 
         #fractions = dict(zip(templateSamples,cs.fractions))
         #for iSample,ss in enumerate(org.samples) :
@@ -738,7 +740,7 @@ class topAsymm(supy.analysis) :
         return
 
 
-    def templates(self, iStep, dist, qqFrac, rw, lname) :
+    def templates(self, iStep, dist, qqFrac, rw, lname, sampleSizeFactor = 1.0) :
         if not (lname,rw) in self.orgMelded : print 'run meldScale() before asking for templates()'; return
         org = self.orgMelded[(lname,rw)]
         topQQs = [s['name'] for s in org.samples if 'wTopAsym' in s['name']]
@@ -754,59 +756,81 @@ class topAsymm(supy.analysis) :
             if scaleToN : bins *= (scaleToN / sum(bins))
             return bins
 
-        nTT = sum(nparray('top.t#bar{t}'))
-        observed = nparray('top.Data 2011')
+        nTT = sum(nparray('top.t#bar{t}')) * sampleSizeFactor
+        observed = nparray('top.Data 2011') * sampleSizeFactor
         base = ( nparray('QCD.multijet') +
                  nparray('top.W') +
                  nparray('top.DY') +
                  nparray('top.Single') +
                  nparray('top.ttj_mg.wNonQQbar.tw.%s'%rw, scaleToN = (1-qqFrac) * nTT )
-                 )
+                 ) * sampleSizeFactor
         templates = [base +  nparray(qqtt, qqFrac*nTT ) for qqtt in topQQs]
         return zip(asymm, templates), observed
     
 
-    def ensembleFileName(self, iStep, dist, qqFrac, rw, lname, suffix = '.pickleData') :
-        return "%s/ensembles/%s_%s_%d_%s_%.3f%s"%(self.globalStem,lname,rw,iStep,dist,qqFrac,suffix)
+    def ensembleFileName(self, iStep, dist, qqFrac, ssF, rw, lname, suffix = '.pickleData') :
+        return "%s/ensembles/%s_%s_%d_%s_%.3f_%0.2f%s"%(self.globalStem,lname,rw,iStep,dist,qqFrac,ssF,suffix)
 
     def ensembleTest(self,rw, lname) :
         if (lname,rw) not in self.orgMelded : print "First run meldScale()"; return
         org = self.orgMelded[(lname,rw)]
-        qqFracs = sorted([0.10, 0.12, 0.15, 0.20, 0.25, 0.30, 0.40, 0.60, 1.0])
-        dists = [#'lHadtDeltaY',
-                 'ttbarDeltaAbsY',
-                 #'leptonRelativeY',
-                 #'ttbarSignedDeltaY',
-                 #####'ttbarSignExpectation'
-                ]
-        args = sum([[(iStep, dist, qqFrac, rw, lname) for iStep in list(org.indicesOfStepsWithKey(dist))[:None] for qqFrac in qqFracs] for dist in dists],[])
+
+        steps = list(org.indicesOfStep("Asymmetry"))
+        dists = ['ttbarDeltaAbsY','ttbarSignExpectation'][1:]
+        qqFracs = {0.07:r.kBlack, 0.14:r.kRed, 0.21:r.kGreen, 0.28:r.kBlue}
+        sampleSizeFactor = [0.5,1,2,4,8]
+
+        args = [ (iStep, dist, qqFrac, ssF, rw, lname)
+                 for iStep in steps
+                 for dist in dists
+                 for qqFrac in qqFracs
+                 for ssF in sampleSizeFactor
+                 ]
         supy.utils.operateOnListUsingQueue(6, supy.utils.qWorker(self.pickleEnsemble), args)
         ensembles = dict([(arg[:-2],supy.utils.readPickle(self.ensembleFileName(*arg))) for arg in args])
 
-        for iStep in sorted(set([iStep for iStep,dist,qqFrac in ensembles])) :
-            canvas = r.TCanvas()
-            dists = sorted(set([dist for jStep,dist,qqFrac in ensembles if jStep==iStep]))
-            legend = r.TLegend(0.7,0.5,0.9,0.9)
-            graphs = {}
-            for iDist,dist in enumerate(dists) :
-                points = sorted([(qqFrac,ensemble.sensitivity) for (jStep, jDist, qqFrac),ensemble in ensembles.iteritems() if jStep==iStep and jDist==dist])
-                qqs,sens = zip(*points)
-                graphs[dist] = r.TGraph(len(points),np.array(qqs),np.array(sens))
-                graphs[dist].SetLineColor(iDist+1)
-                graphs[dist].Draw('' if iDist else "AL")
-                graphs[dist].SetMinimum(0)
-                graphs[dist].SetTitle("fraction of t#bar{t} from q#bar{q};expected uncertainty on asymmetry")
-                legend.AddEntry(graphs[dist],dist,'l')
-            legend.Draw()
-            supy.utils.tCanvasPrintPdf(canvas, '%s/sensitivity_%d_%s_%s'%(self.globalStem,iStep,lname,rw))
-                
-    def pickleEnsemble(self, iStep, dist, qqFrac, rw, lname) :
-        supy.utils.mkdir(self.globalStem+'/ensembles')
-        templates,observed = self.templates(iStep, dist, qqFrac, rw, lname)
-        ensemble = supy.utils.templateFit.templateEnsembles(2e3, *zip(*templates) )
-        supy.utils.writePickle(self.ensembleFileName(iStep,dist,qqFrac,rw,lname), ensemble)
+        graphs = {}
+        for (step,dist,qqFrac),keys in itertools.groupby( sorted(ensembles), lambda key : key[:3] ) :
+            ssfs,sens = zip( *[(key[3],ensembles[key].sensitivity) for key in keys ] )
+            graph = r.TGraph(len(ssfs), np.array(ssfs), np.array(sens) )
+            graph.SetLineColor(qqFracs[qqFrac])
+            graph.SetLineStyle(1 if lname=="muon" else 2)
+            graph.SetMinimum(0)
+            graph.SetTitle(";N_{t#bar{t}} / (^{}N_{t#bar{t}} @5fb^{-1});expected uncertainty on asymmetry")
+            graph.GetYaxis().SetTitleOffset(1.4)
+            graphs[(step,dist,qqFrac)] = graph
+        self.graphs[(lname,rw)] = graphs
 
-        name = self.ensembleFileName(iStep,dist,qqFrac,rw,lname,'')
+    def sensitivity_graphs(self) :
+        supy.plotter.setupStyle()
+        supy.plotter.setupTdrStyle()
+        graphkeys = self.graphs.keys()
+        if not graphkeys : return
+        for (step,dist),keys in itertools.groupby( sorted(self.graphs[graphkeys[0]]), lambda key : key[:2] ) :
+            canvas = supy.plotter.canvas(anMode=True)
+            canvas.UseCurrentStyle()
+            legend = r.TLegend(0.75,0.7,0.95,0.9)
+            legend.SetHeader("#frac{#sigma(q#bar{q}->t#bar{t})}{#sigma(pp=>t#bar{t})}   (%)")
+            legend.SetFillStyle(0)
+            legend.SetBorderSize(0)
+
+            for i,key in enumerate(keys) :
+                for j,(graphskey,graphs) in enumerate(sorted(self.graphs.items())) :
+                    graphs[key].Draw('' if i or j else 'AL')
+                    if "muon" in graphskey : legend.AddEntry(graphs[key],"%.2f"%key[2],'l')
+            legend.Draw()
+            fileName = '%s/sensitivity_%d_%s'%(self.globalStem,step,dist) + ".eps"
+            canvas.Print(fileName)
+            del canvas
+            print "Wrote: %s"%fileName
+                
+    def pickleEnsemble(self, iStep, dist, qqFrac, sampleSizeFactor, rw, lname) :
+        supy.utils.mkdir(self.globalStem+'/ensembles')
+        templates,observed = self.templates(iStep, dist, qqFrac, rw, lname, sampleSizeFactor )
+        ensemble = supy.utils.templateFit.templateEnsembles(2e3, *zip(*templates) )
+        supy.utils.writePickle(self.ensembleFileName(iStep,dist,qqFrac,sampleSizeFactor,rw,lname), ensemble)
+
+        name = self.ensembleFileName(iStep,dist,qqFrac,sampleSizeFactor,rw,lname,'')
         canvas = r.TCanvas()
         canvas.Print(name+'.pdf[','pdf')
         stuff = supy.utils.templateFit.drawTemplateEnsembles(ensemble, canvas)
