@@ -1,5 +1,5 @@
 import supy,steps,calculables,samples
-import os,math,copy,ROOT as r, numpy as np
+import os,math,copy,itertools,ROOT as r, numpy as np
 
 class topAsymm(supy.analysis) :
     ''' Analysis for measurement of production asymmetry in top/anti-top pairs
@@ -125,7 +125,7 @@ class topAsymm(supy.analysis) :
         lname = pars['lepton']["name"]
 
         def qcd_py6_mu(eL = None) :
-            if lname == "electron" : return []
+            if True or lname == "electron" : return []
             return supy.samples.specify( names = ["qcd_mu_15_20",
                                                   "qcd_mu_20_30",
                                                   "qcd_mu_30_50",
@@ -148,13 +148,16 @@ class topAsymm(supy.analysis) :
             return (supy.samples.specify(names = "ttj_mg", effectiveLumi = eL, color = r.kBlue, weights = ["wNonQQbar",'tw',rw] ) +
                     sum( [supy.samples.specify( names = "ttj_mg", effectiveLumi = eL, 
                                                 color = color, weights = [ calculables.top.wTopAsym(asym, R_sm = -0.05), 'tw',rw ] )
-                          for asym,color in [(0.0,r.kOrange),
-                                             #(-0.3,r.kGreen),(0.3,r.kRed),
+                          for asym,color in [( 0.0,r.kBlack),
+                                             ( 0.1,r.kGreen),
+                                             ( 0.2,r.kOrange),
+                                             ( 0.3,r.kRed),
+                                             (-0.3,r.kBlue),
                                              #(-0.6,r.kYellow),(0.6,r.kYellow),
                                              #(-0.5,r.kYellow),(0.5,r.kYellow),
                                              #(-0.4,r.kYellow),(0.4,r.kYellow),
-                                             #(-0.2,r.kYellow),(0.2,r.kYellow),
-                                             #(-0.1,r.kYellow),(0.1,r.kYellow),
+                                             #(-0.2,r.kYellow),
+                                             #(-0.1,r.kYellow),
                                              ]], [])
                     )[: 2 if "QCD" in pars['tag'] else 2 if 'Wlv' in pars['tag'] else None]
         
@@ -284,10 +287,8 @@ class topAsymm(supy.analysis) :
  
              , ssteps.histos.pt("mixedSumP4",100,0,300),
              ssteps.filters.value('ecalDeadCellTPFilterFlag',min=1),
-             steps.jet.failedJetVeto( obj["jet"], ptMin = 20, id = "PFJetIDloose"),
-             steps.jet.forwardJetVeto( obj["jet"], ptMax = 50, etaMin = 3.1)
+             steps.jet.failedJetVeto( obj["jet"], ptMin = 20, id = "PFJetIDloose")
              , ssteps.histos.pt("mixedSumP4",100,0,300)
-             #ssteps.filters.pt("mixedSumP4",min=20)
 
              , ssteps.histos.value( lIso, 55,0,1.1, indices = lIndices, index=0),
              ssteps.filters.value( lIso, indices = lIndices, index = 0, **lIsoMinMax)
@@ -504,15 +505,40 @@ class topAsymm(supy.analysis) :
     
     ########################################################################################
     def concludeAll(self) :
+        self.orgMelded = {}
+        self.graphs = {}
         self.rowcolors = 2*[13] + 2*[45]
         super(topAsymm,self).concludeAll()
-        #self.meldWpartitions()
-        #self.meldQCDpartitions()
         for rw,lname in set([(pars['reweights']['abbr'],pars['lepton']['name']) for pars in self.readyConfs]) :
             self.meldScale(rw,lname)
             self.plotMeldScale(rw,lname)
-            #self.ensembleTest(rw,lname)
-        #self.PEcurves()
+            self.PEcurves(rw,lname)
+            self.ensembleTest(rw,lname)
+        self.sensitivity_graphs()
+        #self.grant_proposal_plots()
+
+    def grant_proposal_plots(self) :
+        pars = next((pars for pars in self.readyConfs if "top_" in pars["tag"]),None)
+        if not pars : return
+        rw = pars['reweights']['abbr']
+        names = ["N30","P00","P10","P20","P30"]
+        new = dict([("ttj_mg.wTopAsym%s.tw.%s"%(name,rw), name.replace("P00","  0").replace('P',' +').replace('N','  -')) for name in names])
+        org = self.organizer( pars, verbose = True )
+        [org.drop(ss['name']) for ss in org.samples if not any(name in ss['name'] for name in names)]
+        org.scale( toPdf = True )
+        spec = {"stepName":"Asymmetry",
+                "stepDesc":"with 41 bins.",
+                "legendCoords": (0.18, 0.7, 0.4, 0.92),
+                "legendTitle" : "Asymmetry (%)",
+                "stamp" : False}
+        specs = [dict(spec,**{"plotName":"ttbarDeltaAbsY",
+                              "newTitle":";|y_{t}| - |y_{#bar{t}}|;probability density"}),
+                 dict(spec,**{"plotName":"ttbarSignExpectation",
+                              "newTitle":";#LT sgn(boost) #upoint sgn(#Delta^{}y) #GT;probability density"})
+                 ]
+        kwargs = {"showStatBox":False, "anMode":True}
+        pl = supy.plotter(org, pdfFileName = self.pdfFileName(org.tag+"_ind"), doLog = False, **kwargs).individualPlots(specs, newSampleNames = new)
+        pl = supy.plotter(org, pdfFileName = self.pdfFileName(org.tag+"_ind_log"), doLog = True, pegMinimum=0.001, **kwargs).individualPlots(specs, newSampleNames = new)
 
     def conclude(self,pars) :
         rw = pars['reweights']['abbr']
@@ -553,6 +579,289 @@ class topAsymm(supy.analysis) :
                        "omit2D" : False,
                        "dependence2D" : True})
         supy.plotter(orgpdf, pdfFileName = self.pdfFileName(org.tag+"_pdf"), doLog = False, **kwargs ).plotAll()
+
+    def plotMeldScale(self,rw,lname) :
+        if (lname,rw) not in self.orgMelded : print "run meldScale() before plotMeldScale()"; return
+        melded = copy.deepcopy(self.orgMelded[(lname,rw)])
+        [melded.drop(ss['name']) for ss in melded.samples if 'ttj_mg' in ss['name']]
+        for log,label in [(False,""),(True,"_log")] : 
+            pl = supy.plotter(melded, pdfFileName = self.pdfFileName(melded.tag + label),
+                              doLog = log,
+                              blackList = ["lumiHisto","xsHisto","nJobsHisto"],
+                              rowColors = self.rowcolors,
+                              samplesForRatios = ("top.Data 2011","S.M."),
+                              sampleLabelsForRatios = ('data','s.m.'),
+                              rowCycle = 100,
+                              omit2D = True,
+                              pageNumbers = False,
+                              ).plotAll()
+
+    def plotQQGGmeasured(self, org, rw) :
+        melded = copy.deepcopy(org)
+        melded.mergeSamples( targetSpec = {"name":"qqggBgStack", "fillColor":r.kRed,"color":r.kRed,"markerStyle":1, "goptions" : "hist"}, sources = ['bg','top.ttj_mg.wTopAsymP00.tw.%s'%rw,'top.ttj_mg.wNonQQbar.tw.%s'%rw], keepSources = True, force = True )
+        melded.mergeSamples( targetSpec = {"name":"ggBgStack", "fillColor":r.kGreen,"color":r.kGreen,"markerStyle":1, "goptions" : "hist"}, sources = ['bg','top.ttj_mg.wNonQQbar.tw.%s'%rw], keepSources = True, force = True )
+        new = {"ggBgStack" : "gg->t#bar{t}", "qqggBgStack":"q#bar{q}->t#bar{t}","bg":"background","top.Data 2011":"Data 2011"}
+        [melded.drop(ss['name']) for ss in melded.samples if ss['name'] not in new]
+        spec = {"stepName":"DiscriminantQQgg",
+                "stepDesc":None,
+                "legendCoords": (0.6, 0.7, 0.82, 0.92),
+                "stamp" : True,
+                "order" : ["qqggBgStack","ggBgStack","bg","top.Data 2011"]}
+        specs = [dict(spec,**{"plotName":"fitTopAbsSumRapidities","newTitle":";|y_{t}+y_{#bar{t}}|;events"})]
+        kwargs = {"showStatBox":False, "anMode":True}
+        supy.plotter(melded, pdfFileName = self.pdfFileName(org.tag+"_ind"), doLog = False, **kwargs).individualPlots(specs, newSampleNames = new)
+        
+    def meldScale(self,rw,lname) :
+        meldSamples = {"top_%s_pf_%s"%(lname,rw) : [{ 'muon':"SingleMu",
+                                                      'electron':'EleHad'}[lname],
+                                                    "ttj_mg",
+                                                    #"wj_lv_mg",
+                                                    "dyj_ll_mg"]+self.single_top()+["w%dj_mg"%n for n in [2,3,4]],
+                       #"Wlv_%s_pf_%s"%(lname,rw) : ["w_jets"],
+                       "QCD_%s_pf_%s"%(lname,rw) : [{ 'muon':"SingleMu",
+                                                      'electron':'EleHad'}[lname],
+                                                    "ttj_mg"]}
+        
+        organizers = [supy.organizer(tag, [s for s in self.sampleSpecs(tag) if any(item in s['name'] for item in meldSamples[tag])])
+                      for tag in [p['tag'] for p in self.readyConfs if p["tag"] in meldSamples]]
+
+        if len(organizers) < len(meldSamples) : return
+        for org in organizers :
+            org.mergeSamples(targetSpec = {"name":"t#bar{t}", "color":r.kViolet}, sources=["ttj_mg.wNonQQbar.tw.%s"%rw,"ttj_mg.wTopAsymP00.tw.%s"%rw], keepSources = True)
+            #org.mergeSamples(targetSpec = {"name":"W", "color":r.kRed}, allWithPrefix = "wj_lv_mg")
+            org.mergeSamples(targetSpec = {"name":"W", "color":r.kRed}, sources = ["w%dj_mg.tw.%s"%(n,rw) for n in [2,3,4]] )
+            org.mergeSamples(targetSpec = {"name":"DY", "color":28}, allWithPrefix = "dyj_ll_mg")
+            org.mergeSamples(targetSpec = {"name":"Single", "color":r.kGray}, sources = ["%s.tw.%s"%(s,rw) for s in self.single_top()], keepSources = False )
+            org.mergeSamples(targetSpec = {"name":"Data 2011", "color":r.kBlack, "markerStyle":20}, allWithPrefix={'muon':"SingleMu",'electron':"EleHad"}[lname])
+            org.scale()
+            if "QCD_" in org.tag :
+                org.mergeSamples(targetSpec = {"name":"multijet","color":r.kBlue},
+                                 sources=["Data 2011",'t#bar{t}'],
+                                 scaleFactors = [1,-1],
+                                 force=True, keepSources = False)
+
+        self.orgMelded[(lname,rw)] = supy.organizer.meld(organizers = organizers)
+        org = self.orgMelded[(lname,rw)]
+        templateSamples = ['top.t#bar{t}','top.W','QCD.multijet']
+        baseSamples = ['top.Single','top.DY']
+
+        mfCanvas = r.TCanvas()
+        mfFileName = "%s/%s_measuredFractions"%(self.globalStem, lname )
+        supy.utils.tCanvasPrintPdf( mfCanvas, mfFileName, option = '[', verbose = False)
+        
+        def measureFractions(dist, rebin = 1) :
+            before = next(org.indicesOfStep("label","selection complete"))
+            distTup = org.steps[next(iter(filter(lambda i: before<i, org.indicesOfStepsWithKey(dist))))][dist]
+
+            templates = [None] * len(templateSamples)
+            bases = []
+            for ss,hist in zip(org.samples,distTup) :
+                contents = [hist.GetBinContent(i) for i in range(hist.GetNbinsX()+2)]
+                if rebin!=1 : contents = contents[:1] + [sum(bins) for bins in zip(*[contents[1:-1][i::rebin] for i in range(rebin)])] + contents[-1:]
+                if ss['name'] == "top.Data 2011" :
+                    observed = contents
+                    nEventsObserved = sum(observed)
+                elif ss['name'] in templateSamples :
+                    templates[templateSamples.index(ss['name'])] = contents
+                elif ss['name'] in baseSamples :
+                    bases.append(contents)
+                else : pass
+
+            from supy.utils.fractions import componentSolver,drawComponentSolver
+            cs = componentSolver(observed, templates, 1e4, base = np.sum(bases, axis=0) )
+            stuff = drawComponentSolver( cs, mfCanvas, distName = dist,
+                                         templateNames = [t.replace("top.ttj_mg.wTopAsymP00.tw.%s"%rw,"q#bar{q}-->t#bar{t}").replace("top.ttj_mg.wNonQQbar.tw.%s"%rw,"gg-->t#bar{t}").replace("QCD.Data 2011","Multijet").replace("top.W","W+jets").replace('top.',"") for t in  templateSamples])
+            supy.utils.tCanvasPrintPdf( mfCanvas, mfFileName, verbose = False)
+            return distTup,cs
+
+        def mf2(dist) : return measureFractions(dist,2)
+
+        distTup,cs = map(mf2,["TriDiscriminant","KarlsruheDiscriminant"])[0]
+
+        fractions = dict(zip(templateSamples,cs.fractions))        
+        for iSample,ss in enumerate(org.samples) :
+            if ss['name'] in fractions : org.scaleOneRaw(iSample, fractions[ss['name']] * sum(cs.observed) / distTup[iSample].Integral(0,distTup[iSample].GetNbinsX()+1))
+
+        org.mergeSamples(targetSpec = {"name":"bg", "color":r.kBlack,"fillColor":r.kGray, "markerStyle":1, "goptions":"hist"}, sources = set(baseSamples + templateSamples) - set(['top.t#bar{t}']), keepSources = True, force = True)
+        templateSamples = ['top.ttj_mg.wTopAsymP00.tw.%s'%rw,'top.ttj_mg.wNonQQbar.tw.%s'%rw]
+        baseSamples = ['bg']
+        distTup,cs = map(measureFractions,["tracksCountwithPrimaryHighPurityTracks","fitTopNtracksExtra","fitTopFifthJet","xcak5JetPFM3Pat","fitTopAbsSumRapidities"])[-1]
+                                           #"xcak5JetPFFourJetPtThresholdPat","xcak5JetPFFourJetAbsEtaThresholdPat","fitTopPartonXlo"])[0]
+        supy.utils.tCanvasPrintPdf( mfCanvas, mfFileName, option = ']')
+
+        #fractions = dict(zip(templateSamples,cs.fractions))
+        #for iSample,ss in enumerate(org.samples) :
+        #    if ss['name'] in fractions : org.scaleOneRaw(iSample, fractions[ss['name']] * sum(cs.observed) / distTup[iSample].Integral(0,distTup[iSample].GetNbinsX()+1))
+        #self.plotQQGGmeasured(org, rw)
+
+        #org.drop("top.t#bar{t}")
+        #org.mergeSamples(targetSpec = {"name":"top.t#bar{t}", "color":r.kViolet}, sources = templateSamples, keepSources = True, force = True)
+        
+
+        templateSamples = ['top.t#bar{t}'] # hack !!
+        org.mergeSamples(targetSpec = {"name":"S.M.", "color":r.kGreen+2}, sources = templateSamples + baseSamples , keepSources = True, force = True)
+        #for ss in filter(lambda ss: 'ttj_mg' in ss['name'],org.samples) : org.drop(ss['name'])
+        org.drop('bg')
+
+    def PEcurves(self, rw, lname) :
+        if (lname,rw) not in self.orgMelded : return
+        org = self.orgMelded[(lname,rw)]
+        c = r.TCanvas()
+        fileName = "%s/pur_eff_%s_%s"%(self.globalStem,lname,rw)
+        supy.utils.tCanvasPrintPdf(c, fileName, option = '[', verbose = False)
+        specs = ([{'var' : "TopRatherThanWProbability",                                "canvas":c, 'left':True, 'right':False}] +
+                 [{'var' : "ak5JetPFCSVPat[i[%d]]:xcak5JetPFIndicesBtaggedPat"%bIndex, "canvas":c, 'left':True, 'right':False} for bIndex in [0,1,2]]
+                 #[{'var' : "TriDiscriminant",                                          "canvas":c, 'left':True, 'right':True}]
+                 )
+        pes = {}
+        for spec in specs :
+            dists = dict(zip([ss['name'] for ss in org.samples ],
+                             org.steps[next(org.indicesOfStepsWithKey(spec['var']))][spec['var']] ) )
+            contours = supy.utils.optimizationContours( [dists['top.t#bar{t}']],
+                                                        [dists[s] for s in ['QCD.multijet','top.W','top.Single','top.DY']],
+                                                        **spec
+                                                        )
+            supy.utils.tCanvasPrintPdf(c, fileName, verbose = False)
+            if spec['left']^spec['right'] : pes[spec['var']] = contours[1]
+            c.Clear()
+        leg = r.TLegend(0.5,0.8,1.0,1.0)
+        graphs = []
+        for i,(var,pe) in enumerate(pes.items()) :
+            pur,eff = zip(*pe)
+            g = r.TGraph(len(pe), np.array(eff), np.array(pur))
+            g.SetTitle(";efficiency;purity")
+            g.SetLineColor(i+2)
+            leg.AddEntry(g,var,'l')
+            graphs.append(g)
+            g.Draw('' if i else 'AL')
+        leg.Draw()
+        c.Update()
+        supy.utils.tCanvasPrintPdf(c, fileName, option = ')' )
+        return
+
+
+    def templates(self, iStep, dist, qqFrac, rw, lname, sampleSizeFactor = 1.0) :
+        if not (lname,rw) in self.orgMelded : print 'run meldScale() before asking for templates()'; return
+        org = self.orgMelded[(lname,rw)]
+        topQQs = [s['name'] for s in org.samples if 'wTopAsym' in s['name']]
+        asymm = [eval(name.replace("top.ttj_mg.wTopAsym","").replace(".tw.%s"%rw,"").replace("P",".").replace("N","-.")) for name in topQQs if 'QCD' not in name]
+        distTup = org.steps[iStep][dist]
+        hist = distTup[ org.indexOfSampleWithName("S.M.") ]
+        edges = supy.utils.edgesRebinned( hist, targetUncRel = 0.015, offset = 0 )
+
+        def nparray(name, scaleToN = None) :
+            hist_orig = distTup[ org.indexOfSampleWithName(name) ]
+            hist = hist_orig.Rebin(len(edges)-1, "%s_rebinned"%hist_orig.GetName(), edges)
+            bins = np.array([hist.GetBinContent(j) for j in range(hist.GetNbinsX()+2)])
+            if scaleToN : bins *= (scaleToN / sum(bins))
+            return bins
+
+        nTT = sum(nparray('top.t#bar{t}')) * sampleSizeFactor
+        observed = nparray('top.Data 2011') * sampleSizeFactor
+        base = ( nparray('QCD.multijet') +
+                 nparray('top.W') +
+                 nparray('top.DY') +
+                 nparray('top.Single') +
+                 nparray('top.ttj_mg.wNonQQbar.tw.%s'%rw, scaleToN = (1-qqFrac) * nTT )
+                 ) * sampleSizeFactor
+        templates = [base +  nparray(qqtt, qqFrac*nTT ) for qqtt in topQQs]
+        return zip(asymm, templates), observed
+    
+
+    def ensembleFileName(self, iStep, dist, qqFrac, ssF, rw, lname, suffix = '.pickleData') :
+        return "%s/ensembles/%s_%s_%d_%s_%.3f_%0.2f%s"%(self.globalStem,lname,rw,iStep,dist,qqFrac,ssF,suffix)
+
+    def ensembleTest(self,rw, lname) :
+        if (lname,rw) not in self.orgMelded : print "First run meldScale()"; return
+        org = self.orgMelded[(lname,rw)]
+
+        steps = list(org.indicesOfStep("Asymmetry"))
+        dists = ['ttbarDeltaAbsY','ttbarSignExpectation'][1:]
+        qqFracs = {0.07:r.kBlack, 0.14:r.kRed, 0.21:r.kGreen, 0.28:r.kBlue}
+        sampleSizeFactor = [0.5,1,2,4,8]
+
+        args = [ (iStep, dist, qqFrac, ssF, rw, lname)
+                 for iStep in steps
+                 for dist in dists
+                 for qqFrac in qqFracs
+                 for ssF in sampleSizeFactor
+                 ]
+        supy.utils.operateOnListUsingQueue(6, supy.utils.qWorker(self.pickleEnsemble), args)
+        ensembles = dict([(arg[:-2],supy.utils.readPickle(self.ensembleFileName(*arg))) for arg in args])
+
+        graphs = {}
+        for (step,dist,qqFrac),keys in itertools.groupby( sorted(ensembles), lambda key : key[:3] ) :
+            ssfs,sens = zip( *[(key[3],ensembles[key].sensitivity) for key in keys ] )
+            graph = r.TGraph(len(ssfs), np.array(ssfs), np.array(sens) )
+            graph.SetLineColor(qqFracs[qqFrac])
+            graph.SetLineStyle(1 if lname=="muon" else 2)
+            graph.SetMinimum(0)
+            graph.SetTitle(";N_{t#bar{t}} / (^{}N_{t#bar{t}} @5fb^{-1});expected uncertainty on asymmetry")
+            graph.GetYaxis().SetTitleOffset(1.4)
+            graphs[(step,dist,qqFrac)] = graph
+        self.graphs[(lname,rw)] = graphs
+
+    def sensitivity_graphs(self) :
+        supy.plotter.setupStyle()
+        supy.plotter.setupTdrStyle()
+        graphkeys = self.graphs.keys()
+        if not graphkeys : return
+        for (step,dist),keys in itertools.groupby( sorted(self.graphs[graphkeys[0]]), lambda key : key[:2] ) :
+            canvas = supy.plotter.canvas(anMode=True)
+            canvas.UseCurrentStyle()
+            legend = r.TLegend(0.75,0.7,0.95,0.9)
+            legend.SetHeader("#frac{#sigma(q#bar{q}->t#bar{t})}{#sigma(pp=>t#bar{t})}   (%)")
+            legend.SetFillStyle(0)
+            legend.SetBorderSize(0)
+
+            for i,key in enumerate(keys) :
+                for j,(graphskey,graphs) in enumerate(sorted(self.graphs.items())) :
+                    graphs[key].Draw('' if i or j else 'AL')
+                    if "muon" in graphskey : legend.AddEntry(graphs[key],"%.2f"%key[2],'l')
+            legend.Draw()
+            fileName = '%s/sensitivity_%d_%s'%(self.globalStem,step,dist) + ".eps"
+            canvas.Print(fileName)
+            del canvas
+            print "Wrote: %s"%fileName
+                
+    def pickleEnsemble(self, iStep, dist, qqFrac, sampleSizeFactor, rw, lname) :
+        supy.utils.mkdir(self.globalStem+'/ensembles')
+        templates,observed = self.templates(iStep, dist, qqFrac, rw, lname, sampleSizeFactor )
+        ensemble = supy.utils.templateFit.templateEnsembles(2e3, *zip(*templates) )
+        supy.utils.writePickle(self.ensembleFileName(iStep,dist,qqFrac,sampleSizeFactor,rw,lname), ensemble)
+
+        name = self.ensembleFileName(iStep,dist,qqFrac,sampleSizeFactor,rw,lname,'')
+        canvas = r.TCanvas()
+        canvas.Print(name+'.pdf[','pdf')
+        stuff = supy.utils.templateFit.drawTemplateEnsembles(ensemble, canvas)
+        canvas.Print(name+".pdf",'pdf')
+        import random
+        for i in range(20) :
+            par, templ = random.choice(zip(ensemble.pars,ensemble.templates)[2:-2])
+            pseudo = [np.random.poisson(mu) for mu in templ]
+            tf = supy.utils.templateFit.templateFitter(pseudo,ensemble.pars,ensemble.templates, 1e3)
+            stuff = supy.utils.templateFit.drawTemplateFitter(tf,canvas, trueVal = par)
+            canvas.Print(name+".pdf",'pdf')
+            for item in sum([i if type(i) is list else [i] for i in stuff[1:]],[]) : supy.utils.delete(item)
+
+        canvas.Print(name+'.pdf]','pdf')
+        
+    def templateFit(self, iStep, dist, qqFrac = 0.15) :
+        print "FIXME"; return
+        if not hasattr(self,'orgMelded') : print 'run meldScale() before templateFit().'; return
+
+        outName = self.globalStem + '/templateFit_%s_%d'%(dist,qqFrac*100)
+        #TF = templateFit.templateFitter(observed, *zip(*templates) )
+        #print supy.utils.roundString(TF.value, TF.error , noSci=True)
+        
+        #stuff = templateFit.drawTemplateFitter(TF, canvas)
+        #canvas.Print(outName+'.ps')
+        #for item in sum([i if type(i) is list else [i] for i in stuff[1:]],[]) : supy.utils.delete(item)
+        
+        #canvas.Print(outName+'.ps]')
+        #os.system('ps2pdf %s.ps %s.pdf'%(outName,outName))
+        #os.system('rm %s.ps'%outName)
+
 
     #def meldWpartitions(self,pars) :
     #    rw = pars['reweights']['abbr']
@@ -598,243 +907,3 @@ class topAsymm(supy.analysis) :
     #                      rowCycle = 100,
     #                      omit2D = True,
     #                      ).plotAll()
-        
-    def plotMeldScale(self, rw, lname) :
-        if not hasattr(self,"orgMelded") : print "run meldScale() before plotMeldScale()"; return
-        melded = copy.deepcopy(self.orgMelded)
-        for ss in filter(lambda ss: 'ttj_mg' in ss['name'], melded.samples) : melded.drop(ss['name'])
-        for log,label in [(False,""),(True,"_log")] : 
-            pl = supy.plotter(melded, pdfFileName = self.pdfFileName(melded.tag + label),
-                              doLog = log,
-                              blackList = ["lumiHisto","xsHisto","nJobsHisto"],
-                              rowColors = self.rowcolors,
-                              samplesForRatios = ("top.Data 2011","S.M."),
-                              sampleLabelsForRatios = ('data','s.m.'),
-                              rowCycle = 100,
-                              omit2D = True,
-                              pageNumbers = False,
-                              ).plotAll()
-        
-    def meldScale(self,rw,lname) :
-        meldSamples = {"top_%s_pf_%s"%(lname,rw) : [{ 'muon':"SingleMu",
-                                                      'electron':'EleHad'}[lname],
-                                                    "ttj_mg",
-                                                    #"wj_lv_mg",
-                                                    "dyj_ll_mg"]+self.single_top()+["w%dj_mg"%n for n in [2,3,4]],
-                       #"Wlv_%s_pf_%s"%(lname,rw) : ["w_jets"],
-                       "QCD_%s_pf_%s"%(lname,rw) : [{ 'muon':"SingleMu",
-                                                      'electron':'EleHad'}[lname],
-                                                    "ttj_mg"]}
-        
-        organizers = [supy.organizer(tag, [s for s in self.sampleSpecs(tag) if any(item in s['name'] for item in meldSamples[tag])])
-                      for tag in [p['tag'] for p in self.readyConfs if p["tag"] in meldSamples]]
-        if len(organizers) < len(meldSamples) : return
-        for org in organizers :
-            org.mergeSamples(targetSpec = {"name":"t#bar{t}", "color":r.kViolet}, sources=["ttj_mg.wNonQQbar.tw.%s"%rw,"ttj_mg.wTopAsymP00.tw.%s"%rw], keepSources = True)
-            #org.mergeSamples(targetSpec = {"name":"W", "color":r.kRed}, allWithPrefix = "wj_lv_mg")
-            org.mergeSamples(targetSpec = {"name":"W", "color":r.kRed}, sources = ["w%dj_mg.tw.%s"%(n,rw) for n in [2,3,4]] )
-            org.mergeSamples(targetSpec = {"name":"DY", "color":28}, allWithPrefix = "dyj_ll_mg")
-            org.mergeSamples(targetSpec = {"name":"Single", "color":r.kGray}, sources = ["%s.tw.%s"%(s,rw) for s in self.single_top()], keepSources = False )
-            org.mergeSamples(targetSpec = {"name":"Data 2011", "color":r.kBlack, "markerStyle":20}, allWithPrefix={'muon':"SingleMu",'electron':"EleHad"}[lname])
-            org.scale()
-            if "QCD_" in org.tag :
-                org.mergeSamples(targetSpec = {"name":"multijet","color":r.kBlue},
-                                 sources=["Data 2011",'t#bar{t}'],
-                                 scaleFactors = [1,-1],
-                                 force=True, keepSources = False)
-
-        self.orgMelded = supy.organizer.meld(organizers = organizers)
-
-        templateSamples = ['top.t#bar{t}','top.W','QCD.multijet']
-        baseSamples = ['top.Single','top.DY']
-
-        mfCanvas = r.TCanvas()
-        def printMF(open = False, close = False) :
-            name = "%s/measuredFractions.pdf"%self.globalStem
-            mfCanvas.Print(name + ("[" if open else "]" if close else ""), "pdf" if open else "")
-            if close : print supy.utils.hyphens, '\n', name, " has been written."
-        printMF(open=True)
-        
-        def measureFractions(dist, rebin = 1) :
-            before = next(self.orgMelded.indicesOfStep("label","selection complete"))
-            distTup = self.orgMelded.steps[next(iter(filter(lambda i: before<i, self.orgMelded.indicesOfStepsWithKey(dist))))][dist]
-
-            templates = [None] * len(templateSamples)
-            bases = []
-            for ss,hist in zip(self.orgMelded.samples,distTup) :
-                contents = [hist.GetBinContent(i) for i in range(hist.GetNbinsX()+2)]
-                if rebin!=1 : contents = contents[:1] + [sum(bins) for bins in zip(*[contents[1:-1][i::rebin] for i in range(rebin)])] + contents[-1:]
-                if ss['name'] == "top.Data 2011" :
-                    observed = contents
-                    nEventsObserved = sum(observed)
-                elif ss['name'] in templateSamples :
-                    templates[templateSamples.index(ss['name'])] = contents
-                elif ss['name'] in baseSamples :
-                    bases.append(contents)
-                else : pass
-
-            from supy.utils.fractions import componentSolver,drawComponentSolver
-            cs = componentSolver(observed, templates, 1e4, base = np.sum(bases, axis=0) )
-            stuff = drawComponentSolver( cs, mfCanvas, distName = dist,
-                                         templateNames = [t.replace("top.ttj_mg.wTopAsymP00.tw.%s"%rw,"q#bar{q}-->t#bar{t}").replace("top.ttj_mg.wNonQQbar.tw.%s"%rw,"gg-->t#bar{t}").replace("QCD.Data 2011","Multijet").replace("top.W","W+jets").replace('top.',"") for t in  templateSamples])
-            printMF()
-            return distTup,cs
-
-        def mf2(dist) : return measureFractions(dist,2)
-
-        distTup,cs = map(mf2,["TriDiscriminant","KarlsruheDiscriminant"])[0]
-
-        fractions = dict(zip(templateSamples,cs.fractions))        
-        for iSample,ss in enumerate(self.orgMelded.samples) :
-            if ss['name'] in fractions : self.orgMelded.scaleOneRaw(iSample, fractions[ss['name']] * sum(cs.observed) / distTup[iSample].Integral(0,distTup[iSample].GetNbinsX()+1))
-
-        self.orgMelded.mergeSamples(targetSpec = {"name":"bg", "color":r.kWhite}, sources = set(baseSamples + templateSamples) - set(['top.t#bar{t}']), keepSources = True, force = True)
-        templateSamples = ['top.ttj_mg.wTopAsymP00.tw.%s'%rw,'top.ttj_mg.wNonQQbar.tw.%s'%rw]
-        baseSamples = ['bg']
-        distTup,cs = map(measureFractions,["tracksCountwithPrimaryHighPurityTracks","fitTopNtracksExtra","fitTopFifthJet","xcak5JetPFM3Pat","fitTopAbsSumRapidities"])[0]
-                                           #"xcak5JetPFFourJetPtThresholdPat","xcak5JetPFFourJetAbsEtaThresholdPat","fitTopPartonXlo"])[0]
-        printMF(close=True)
-
-        #fractions = dict(zip(templateSamples,cs.fractions))
-        #for iSample,ss in enumerate(self.orgMelded.samples) :
-        #    if ss['name'] in fractions : self.orgMelded.scaleOneRaw(iSample, fractions[ss['name']] * sum(cs.observed) / distTup[iSample].Integral(0,distTup[iSample].GetNbinsX()+1))
-
-        #self.orgMelded.drop("top.t#bar{t}")
-        #self.orgMelded.mergeSamples(targetSpec = {"name":"top.t#bar{t}", "color":r.kViolet}, sources = templateSamples, keepSources = True, force = True)
-        
-
-        templateSamples = ['top.t#bar{t}'] # hack !!
-        self.orgMelded.mergeSamples(targetSpec = {"name":"S.M.", "color":r.kGreen+2}, sources = templateSamples + baseSamples , keepSources = True, force = True)
-        #for ss in filter(lambda ss: 'ttj_mg' in ss['name'],self.orgMelded.samples) : self.orgMelded.drop(ss['name'])
-        self.orgMelded.drop('bg')
-        
-    def PEcurves(self) :
-        if not hasattr(self, 'orgMelded') : return
-        specs = ([{'var' : "ak5JetPFCSVPat[i[%d]]:xcak5JetPFIndicesBtaggedPat"%bIndex, 'left':True, 'right':False} for bIndex in [0,1,2]] +
-                 [{'var' : "TopRatherThanWProbability",                                      'left':True, 'right':False},
-                  {'var' : "TriDiscriminant",                                                'left':True, 'right':True}])
-        pes = {}
-        for spec in specs :
-            dists = dict(zip([ss['name'] for ss in self.orgMelded.samples ],
-                             self.orgMelded.steps[next(self.orgMelded.indicesOfStepsWithKey(spec['var']))][spec['var']] ) )
-            contours = supy.utils.optimizationContours( [dists['top.t#bar{t}']],
-                                                        [dists[s] for s in ['QCD.multijet','top.W','top.Single','top.DY']],
-                                                        **spec
-                                                        )
-            supy.utils.tCanvasPrintPdf(contours[0], "%s/PE_%s"%(self.globalStem,spec['var']))
-            if spec['left']^spec['right'] : pes[spec['var']] = contours[1]
-        c = r.TCanvas()
-        leg = r.TLegend(0.5,0.8,1.0,1.0)
-        graphs = []
-        for i,(var,pe) in enumerate(pes.iteritems()) :
-            pur,eff = zip(*pe)
-            g = r.TGraph(len(pe), np.array(eff), np.array(pur))
-            g.SetTitle(";efficiency;purity")
-            g.SetLineColor(i+2)
-            leg.AddEntry(g,var,'l')
-            graphs.append(g)
-            g.Draw('' if i else 'AL')
-        leg.Draw()
-        c.Update()
-        supy.utils.tCanvasPrintPdf(c, "%s/purity_v_efficiency"%self.globalStem)
-        return
-
-
-    def templates(self, iStep, dist, qqFrac, rw) :
-        if not hasattr(self,'orgMelded') : print 'run meldScale() before asking for templates()'; return
-        topQQs = [s['name'] for s in self.orgMelded.samples if 'wTopAsym' in s['name']]
-        asymm = [eval(name.replace("top.ttj_mg.wTopAsym","").replace(".tw.%s"%rw,"").replace("P",".").replace("N","-.")) for name in topQQs if 'QCD' not in name]
-        distTup = self.orgMelded.steps[iStep][dist]
-        hist = distTup[ self.orgMelded.indexOfSampleWithName("S.M.") ]
-        edges = supy.utils.edgesRebinned( hist, targetUncRel = 0.015, offset = 0 )
-
-        def nparray(name, scaleToN = None) :
-            hist_orig = distTup[ self.orgMelded.indexOfSampleWithName(name) ]
-            hist = hist_orig.Rebin(len(edges)-1, "%s_rebinned"%hist_orig.GetName(), edges)
-            bins = np.array([hist.GetBinContent(j) for j in range(hist.GetNbinsX()+2)])
-            if scaleToN : bins *= (scaleToN / sum(bins))
-            return bins
-
-        nTT = sum(nparray('top.t#bar{t}'))
-        observed = nparray('top.Data 2011')
-        base = ( nparray('QCD.multijet') +
-                 nparray('top.W') +
-                 nparray('top.DY') +
-                 nparray('top.Single') +
-                 nparray('top.ttj_mg.wNonQQbar.tw.%s'%rw, scaleToN = (1-qqFrac) * nTT )
-                 )
-        templates = [base +  nparray(qqtt, qqFrac*nTT ) for qqtt in topQQs]
-        return zip(asymm, templates), observed
-    
-
-    def ensembleFileName(self, iStep, dist, qqFrac, suffix = '.pickleData') :
-        return "%s/ensembles/%d_%s_%.3f%s"%(self.globalStem,iStep,dist,qqFrac,suffix)
-
-    def ensembleTest(self,rw) :
-        qqFracs = sorted([0.10, 0.12, 0.15, 0.20, 0.25, 0.30, 0.40, 0.60, 1.0])
-        dists = [#'lHadtDeltaY',
-                 'ttbarDeltaAbsY',
-                 #'leptonRelativeY',
-                 #'ttbarSignedDeltaY',
-                 'ttbarSignExpectation'
-                ]
-        args = sum([[(iStep, dist, qqFrac, rw) for iStep in list(self.orgMelded.indicesOfStepsWithKey(dist))[:None] for qqFrac in qqFracs] for dist in dists],[])
-        supy.utils.operateOnListUsingQueue(6, supy.utils.qWorker(self.pickleEnsemble), args)
-        ensembles = dict([(arg[:-1],supy.utils.readPickle(self.ensembleFileName(*arg[:-1]))) for arg in args])
-
-        for iStep in sorted(set([iStep for iStep,dist,qqFrac in ensembles])) :
-            canvas = r.TCanvas()
-            dists = sorted(set([dist for jStep,dist,qqFrac in ensembles if jStep==iStep]))
-            legend = r.TLegend(0.7,0.5,0.9,0.9)
-            graphs = {}
-            for iDist,dist in enumerate(dists) :
-                points = sorted([(qqFrac,ensemble.sensitivity) for (jStep, jDist, qqFrac),ensemble in ensembles.iteritems() if jStep==iStep and jDist==dist])
-                qqs,sens = zip(*points)
-                graphs[dist] = r.TGraph(len(points),np.array(qqs),np.array(sens))
-                graphs[dist].SetLineColor(iDist+1)
-                graphs[dist].Draw('' if iDist else "AL")
-                graphs[dist].SetMinimum(0)
-                graphs[dist].SetTitle("Sensitivity @ step %d;fraction of t#bar{t} from q#bar{q};expected uncertainty on R"%iStep)
-                legend.AddEntry(graphs[dist],dist,'l')
-            legend.Draw()
-            supy.utils.tCanvasPrintPdf(canvas, '%s/sensitivity_%d'%(self.globalStem,iStep))
-                
-    def pickleEnsemble(self, iStep, dist, qqFrac, rw) :
-        supy.utils.mkdir(self.globalStem+'/ensembles')
-        templates,observed = self.templates(iStep, dist, qqFrac, rw)
-        ensemble = supy.utils.templateFit.templateEnsembles(2e3, *zip(*templates) )
-        supy.utils.writePickle(self.ensembleFileName(iStep,dist,qqFrac), ensemble)
-
-        name = self.ensembleFileName(iStep,dist,qqFrac,'')
-        canvas = r.TCanvas()
-        canvas.Print(name+'.ps[')
-        stuff = supy.utils.templateFit.drawTemplateEnsembles(ensemble, canvas)
-        canvas.Print(name+".ps")
-        import random
-        for i in range(20) :
-            par, templ = random.choice(zip(ensemble.pars,ensemble.templates)[2:-2])
-            pseudo = [np.random.poisson(mu) for mu in templ]
-            tf = supy.utils.templateFit.templateFitter(pseudo,ensemble.pars,ensemble.templates, 1e3)
-            stuff = supy.utils.templateFit.drawTemplateFitter(tf,canvas, trueVal = par)
-            canvas.Print(name+".ps")
-            for item in sum([i if type(i) is list else [i] for i in stuff[1:]],[]) : supy.utils.delete(item)
-
-        canvas.Print(name+'.ps]')
-        os.system('ps2pdf %s.ps %s.pdf'%(name,name))
-        os.system('rm %s.ps'%name)
-        
-    def templateFit(self, iStep, dist, qqFrac = 0.15) :
-        print "FIXME"; return
-        if not hasattr(self,'orgMelded') : print 'run meldScale() before templateFit().'; return
-
-        outName = self.globalStem + '/templateFit_%s_%d'%(dist,qqFrac*100)
-        #TF = templateFit.templateFitter(observed, *zip(*templates) )
-        #print supy.utils.roundString(TF.value, TF.error , noSci=True)
-        
-        #stuff = templateFit.drawTemplateFitter(TF, canvas)
-        #canvas.Print(outName+'.ps')
-        #for item in sum([i if type(i) is list else [i] for i in stuff[1:]],[]) : supy.utils.delete(item)
-        
-        #canvas.Print(outName+'.ps]')
-        #os.system('ps2pdf %s.ps %s.pdf'%(outName,outName))
-        #os.system('rm %s.ps'%outName)
