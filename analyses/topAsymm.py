@@ -536,6 +536,7 @@ class topAsymm(supy.analysis) :
                  dict(spec,**{"plotName":"ttbarSignExpectation",
                               "newTitle":";#LT sgn(boost) #upoint sgn(#Delta^{}y) #GT;probability density"})
                  ]
+        for ss in org.samples : ss['goptions'] = 'hist'
         kwargs = {"showStatBox":False, "anMode":True}
         pl = supy.plotter(org, pdfFileName = self.pdfFileName(org.tag+"_ind"), doLog = False, **kwargs).individualPlots(specs, newSampleNames = new)
         pl = supy.plotter(org, pdfFileName = self.pdfFileName(org.tag+"_ind_log"), doLog = True, pegMinimum=0.001, **kwargs).individualPlots(specs, newSampleNames = new)
