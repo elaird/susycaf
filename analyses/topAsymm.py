@@ -506,11 +506,11 @@ class topAsymm(supy.analysis) :
         self.orgMelded = {}
         self.graphs = {}
         self.rowcolors = 2*[13] + 2*[45]
-        #super(topAsymm,self).concludeAll()
+        super(topAsymm,self).concludeAll()
         for rw,lname in set([(pars['reweights']['abbr'],pars['lepton']['name']) for pars in self.readyConfs]) :
             self.meldScale(rw,lname)
-            #self.plotMeldScale(rw,lname)
-            #self.PEcurves(rw,lname)
+            self.plotMeldScale(rw,lname)
+            self.PEcurves(rw,lname)
             self.ensembleTest(rw,lname)
         self.sensitivity_graphs()
         #self.grant_proposal_plots()
