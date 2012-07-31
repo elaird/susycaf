@@ -760,7 +760,7 @@ class IndicesGenTopExtra(wrappedChain.calculable) :
 ######################################
 class wTopAsym(wrappedChain.calculable) :
     def __init__(self, R, R_sm = 0, intrinsicC = 1) :
-        self.fixes = ("",("N" if R < 0 else "P") + "%02d"%(100*abs(R)))
+        self.fixes = ("", "%+03d"%(100*R))
         for item in ['R','R_sm','intrinsicC'] : setattr(self,item,eval(item))
         for a100 in range(101) :
             a =  0.01*a100 * self.intrinsicC

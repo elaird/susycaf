@@ -20,6 +20,9 @@ class wQQbar(wrappedChain.calculable) :
 ##############################
 class genQQbar(wrappedChain.calculable) :
     def update(self,_) :
+        if self.source['isRealData'] :
+            self.value = ()
+            return
         ids = list(self.source['genPdgId'])
         self.value = tuple(sorted([4,5],key = ids.__getitem__,reverse = True)) \
                      if not sum(ids[4:6]) else tuple()
@@ -277,7 +280,9 @@ class qDirExpectation(calculables.secondary) :
     def setup(self,*_) :
         import numpy as np
         orig = self.fromCache( [self.sample], [self.var], tag = self.tag)[self.sample][self.var]
-        if not orig : return
+        if not orig :
+            print "No cache: %s; %s"%(self.sample,str(self))
+            return
         values = [orig.GetBinContent(i) for i in range(orig.GetNbinsX()+2)]
         neighbors = 10
         for i in range(neighbors,len(values)-neighbors) : orig.SetBinContent(i, sum(values[i-neighbors:i+neighbors+1]) / (1+2*neighbors))
@@ -303,6 +308,7 @@ class qDirExpectation(calculables.secondary) :
         for i in range(len(q)) : self.q.SetBinContent(i+1,q[i])
 
         self.mean = sum(a*b for a,b in zip(p,(R+L))) / (sum(R)+sum(L))
+        self.value = self.calculate
 
     def reportCache(self) :
         fileName = '/'.join(self.outputFileName.split('/')[:-1]+[self.name])
@@ -325,7 +331,7 @@ class qDirExpectation(calculables.secondary) :
         del mean
         del c
 
-    def update(self,_) : self.value = self.calculate
+    def update(self,_) : pass
 
     def calculate(self, top, tbar) :
         var = self.varFunction(top,tbar)
