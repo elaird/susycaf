@@ -276,19 +276,6 @@ class topPrinter(analysisStep) :
         print
         if abs(tt.E() - (p4s[4]+p4s[5]).E())>0.5 : print (50*' '), "2 -> 3+"
 #####################################
-class genMassHistogrammer(analysisStep) :
-
-    def __init__(self,pdgId = 23):
-        self.pdgId = pdgId
-        self.histoName = "mass_pdgId==%d"%self.pdgId
-        
-    def uponAcceptance (self,eventVars) :
-        size=len(eventVars["genP4"])
-        for iGen in range(size) :
-            p4=eventVars["genP4"].at(iGen)
-            if eventVars["genPdgId"].at(iGen)!=self.pdgId : continue
-            self.book.fill(p4.mass(), self.histoName, 100, 0.0, 300.0, title = ";mass (GeV);events / bin")
-#####################################
 class genSHatHistogrammer(analysisStep) :
 
     def uponAcceptance (self,eventVars) :
