@@ -1,6 +1,14 @@
 import ROOT as r
 from supy import wrappedChain,utils
 ##############################
+class susyScanmGL(wrappedChain.calculable) :
+    def update(self,_) :
+        self.value = self.source["SimpModelScanmGL"]
+##############################
+class susyScanmLSP(wrappedChain.calculable) :
+    def update(self,_) :
+        self.value = self.source["SimpModelScanmLSP"]
+##############################
 class deadEcalRegionsFromFile(wrappedChain.calculable) :
     def __init__(self) :
         self.trigPrims = r.std.vector(type(utils.LorentzV()))()

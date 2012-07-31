@@ -67,6 +67,31 @@ class genIndices(wrappedChain.calculable) :
         self.value = filter( lambda i: pdg.at(i) in self.PDGs and \
                              status.at(i) in self.status, range(pdg.size()) )
 ##############################
+class susyIniIndices(wrappedChain.calculable) :
+    def __init__(self) :
+        self.moreName = "status 3; SUSY; non-SUSY parents"
+
+    def update(self,_) :
+        self.value = []
+        if not self.source["genHandleValid"] : return
+        nParticles = len(self.source["genPdgId"])
+        for iParticle in range(nParticles) :
+            if self.source["genStatus"].at(iParticle)!=3 : #consider only status 3 particles
+                continue
+            if not utils.isSusy(self.source["genPdgId"].at(iParticle)) : #which are SUSY particles
+                continue
+            if utils.isSusy(self.source["genMotherPdgId"].at(iParticle)) : #whose mothers are not SUSY particles
+                continue
+            self.value.append(iParticle)
+##############################
+class susyIniSumP4(wrappedChain.calculable) :
+    def update(self,_) :
+        indices = self.source["susyIniIndices"]
+        assert len(indices)==2,indices
+        self.value = utils.LorentzV()
+        for i in indices :
+            self.value += self.source["genP4"].at(i)
+##############################
 class genIndicesB(wrappedChain.calculable) :
     def update(self,_) :
         ids = self.source['genPdgId']
@@ -228,10 +253,6 @@ class genParticleCounter(wrappedChain.calculable) :
         for key in self.categories :
             self.value[key]=0
 
-    def isSusy(self, pdgId) :
-        reducedPdgId = abs(pdgId)/1000000
-        return reducedPdgId==1 or reducedPdgId==2 or (pdgId in [25,32,33,34,35,36,37])
-
     def incrementCategory(self,pdgId) :
         if pdgId in self.pdgToCategory:
             category=self.pdgToCategory[pdgId]
@@ -246,13 +267,7 @@ class genParticleCounter(wrappedChain.calculable) :
         nParticles = len(self.source["genPdgId"])
 
         #Susy counts
-        for iParticle in range(nParticles) :
-            #consider only status 3 particles
-            if self.source["genStatus"].at(iParticle)!=3 : continue
-            #which are SUSY particles
-            if not self.isSusy(self.source["genPdgId"].at(iParticle)) : continue
-            #whose mothers are not SUSY particles
-            if self.isSusy(self.source["genMotherPdgId"].at(iParticle)) : continue
+        for iParticle in self.source["susyIniIndices"] :
             self.incrementCategory(self.source["genPdgId"].at(iParticle))
 
         #initial state counts
@@ -377,3 +392,29 @@ class qDirExpectation_RapiditySum(qDirExpectation) :
         self.tag = tag
         self.sample = sample
 
+##############################
+class isrWeight(wrappedChain.calculable) :
+    def __init__(self, model = "", var = "") :
+        assert model in ["T1", "T2"],model
+        self.model = model
+        self.var = var
+        self.histos = {}
+
+    def setup(self) :
+        f = r.TFile("data/ISRWeights_Topology%s.root"%self.model)
+        for item in f.GetListOfKeys() :
+            name = item.GetName()
+            h = f.Get(name).Clone()
+            h.SetDirectory(0)
+            assert name.startswith("h_ISRWeight_lastPt_")
+            mX,mY = name.split("_")[-2:]
+            self.histos[(float(mX),float(mY))] = h
+        f.Close()
+
+    def update(self,_) :
+        if not self.histos :
+            self.setup()
+
+        h = self.histos[(self.source["susyScanmGL"], self.source["susyScanmLSP"])]
+        x = self.source["susyIniSumP4"].pt()
+        self.value = h.GetBinContent(h.FindBin(x))

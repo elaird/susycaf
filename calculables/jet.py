@@ -632,6 +632,26 @@ class DeltaPhiStar(wrappedChain.calculable) :
         jets = self.source[self.CorrectedP4]
         self.value = sorted([ (abs(r.Math.VectorUtil.DeltaPhi(jets.at(i),jets.at(i)-sumP4)), i) for i in self.source[self.Indices] ])
 ##############################
+class MaxEmEnergyFraction(wrappedChain.calculable) :
+    def __init__(self, collection = None, extraName = "") :
+        self.fixes = (collection[0], collection[1]+extraName)
+        self.stash(["CorrectedP4"], collection)
+        self.stash(["Indices","SumP4"])
+        self.stash(["EmEnergyFraction"], (collection[0].replace("xc",""), collection[1]))
+        #self.stash(["EmEnergyFraction"], (collection))
+
+    def update(self,ignored) :
+        self.value = []
+        sumP4 = self.source[self.SumP4]
+        if not sumP4 : return
+        jets = self.source[self.CorrectedP4]
+        emf = self.source[self.EmEnergyFraction]
+        #self.value = sorted([ (abs(r.Math.VectorUtil.DeltaPhi(jets.at(i),jets.at(i)-sumP4)), i) for i in self.source[self.Indices] ])
+        
+        #print([emf.at(i) for i in self.source[self.Indices]])
+        self.value = max([emf.at(i) for i in self.source[self.Indices] ])
+#        print(self.value)
+##############################
 class DeltaPhiMht(wrappedChain.calculable) :
     def __init__(self,collection = None) :
         self.fixes = collection

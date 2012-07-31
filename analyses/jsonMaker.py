@@ -6,50 +6,46 @@ class jsonMaker(supy.analysis) :
         jwMay = calculables.other.jsonWeight("cert/Cert_160404-163869_7TeV_May10ReReco_Collisions11_JSON_v3.txt")
         jwAug = calculables.other.jsonWeight("cert/Cert_170249-172619_7TeV_ReReco5Aug_Collisions11_JSON_v3.txt")
 
-        jw2012 = calculables.other.jsonWeight("cert/Cert_190456-194479_8TeV_PromptReco_Collisions12_JSON.txt")
+        jw2012 = calculables.other.jsonWeight("cert/Cert_190456-196531_8TeV_PromptReco_Collisions12_JSON.txt")
 
         group = self.vary()
 
-        group['SingleMu'] = [(['SingleMu.2011A',
-                               'SingleMu.2011B',
-                               ], [])] # no json filtering necessary, golden json used
+        group['SingleMu'] = [(['SingleMu.Run2012A-PromptReco-v1.AOD.job228',
+                               'SingleMu.Run2012B-PromptReco-v1.AOD.job229',
+                               'SingleMu.Run2012B-PromptReco-v1.AOD.job238',
+                                ], jw2012)]
 
-        group['SingleEl'] = [(['SingleEl.2011A',
-                               'SingleEl.2011B',
-                                     ], [])] # no json filtering necessary, golden json used
+        group['SingleEl'] = [(['SingleElectron.Run2012A-PromptReco-v1.AOD.job229',
+                               'SingleElectron.Run2012B-PromptReco-v1.AOD.job228',
+                               'SingleElectron.Run2012B-PromptReco-v1.AOD.job238',
+                               ], jw2012)] 
 
-        group['Photon'] = [(["Photon.Run2012A-PromptReco-v1.AOD.job171",
-                             "SinglePhoton.Run2012B-PromptReco-v1.AOD.job171",
+        group['Photon'] = [(["Photon.Run2012A-PromptReco-v1.AOD.job228",
+                             "SinglePhoton.Run2012B-PromptReco-v1.AOD.job229",
+                             "SinglePhoton.Run2012B-PromptReco-v1.AOD.job238",
                              ], jw2012)]
 
-        group['Mumu'] = [(["DoubleMu.Run2011A-05Aug2011-v1.AOD.job663",
-                           "DoubleMu.Run2011A-May10ReReco-v1.AOD.job662",
-                           "DoubleMu.Run2011A-PromptReco-v4.AOD.job664",
-                           "DoubleMu.Run2011A-PromptReco-v6.AOD.job665",
-                           "DoubleMu.Run2011B-PromptReco-v1.AOD.job666",
-                           ], [])]
-        
-        group['HT1'] = [('HT.Run2011A-May10ReReco-v1.AOD.job536',jwMay),
-                        ('HT.Run2011A-05Aug2011-v1.AOD.job528',jwAug),
-                        (['HT.Run2011A-PromptReco-v4.AOD.job535',
-                          'HT.Run2011A-PromptReco-v6.AOD.job527',
-                          'HT.Run2011B-PromptReco-v1.AOD.job515',
-                          'HT.Run2011B-PromptReco-v1.AOD.job519',
-                          'HT.Run2011B-PromptReco-v1.AOD.job531',
-                          'HT.Run2011B-PromptReco-v1.AOD.job533',
-                          'HT.Run2011B-PromptReco-v1.AOD.job564',
-                          'HT.Run2011B-PromptReco-v1.AOD.job592',
-                          ], jwPrompt)]
-        
-        group['HT2'] = [('HT.Run2011A-May10ReReco-v1.AOD.Darren1',jwMay),
-                        ('HT.Run2011A-05Aug2011-v1.AOD.Bryn1',jwAug),
-                        (['HT.Run2011A-PromptReco-v4.AOD.Bryn1',
-                          'HT.Run2011A-PromptReco-v6.AOD.Bryn1',
-                          'HT.Run2011B-PromptReco-v1.AOD.Bryn1',
-                          'HT.Run2011B-PromptReco-v1.AOD.Bryn2',
-                          'HT.Run2011B-PromptReco-v1.AOD.Bryn3',
-                          ], jwPrompt)]
+        group['Mumu'] = [(['DoubleMu.Run2012A-PromptReco-v1.AOD.job229',
+                           'DoubleMu.Run2012B-PromptReco-v1.AOD.job228',
+                           'DoubleMu.Run2012B-PromptReco-v1.AOD.job239',
+                           ], jw2012)]
 
+        group['HT1'] = [(['HT.Run2012A-PromptReco-v1.AOD.job229',
+                          'HTMHT.Run2012B-PromptReco-v1.AOD.job228',
+                          'HTMHT.Run2012B-PromptReco-v1.AOD.job238',
+                          'JetHT.Run2012B-PromptReco-v1.AOD.job228',
+                          'JetHT.Run2012B-PromptReco-v1.AOD.job238',
+                          ], jw2012)]
+        
+#        group['HT2'] = [('HT.Run2011A-May10ReReco-v1.AOD.Darren1',jwMay),
+#                        ('HT.Run2011A-05Aug2011-v1.AOD.Bryn1',jwAug),
+#                        (['HT.Run2011A-PromptReco-v4.AOD.Bryn1',
+#                          'HT.Run2011A-PromptReco-v6.AOD.Bryn1',
+#                          'HT.Run2011B-PromptReco-v1.AOD.Bryn1',
+#                          'HT.Run2011B-PromptReco-v1.AOD.Bryn2',
+#                          'HT.Run2011B-PromptReco-v1.AOD.Bryn3',
+#                          ], jwPrompt)]
+#
         return {'group':group}
 
     def listOfSteps(self,pars) :
@@ -64,7 +60,7 @@ class jsonMaker(supy.analysis) :
         return sum([supy.samples.specify(names = samps, weights = jw) for samps,jw in pars['group']],[])
 
     def listOfSampleDictionaries(self) :
-        return [samples.ht, samples.muon16, samples.photon, samples.photon17, samples.electron16, samples.mumu]
+        return [samples.ht17, samples.jetmet17, samples.muon17, samples.photon17, samples.electron17, samples.mumu17]
 
     def mainTree(self) :
         return ("lumiTree","tree")

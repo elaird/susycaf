@@ -10,7 +10,7 @@ class ra1Displays(supy.analysis) :
                                                                     "compJet",                "compJetId", "compMuonsInJets",        "compMet",
                                                                     "muon",                    "electron",          "photon",         "rechit"]
 
-        objects["caloAK5JetMet_recoLepPhot"]   = dict(zip(fields, [("xcak5Jet","Pat"),       "JetIDloose",             False,   "metP4TypeIPF",
+        objects["caloAK5JetMet_recoLepPhot"]   = dict(zip(fields, [("xcak5Jet","Pat"),       "JetIDloose",             False, "metP4AK5TypeII",
                                                                    ("xcak5JetPF","Pat"),     "JetIDtight",              True,        "metP4PF",
                                                                    ("muon","Pat"),     ("electron","Pat"),  ("photon","Pat"),           "Calo",
                                                                    ]))
@@ -42,7 +42,7 @@ class ra1Displays(supy.analysis) :
                 calculables.jet.Indices( jet, ptMin = ptMin,           etaMax = 3.0, flagName = jetIdFlag),
                 calculables.jet.Indices( jet, ptMin = lowPtThreshold,  etaMax = 3.0, flagName = jetIdFlag, extraName = lowPtName),
                 calculables.jet.Indices( jet, ptMin = highPtThreshold, etaMax = 3.0, flagName = jetIdFlag, extraName = highPtName),
-                                
+                
                 calculables.jet.SumP4(jet),
                 calculables.jet.SumP4(jet, extraName = lowPtName),
                 calculables.jet.SumP4(jet, extraName = highPtName),
@@ -66,10 +66,10 @@ class ra1Displays(supy.analysis) :
             calculables.xclean.IndicesUnmatched(collection = obj["photon"], xcjets = obj["jet"], DR = 0.5),
             calculables.xclean.IndicesUnmatched(collection = obj["electron"], xcjets = obj["jet"], DR = 0.5),
 
-            calculables.muon.Indices( obj["muon"], ptMin = 10, ID = "IdPog2012Tight", usePfIso = True, pfRelIsoMax = 0.20),
-            calculables.electron.Indices( obj["electron"], ptMin = 10, flag2012 = "Veto"),
-            calculables.photon.Indices(obj["photon"], ptMin = 25, flagName = "photonIDRA3Pat"),
-            calculables.photon.CombinedIsoDR03RhoCorrected(obj["photon"]),
+            calculables.muon.Indices(obj["muon"], ptMin = 10, combinedRelIsoMax = 0.15),
+            calculables.electron.Indices(obj["electron"], ptMin = 10, simpleEleID = "95", useCombinedIso = True),
+            calculables.photon.Indices(obj["photon"],  ptMin = 25, flagName = "photonIDLooseFromTwikiPat"),
+            #calculables.Photon.Indices(obj["photon"],  ptMin = 25, flagName = "photonIDTightFromTwikiPat"),
 
             calculables.other.RecHitSumPt(obj["rechit"]),
             calculables.other.RecHitSumP4(obj["rechit"]),
@@ -93,7 +93,7 @@ class ra1Displays(supy.analysis) :
     def listOfSteps(self, params) :
         return [
             supy.steps.printer.progressPrinter(),
-            #supy.steps.filters.value("%sSumEt%s"%params["objects"]["jet"], min = 1000),
+            #supy.steps.filters.value("%sSumEt%s"%params["objects"]["jet"], min = 575),
             steps.displayer.displayer(jets      = params["objects"]["jet"],
                                       muons     = params["objects"]["muon"],
                                       met       = params["objects"]["met"],
@@ -107,32 +107,24 @@ class ra1Displays(supy.analysis) :
                                       deltaPhiStarDR = 0.3,
                                       j2Factor = params["thresholds"][2]/params["thresholds"][0],
                                       mhtOverMetName = "%sMht%sOver%s"%(params["objects"]["jet"][0], params["objects"]["jet"][1]+params["highPtName"], params["objects"]["met"]),
-                                      #metOtherAlgo  = params["objects"]["compMet"],
-                                      #jetsOtherAlgo = params["objects"]["compJet"],
-                                      doGenJets = True,
-                                      prettyMode = True,
+                                      metOtherAlgo  = params["objects"]["compMet"],
+                                      jetsOtherAlgo = params["objects"]["compJet"],
+                                      #doGenJets = True,
+                                      #prettyMode = True,
                                       ),
             ]
     
     def listOfSampleDictionaries(self) :
         sampleDict = supy.samples.SampleHolder()
-        #sampleDict.add("MT2_events", '["/home/hep/bm409/public_html/MT2Skim.root"]', lumi = 600)
+        sampleDict.add("MT2_events", '["/home/hep/bm409/public_html/MT2Skim.root"]', lumi = 600)
         #sampleDict.add("Data_375", '["/home/hep/elaird1/73_candidates/v8/375.root"]', lumi = 1.1e3)
-        #sampleDict.add("Data_375", '["/home/hep/elaird1/73_candidates/v9/HT_375_skim_27fb.root"]', lumi = 2.7e3)
-        #sampleDict.add("T2_skim", '["/home/hep/db1110/public_html/Simplified_Models/T2_testpoint_results/T2_skims/T2_testpoint_200_175.root"]', xs = 1.0)
-        #sampleDict.add("Data_275", '["/home/hep/db1110/public_html/AnalysisSkims/DefaultAnalysisSkims/275-325/Dataskims/275data.root"]', lumi = 602.) #/pb
-        #sampleDict.add("MG_QCD", '["/home/hep/db1110/public_html/AnalysisSkims/DefaultAnalysisSkims/275-325/MCskims/275madgraph.root"]', xs = 1.0) #dummy xs
-        #sampleDict.add("PY_QCD", '["/home/hep/db1110/public_html/AnalysisSkims/DefaultAnalysisSkims/275-325/AlphaT54MCSkims/275Pythia.root"]', xs = 1.0) #dummy xs
-        #sampleDict.add("py_qcd_375", '["/home/hep/elaird1/87_qcd_hunt/02_ht375/py6/skims_alphaT.gt.0.55/all.root"]', xs = 1.0) #dummy xs
-        sampleDict.add("Data_4bJets1", '["/uscms/home/yeshaq/work/susycaf/4bjets/SusyCAF_Tree_1.root"]', lumi = 1.1e3)
-        sampleDict.add("Data_4bJets2", '["/uscms/home/yeshaq/work/susycaf/4bjets/SusyCAF_Tree_2.root"]', lumi = 1.1e3)
-        sampleDict.add("Data_4bJets3", '["/uscms/home/yeshaq/work/susycaf/4bjets/SusyCAF_Tree_3.root"]', lumi = 1.1e3)
-        sampleDict.add("MC_4bJets1", '["/uscms/home/yeshaq/work/susycaf/4bjets/MC/TTJets/SusyCAF_Tree_1.root"]', lumi = 1.1e3)
-        sampleDict.add("MC_4bJets2", '["/uscms/home/yeshaq/work/susycaf/4bjets/MC/TTJets/SusyCAF_Tree_2.root"]', lumi = 1.1e3)
-        sampleDict.add("MC_4bJets3", '["/uscms/home/yeshaq/work/susycaf/4bjets/MC/TTJets/SusyCAF_Tree_3.root"]', lumi = 1.1e3)
-        sampleDict.add("MC_4bJets4", '["/uscms/home/yeshaq/work/susycaf/4bjets/MC/Zinv/SusyCAF_Tree.root"]', lumi = 1.1e3)        
-        sampleDict.add("Data_High_HT", '["~/nobackup/supy-output/hadronicLook/375_ge2_caloAK5JetMet_recoLepPhot_pythia6/High_HT_skim.root"]', lumi = 1.1e3)
+        sampleDict.add("Data_375", '["/home/hep/elaird1/73_candidates/v9/HT_375_skim_27fb.root"]', lumi = 2.7e3)
+        sampleDict.add("T2_skim", '["/home/hep/db1110/public_html/Simplified_Models/T2_testpoint_results/T2_skims/T2_testpoint_200_175.root"]', xs = 1.0)
+        sampleDict.add("Data_275", '["/home/hep/db1110/public_html/AnalysisSkims/DefaultAnalysisSkims/275-325/Dataskims/275data.root"]', lumi = 602.) #/pb
+        sampleDict.add("MG_QCD", '["/home/hep/db1110/public_html/AnalysisSkims/DefaultAnalysisSkims/275-325/MCskims/275madgraph.root"]', xs = 1.0) #dummy xs
+        sampleDict.add("PY_QCD", '["/home/hep/db1110/public_html/AnalysisSkims/DefaultAnalysisSkims/275-325/AlphaT54MCSkims/275Pythia.root"]', xs = 1.0) #dummy xs
+        sampleDict.add("py_qcd_375", '["/home/hep/elaird1/87_qcd_hunt/02_ht375/py6/skims_alphaT.gt.0.55/all.root"]', xs = 1.0) #dummy xs
         return [sampleDict]
     
     def listOfSamples(self,params) :
-        return supy.samples.specify(names = ["MC_4bJets4"])
+        return supy.samples.specify(names = "Data_375")

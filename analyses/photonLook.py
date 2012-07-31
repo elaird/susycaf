@@ -75,6 +75,9 @@ class photonLook(supy.analysis) :
                  calculables.gen.genMinDeltaRPhotonOther( label = "Status3Photon"),
                  
                  calculables.gen.genIndices( pdgs = [22], label = "Status1Photon", status = [1]),
+                 calculables.gen.genIndices( pdgs = [13], label = "Status1MuPlus", status = [1]),
+                 calculables.gen.genIndices( pdgs = [-13], label = "Status1MuMinus", status = [1]),
+                 calculables.gen.genIndices( pdgs = [23], label = "Status3Z", status = [3]),
                  calculables.gen.genIsolations(label = "Status1Photon", coneSize = 0.4),
                  calculables.gen.genPhotonCategory(label = "Status1Photon"),
 
@@ -145,6 +148,15 @@ class photonLook(supy.analysis) :
 
         if params["vertexMode"] :
             return outList
+
+        if params["zMode"] :
+            outList += [supy.steps.filters.multiplicity("genIndicesStatus1MuPlus", min = 1),
+                        supy.steps.filters.multiplicity("genIndicesStatus1MuMinus", min = 1),
+                        supy.steps.filters.multiplicity("genIndicesStatus3Z", min = 1, max = 1),
+                        supy.steps.filters.mass("genP4", index = 0, indices = "genIndicesStatus3Z", min = 80, max = 105),
+                ]
+               
+
 
         #HT bin and leading jets
         outList += [
@@ -319,7 +331,7 @@ class photonLook(supy.analysis) :
             outList += data
             outList += mc
         else :
-            pass
+            outList += specify("DYJetsToLL_M-50.job97", color = r.kMagenta, nFilesMax=1, nEventsMax=1000)
             
         return outList
 
