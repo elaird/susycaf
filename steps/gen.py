@@ -103,11 +103,9 @@ class scanHistogrammer(analysisStep) :
 
         #title = ";m_{0} (GeV);m_{1/2} (GeV)"
         title = ";m_{gluino} (GeV);m_{LSP} (GeV)"
-        
-        if not self.htVar :
-            self.book.fill( (m0, m12), "nEvents", self.bins, self.lo, self.hi,         title = "%s;%s"%(title,"nEvents"))
-         #   self.book.fill( (m0, m12), "XS",      self.bins, self.lo, self.hi, w = xs, title = "%s;%s"%(title,"XS"))
-        else :
+
+        self.book.fill( (m0, m12), "nEvents", self.bins, self.lo, self.hi,         title = "%s;%s"%(title,"nEvents"))
+        if self.htVar :
             ht = eventVars[self.htVar]
             for name,pair in zip(self.htStrings, self.htBins) :
                 if not self.htIn(ht, *pair) : continue
