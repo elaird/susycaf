@@ -247,6 +247,43 @@ class Beta(wrappedChain.calculable) :
     def update(self, _) :
         self.value = self.source[self.CosThetaStarAvg] * math.sqrt(self.source[self.Alpha])
 ######################################
+class genCosThetaStar(wrappedChain.calculable) :
+    def update(self,_) :
+        '''Cosine angle between colliding and resulting particle in center of mass frame, three cases:
+
+        case qqbar -> ttbarX : between light quark and top quark
+        case gq(bar) -> ttbarX : between light (anti)quark and top (anti)quark
+        case gg -> ttbarX : between arbitrary gluon and top quark
+        '''
+        id = self.source['genPdgId']
+        p4 = self.source['genP4']
+        beta = (p4[4]+p4[5]).BoostToCM()
+        boost = r.Math.Boost(beta.x(),beta.y(),beta.z())
+
+        iQs = [i for i in [4,5] if id[i]!=21]
+        iQ = max(iQs,key=lambda i:id[i]) if iQs else 4
+        iTop = 6 if id[6]*id[iQ] > 0 else 7
+
+        self.value = r.Math.VectorUtil.CosTheta( boost(p4[iTop]), boost(p4[iQ]) )
+class genCosThetaStarBar(wrappedChain.calculable) :
+    def update(self,_) :
+        '''Cosine angle between colliding and resulting particle in center of mass frame, three cases:
+
+        case qqbar -> ttbarX : between light quark and top quark
+        case gq(bar) -> ttbarX : between light (anti)quark and top (anti)quark
+        case gg -> ttbarX : between arbitrary gluon and top quark
+        '''
+        id = self.source['genPdgId']
+        p4 = self.source['genP4']
+        beta = (p4[4]+p4[5]).BoostToCM()
+        boost = r.Math.Boost(beta.x(),beta.y(),beta.z())
+
+        iQs = [i for i in [4,5] if id[i]!=21]
+        iQ = max(iQs,key=lambda i:id[i]) if iQs else 4
+        iTbar = 6 if id[6]*id[iQ] < 0 else 7
+
+        self.value = r.Math.VectorUtil.CosTheta( boost(p4[iTbar]), boost(p4[iQ]) )
+######################################
 class __CosThetaStar__(wrappedChain.calculable) :
     def __init__(self, collection = None, topKey = 't', boostz = "BoostZ") :
         self.fixes = collection
@@ -551,11 +588,11 @@ class TopReconstruction(wrappedChain.calculable) :
                                "lepBound" : lepFit.bound,     "hadWraw" : hadFit.rawW, "lepWraw" : lepFit.rawW,
                                "sumP4": sumP4 - b + lepFit.fitB,
                                "nuErr2":nuErr2_b,
-                               "residuals" : dict( zip(["lep"+i for i in "BSLT"],  lepFit.residualsBSLT ) +
+                               "residuals" : dict( zip(["lep"+i for i in "BSLWT"],  lepFit.residualsBSLWT ) +
                                                    zip(["had"+i for i in "PQBWT"], hadFit.residualsPQBWT ) ),
                                "nuEllipse"       : lepFit.Ellipse,
                                "nuSolutions"     : lepFit.solutions,
-                               "nuChi2Matrix"    : lepFit.M
+                               "nuChi2Matrix"    : lepFit.X
                                })
                 recos[-1]["key"] = recos[-1]['chi2'] - 2*math.log(recos[-1]['probability'])
 
@@ -723,7 +760,7 @@ class IndicesGenTopExtra(wrappedChain.calculable) :
 ######################################
 class wTopAsym(wrappedChain.calculable) :
     def __init__(self, R, R_sm = 0, intrinsicC = 1) :
-        self.fixes = ("",("N" if R < 0 else "P") + "%02d"%(100*abs(R)))
+        self.fixes = ("", "%+03d"%(100*R))
         for item in ['R','R_sm','intrinsicC'] : setattr(self,item,eval(item))
         for a100 in range(101) :
             a =  0.01*a100 * self.intrinsicC
