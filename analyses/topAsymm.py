@@ -183,6 +183,7 @@ class topAsymm(supy.analysis) :
             calculables.vertex.ID(),
             calculables.vertex.Indices(),
 
+            calculables.gen.genIndicesHardPartons(),
             calculables.top.TopJets( obj['jet'] ),
             calculables.top.TopLeptons( lepton ),
             calculables.top.mixedSumP4( transverse = obj["met"], longitudinal = obj["sumP4"] ),

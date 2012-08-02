@@ -3,9 +3,10 @@ import supy,steps,calculables,samples
 class topAsymmTemplates(supy.analysis) :
     def parameters(self) :
         return {"effectiveLumi" : 100000,
-                "generator" : self.vary({"compare":["_mg","_ph"],
+                "generator" : self.vary({"compare":["_mg","_ph","_mn"],
                                          "mg":"_mg",
-                                         "ph":"_ph"
+                                         "ph":"_ph",
+                                         "mn":"_mn"
                                          }),
                 }
 
@@ -14,16 +15,19 @@ class topAsymmTemplates(supy.analysis) :
                  supy.calculables.fromCollections(calculables.top,[('genTop',""),('fitTop',"")]) +
                  [ calculables.vertex.ID(),
                    calculables.vertex.Indices(),
+                   calculables.gen.genIndicesHardPartons( {"ttj_mg":(4,5),
+                                                           "ttj_ph":(4,5),
+                                                           "ttj_mn":(0,1)}[pars["baseSample"]] )
                    ]
                  )
     
     def listOfSteps(self, pars) :
         return [supy.steps.printer.progressPrinter(),
                 #steps.gen.topPrinter(),
+                steps.gen.particlePrinter(),
                 steps.top.collisionType(),
                 supy.steps.filters.value('wQQbar', min=1),
                 steps.top.mcQuestions(),
-                #steps.gen.genParticlePrinter()
                 #steps.filters.label("all"),         steps.Top.mcTruthTemplates(),
                 #steps.filters.OR([steps.Filter.value('genTTbarIndices',min=0,index='lplus'),
                 #                 steps.Filter.value('genTTbarIndices',min=0,index='lminus')]),
@@ -40,7 +44,7 @@ class topAsymmTemplates(supy.analysis) :
         eL = pars["effectiveLumi"]
 
         if type(pars["generator"]) is list :
-            suffixColor = zip(pars["generator"],[r.kBlack,r.kRed])
+            suffixColor = zip(pars["generator"],[r.kBlack,r.kRed,r.kBlue])
             return sum([supy.samples.specify(names = "ttj%s"%suf, effectiveLumi = eL, color = col) for suf,col in suffixColor],[])
 
         sample = "ttj%s"%pars["generator"]

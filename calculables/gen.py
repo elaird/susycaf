@@ -1,10 +1,6 @@
 from supy import wrappedChain,utils,calculables
 import ROOT as r
 ##############################
-class TwoToTwo(wrappedChain.calculable) :
-    def update(self,_) :
-        self.value = 1 if list(self.source['genMotherIndex']).count(4)==2 else None
-##############################
 class genSumP4(wrappedChain.calculable) :
     def update(self,_) :
         genP4 = self.source['genP4']
@@ -24,12 +20,13 @@ class genQQbar(wrappedChain.calculable) :
             self.value = ()
             return
         ids = list(self.source['genPdgId'])
-        self.value = tuple(sorted([4,5],key = ids.__getitem__,reverse = True)) \
-                     if not sum(ids[4:6]) else tuple()
+        iHard = self.source['genIndicesHardPartons']
+        self.value = tuple(sorted(iHard,key = ids.__getitem__,reverse = True)) \
+                     if not sum([ids[i] for i in iHard]) else tuple()
 ##############################
-class genIndexStrongerParton(wrappedChain.calculable) :
-    def update(self,_) :
-        self.value = max([(abs(self.source['genP4'][i].pz()),i) for i in [2,3]])[1]
+class genIndicesHardPartons(wrappedChain.calculable) :
+    def __init__(self,indices = (4,5)) : self.value = indices
+    def update(self,_) : pass
 ##############################
 class genMotherPdgId(wrappedChain.calculable) :
     def isFake(self) : return True
@@ -114,29 +111,6 @@ class genIndicesStatus3NoStatus3Daughter(wrappedChain.calculable) :
         status3List = filter( lambda i: status.at(i)==3, range(status.size()) )
         motherIndices = set([mother[i] for i in status3List])
         self.value = filter( lambda i: i not in motherIndices, status3List )
-##############################
-class genttCosThetaStar(wrappedChain.calculable) :
-    def update(self,_) :
-        self.value = (None,None)
-        ids = list(self.source['genPdgId'])
-        if not (6 in ids and -6 in ids) :
-            print "Fail ttbar"
-            return
-        
-        mom = self.source['genMotherIndex']
-        iTop = ids.index(6)
-        iTbar = ids.index(-6)
-        iQ,iQbar = sorted([mom[iTop],mom[iTop]+1], key = ids.__getitem__,reverse=True)
-        if ids[iQ]+ids[iQbar] : return #Fail qqbar
-
-        p4s = self.source['genP4']
-        beta = (p4s[iQ]+p4s[iQbar]).BoostToCM()
-        boost = r.Math.Boost(beta.x(), beta.y(), beta.z())
-        top = boost(p4s[iTop])
-        tbar = boost(p4s[iTbar])
-        cosTheta = r.Math.VectorUtil.CosTheta( boost(p4s[iQ]), boost(p4s[iTop]))
-        cosThetaBar = r.Math.VectorUtil.CosTheta( boost(p4s[iQbar]), boost(p4s[iTbar]))
-        self.value = (cosTheta,cosThetaBar) if top.E() > tbar.E() else (cosThetaBar,cosTheta)
 ##############################
 class genMinDeltaRPhotonOther(wrappedChain.calculable) :
     @property
