@@ -75,20 +75,9 @@ class genIndicesPtSorted(wrappedChain.calculable) :
 
 class genRootSHat(wrappedChain.calculable) :
     def update(self,_) :
-        self.value = None
-
+        iHard = self.source["genIndicesHardPartons"]
         p4s = self.source["genP4"]
-        mothers = self.source["genMotherIndex"]
-        counts = [0,0]
-        indices = [-1,-1]
-        for iGen in range(p4s.size()) :
-            motherIndex = mothers.at(iGen)
-            if motherIndex not in [0, 1] : continue
-            counts[motherIndex] += 1
-            indices[motherIndex] = iGen
-
-        if counts[0]!=1 or counts[1]!=1 : return
-        self.value = ( p4s.at(indices[0])+p4s.at(indices[1]) ).mass()
+        self.value = None if not iHard else (p4s.at(iHard[0])+p4s.at(iHard[1])).mass()
 
 class genSumPt(wrappedChain.calculable) :
     @property
