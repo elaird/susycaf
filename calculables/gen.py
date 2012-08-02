@@ -53,6 +53,18 @@ class genIndices(wrappedChain.calculable) :
         status = self.source["genStatus"]
         self.value = filter( lambda i: pdg.at(i) in self.PDGs and \
                              status.at(i) in self.status, range(pdg.size()) )
+
+class genIndicesPtSorted(wrappedChain.calculable) :
+    @property
+    def name(self) :
+        return "%sPtSorted"%self.label
+
+    def __init__(self, label = "") :
+        self.label = "genIndices"+label
+
+    def update(self,_) :
+        p4 = self.source["genP4"]
+        self.value = sorted(self.source[self.label], key = lambda i:p4.at(i).pt(), reverse = True)
 ##############################
 class susyIniIndices(wrappedChain.calculable) :
     def __init__(self) :
