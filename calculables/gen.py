@@ -65,6 +65,23 @@ class genIndicesPtSorted(wrappedChain.calculable) :
     def update(self,_) :
         p4 = self.source["genP4"]
         self.value = sorted(self.source[self.label], key = lambda i:p4.at(i).pt(), reverse = True)
+
+class genRootSHat(wrappedChain.calculable) :
+    def update(self,_) :
+        self.value = None
+
+        p4s = self.source["genP4"]
+        mothers = self.source["genMotherIndex"]
+        counts = [0,0]
+        indices = [-1,-1]
+        for iGen in range(p4s.size()) :
+            motherIndex = mothers.at(iGen)
+            if motherIndex not in [0, 1] : continue
+            counts[motherIndex] += 1
+            indices[motherIndex] = iGen
+
+        if counts[0]!=1 or counts[1]!=1 : return
+        self.value = ( p4s.at(indices[0])+p4s.at(indices[1]) ).mass()
 ##############################
 class susyIniIndices(wrappedChain.calculable) :
     def __init__(self) :
