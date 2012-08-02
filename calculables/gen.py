@@ -42,17 +42,24 @@ class genIndices(wrappedChain.calculable) :
     @property
     def name(self) : return "genIndices" + self.label
 
-    def __init__(self, pdgs = None, label = None, status = None ) :
+    def __init__(self, pdgs = [], label = None, status = [], motherPdgs = []) :
         self.label = label
         self.PDGs = frozenset(pdgs)
         self.status = frozenset(status)
-        self.moreName = "pdgId in %s; status in %s" % (str(list(self.PDGs)), str(list(self.status)))
+        self.motherPdgs = frozenset(motherPdgs)
+        self.moreName = "; ".join(["pdgId in %s" %str(list(self.PDGs)),
+                                   "status in %s"%str(list(self.status)),
+                                   "motherPdg in %s"%str(list(self.motherPdgs))
+                                   ])
 
     def update(self,_) :
         pdg = self.source["genPdgId"]
         status = self.source["genStatus"]
-        self.value = filter( lambda i: pdg.at(i) in self.PDGs and \
-                             status.at(i) in self.status, range(pdg.size()) )
+        motherPdg = self.source["genMotherPdgId"]
+        self.value = filter( lambda i: ( (not self.PDGs) or (pdg.at(i) in self.PDGs) ) and \
+                                 ( (not self.status) or (status.at(i) in self.status) ) and \
+                                 ( (not self.motherPdgs) or (motherPdg.at(i) in self.motherPdgs) ),
+                             range(pdg.size()) )
 
 class genIndicesPtSorted(wrappedChain.calculable) :
     @property
@@ -82,6 +89,25 @@ class genRootSHat(wrappedChain.calculable) :
 
         if counts[0]!=1 or counts[1]!=1 : return
         self.value = ( p4s.at(indices[0])+p4s.at(indices[1]) ).mass()
+
+class genSumPt(wrappedChain.calculable) :
+    @property
+    def name(self) :
+        return "_".join(["genSumPt"]+self.indexLabels)
+
+    def __init__(self, indexLabels = []) :
+        self.indexLabels = map(lambda s:s.replace("genIndices",""), indexLabels)
+
+    def update(self,_) :
+        indices = []
+        for label in self.indexLabels :
+            indices += self.source["genIndices"+label]
+        indices = set(indices)
+
+        self.value = 0.0
+        p4 = self.source["genP4"]
+        for i in indices :
+            self.value += p4.at(i).pt()
 ##############################
 class susyIniIndices(wrappedChain.calculable) :
     def __init__(self) :
