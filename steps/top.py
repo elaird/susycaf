@@ -1,4 +1,4 @@
-import math,itertools,ROOT as r, numpy as np
+import math,itertools,ROOT as r
 from supy import analysisStep,steps,calculables
 try:
     import numpy as np
