@@ -31,28 +31,12 @@ class genIndexStrongerParton(wrappedChain.calculable) :
     def update(self,_) :
         self.value = max([(abs(self.source['genP4'][i].pz()),i) for i in [2,3]])[1]
 ##############################
-class genMotherPdgId(wrappedChain.calculable) :
-    def isFake(self) : return True
-    def update(self,_) :
-        self.value = map( self.motherId, self.source["genHasMother"], self.source["genMotherStored"], self.source["genMother"])
-    def motherId(self, hasMom, momStored, mom) :
-        return 0 if not hasMom else \
-               mom if not momStored else \
-               self.source["genPdgId"].at(mom)
-##############################
 class genStatus1P4(wrappedChain.calculable) :
     def update(self,_) :
         self.value = []
         for i in range(self.source["genP4"].size()) :
             if self.source["genStatus"].at(i)!=1 : continue
             self.value.append(self.source["genP4"][i])
-##############################
-class genMotherIndex(wrappedChain.calculable) :
-    def isFake(self) : return True
-    def update(self,_) :
-        self.value = map( self.motherIndex, self.source["genHasMother"], self.source["genMotherStored"], self.source["genMother"])
-    def motherIndex(self, hasMom, momStored, mom) :
-        return -1 if not (hasMom and momStored) else mom
 ##############################
 class genIndices(wrappedChain.calculable) :
     @property

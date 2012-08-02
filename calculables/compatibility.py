@@ -9,6 +9,22 @@ class susyScanmLSP(wrappedChain.calculable) :
     def update(self,_) :
         self.value = self.source["SimpModelScanmLSP"]
 ##############################
+class genMotherPdgId(wrappedChain.calculable) :
+    def isFake(self) : return True
+    def update(self,_) :
+        self.value = map( self.motherId, self.source["genHasMother"], self.source["genMotherStored"], self.source["genMother"])
+    def motherId(self, hasMom, momStored, mom) :
+        return 0 if not hasMom else \
+               mom if not momStored else \
+               self.source["genPdgId"].at(mom)
+##############################
+class genMotherIndex(wrappedChain.calculable) :
+    def isFake(self) : return True
+    def update(self,_) :
+        self.value = map( self.motherIndex, self.source["genHasMother"], self.source["genMotherStored"], self.source["genMother"])
+    def motherIndex(self, hasMom, momStored, mom) :
+        return -1 if not (hasMom and momStored) else mom
+##############################
 class deadEcalRegionsFromFile(wrappedChain.calculable) :
     def __init__(self) :
         self.trigPrims = r.std.vector(type(utils.LorentzV()))()
