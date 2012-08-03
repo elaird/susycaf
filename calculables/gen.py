@@ -101,6 +101,7 @@ class JetIndices(wrappedChain.calculable) :
         self.p4 = "gen%sJetsP4"%collection[0]
         self.ptMin = ptMin
         self.etaMax = etaMax
+        self.moreName = "pT>%g GeV; |eta|<%g"%(self.ptMin, self.etaMax)
 
     def update(self,_) :
         p4 = self.source[self.p4]
