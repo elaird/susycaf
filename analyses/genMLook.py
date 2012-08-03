@@ -59,10 +59,12 @@ class genMLook(supy.analysis) :
             out = [supy.steps.filters.pt("genak5GenJetsP4", indices = "ak5GenJetIndices", index = 7, min = 30.0),
                    ]
 
+        if out : out.insert(0, supy.steps.filters.label('trigger requirements'))
         return out
 
     def genFilters(self) :
-        return [supy.steps.filters.multiplicity("genIndicesStatus3Z", min = 1, max = 1),
+        return [supy.steps.filters.label('gen. requirements'),
+                supy.steps.filters.multiplicity("genIndicesStatus3Z", min = 1, max = 1),
                 supy.steps.filters.multiplicity("genIndicesStatus3t", min = 2, max = 2),
                 supy.steps.filters.multiplicity("genIndicesStatus3W", min = 2, max = 2),
                 supy.steps.filters.multiplicity("genIndicesStatus3b", min = 4, max = 4),
@@ -79,33 +81,42 @@ class genMLook(supy.analysis) :
     def printers(self) :
         return [supy.steps.printer.progressPrinter(),
                 #steps.gen.particlePrinter(minPt = -1.0, minStatus = 3),
-                steps.gen.genJetPrinter(cs = ("genak5", "")),
+                #steps.gen.genJetPrinter(cs = ("genak5", "")),
                 ]
 
+    def genPtPlots(self, particles = []) :
+        out = [supy.steps.filters.label('gen. pT plots')] if particles else []
+
+        if "Z" in particles :
+            out += [supy.steps.histos.mass("genP4", 100, 0.0, 200.0, indices = "genIndicesStatus3Z", index = 0, xtitle = "gen Z_{0}"),
+                    supy.steps.histos.pt  ("genP4",  20, 0.0, 300.0, indices = "genIndicesStatus3Z", index = 0, xtitle = "gen Z_{0}"),
+                    ]
+        if "t" in particles :
+            out += [supy.steps.histos.pt("genP4", 20, 0.0, 300.0, indices = "genIndicesStatus3tPtSorted", index = 0, xtitle = "    leading t quark"),
+                    supy.steps.histos.pt("genP4", 20, 0.0, 300.0, indices = "genIndicesStatus3tPtSorted", index = 1, xtitle = "sub-leading t quark"),
+                    ]
+        if "W" in particles :
+            out += [supy.steps.histos.pt("genP4", 20, 0.0, 300.0, indices = "genIndicesStatus3WPtSorted", index = 0, xtitle = "    leading W"),
+                    supy.steps.histos.pt("genP4", 20, 0.0, 300.0, indices = "genIndicesStatus3WPtSorted", index = 1, xtitle = "sub-leading W"),
+                    ]
+
+        if "b" in particles :
+            out += [supy.steps.histos.pt("genP4", 20, 0.0, 200.0, indices = "genIndicesStatus3bPtSorted", index = 0, xtitle = "    leading b quark"),
+                    supy.steps.histos.pt("genP4", 20, 0.0, 200.0, indices = "genIndicesStatus3bPtSorted", index = 1, xtitle = "sub-leading b quark"),
+                    supy.steps.histos.pt("genP4", 20, 0.0, 200.0, indices = "genIndicesStatus3bPtSorted", index = 2, xtitle = "3rd leading b quark"),
+                    supy.steps.histos.pt("genP4", 20, 0.0, 200.0, indices = "genIndicesStatus3bPtSorted", index = 3, xtitle = "4th leading b quark"),
+                    ]
+        return out
+
     def listOfSteps(self, params) :
-        outList = []
+        out = []
 
-        outList += self.genFilters()
-        #outList += self.printers()
-        #outList += self.scaleLook()
-        outList += self.triggerFilters(thresh = (80, 80, 60, 60, 20, 20))
-
-        outList += [
-            supy.steps.histos.mass("genP4", 100, 0.0, 200.0, indices = "genIndicesStatus3Z", index = 0, xtitle = "gen Z_{0}"),
-            supy.steps.histos.pt  ("genP4",  20, 0.0, 300.0, indices = "genIndicesStatus3Z", index = 0, xtitle = "gen Z_{0}"),
-
-            supy.steps.histos.pt("genP4", 20, 0.0, 300.0, indices = "genIndicesStatus3tPtSorted", index = 0, xtitle = "    leading t quark"),
-            supy.steps.histos.pt("genP4", 20, 0.0, 300.0, indices = "genIndicesStatus3tPtSorted", index = 1, xtitle = "sub-leading t quark"),
-
-            supy.steps.histos.pt("genP4", 20, 0.0, 300.0, indices = "genIndicesStatus3WPtSorted", index = 0, xtitle = "    leading W"),
-            supy.steps.histos.pt("genP4", 20, 0.0, 300.0, indices = "genIndicesStatus3WPtSorted", index = 1, xtitle = "sub-leading W"),
-
-            supy.steps.histos.pt("genP4", 20, 0.0, 200.0, indices = "genIndicesStatus3bPtSorted", index = 0, xtitle = "    leading b quark"),
-            supy.steps.histos.pt("genP4", 20, 0.0, 200.0, indices = "genIndicesStatus3bPtSorted", index = 1, xtitle = "sub-leading b quark"),
-            supy.steps.histos.pt("genP4", 20, 0.0, 200.0, indices = "genIndicesStatus3bPtSorted", index = 2, xtitle = "3rd leading b quark"),
-            supy.steps.histos.pt("genP4", 20, 0.0, 200.0, indices = "genIndicesStatus3bPtSorted", index = 3, xtitle = "4th leading b quark"),
-            ]
-        return outList
+        out += self.genFilters()
+        out += self.printers()
+        out += self.triggerFilters(thresh = (80, 80, 60, 60, 20, 20))
+        #out += self.scaleLook()
+        out += self.genPtPlots(particles = ["t", "b", "W", "Z"])
+        return out
 
     def conclude(self,pars) :
         org = self.organizer(pars)
