@@ -106,6 +106,10 @@ class genMLook(supy.analysis) :
                     supy.steps.histos.pt("genP4", 20, 0.0, 200.0, indices = "genIndicesStatus3bPtSorted", index = 2, xtitle = "3rd leading b quark"),
                     supy.steps.histos.pt("genP4", 20, 0.0, 200.0, indices = "genIndicesStatus3bPtSorted", index = 3, xtitle = "4th leading b quark"),
                     ]
+
+        if "j" in particles :
+            out += [supy.steps.histos.pt("genak5GenJetsP4", 20, 0.0, 200.0, indices = "ak5GenJetIndices", index = 7, xtitle = "8th gen. jet"),
+                    ]
         return out
 
     def listOfSteps(self, params) :
@@ -115,7 +119,12 @@ class genMLook(supy.analysis) :
         out += self.printers()
         out += self.triggerFilters(thresh = (80, 80, 60, 60, 20, 20))
         #out += self.scaleLook()
-        out += self.genPtPlots(particles = ["t", "b", "W", "Z"])
+
+        out += self.genPtPlots(particles = ["t", "b", "W", "Z", "j"])
+
+        out += [supy.steps.filters.pt("genak5GenJetsP4", indices = "ak5GenJetIndices", index = 7, min = 20.0),
+                ]
+
         return out
 
     def conclude(self,pars) :
