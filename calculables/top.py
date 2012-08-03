@@ -417,9 +417,10 @@ class fitTopLeptonCharge(wrappedChain.calculable) :
 
 class genTopTTbar(wrappedChain.calculable) :
     def update(self,_) :
-        self.value = tuple(list(self.source['genPdgId']).index(i) for i in [6,-6]) if \
+        ids = list(self.source['genPdgId'])
+        self.value = tuple(ids.index(i) for i in [6,-6]) if \
                      (not self.source['isRealData']) and \
-                     all([id in self.source['genPdgId'] for id in [-6,6]]) else ()
+                     all([id in ids for id in [-6,6]]) else ()
 class genTopIndicesX(wrappedChain.calculable) :
     def update(self,_) :
         moms = self.source['genMotherIndex']
@@ -744,6 +745,30 @@ class IndicesGenTopExtra(wrappedChain.calculable) :
         indices = self.source[self.Indices]
         jet = self.source[self.CorrectedP4]
         self.value = [j for j in indices if any( self.rMax > r.Math.VectorUtil.DeltaR(jet[j],gen) for gen in extraP4 ) ]
+######################################
+class qQbarHardAsym(wrappedChain.calculable) :
+    def __init__(self) :
+        self.a_qq_hard = utils.asymmWeighting.Asymm_qqbar_hard()
+    def update(self,_) :
+        self.value = None
+        iqqbar = self.source['genQQbar']
+        ittbar = self.source['genTopTTbar']
+        iGlu = next(iter(self.source['genGlu']),None)
+        if not (iqqbar and ittbar and iGlu) : return
+
+        qqbarQQbarg = [self.source['genP4'].at(i) for i in iqqbar+ittbar+(iGlu,)]
+        self.a_qq_hard.setMomenta(qqbarQQbarg)
+        self.value = self.a_qq_hard.weight
+
+class wQQbarHardAsym(wrappedChain.calculable) :
+    def __init__(self,target,nominal) :
+        self.fixes = ("","%+.2fon%+.2f"%(target,nominal))
+        self.target = target
+        self.nominal = nominal
+
+    def update(self,_) :
+        w = self.source['qQbarHardAsym']
+        self.value = 1 if not w else w(self.target,self.nominal)
 ######################################
 class wTopAsym(wrappedChain.calculable) :
     def __init__(self, R, R_sm = 0, intrinsicC = 1) :

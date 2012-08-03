@@ -24,6 +24,14 @@ class genQQbar(wrappedChain.calculable) :
         self.value = tuple(sorted(iHard,key = ids.__getitem__,reverse = True)) \
                      if not sum([ids[i] for i in iHard]) else tuple()
 ##############################
+class genGlu(wrappedChain.calculable) :
+    def update(self,_) :
+        iHardMax = max(self.source["genIndicesHardPartons"])
+        self.value = sorted([i for i,(id,s) in enumerate(zip(self.source['genPdgId'],
+                                                             self.source['genStatus'])) if id==21 and s==3 and iHardMax<i],
+                            reverse=True,
+                            key = lambda i: self.source['genP4'].at(i).Pt() )
+##############################
 class genIndicesHardPartons(wrappedChain.calculable) :
     def __init__(self,indices = (4,5)) : self.value = indices
     def update(self,_) : pass
