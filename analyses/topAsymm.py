@@ -183,6 +183,7 @@ class topAsymm(supy.analysis) :
             calculables.vertex.ID(),
             calculables.vertex.Indices(),
 
+            calculables.gen.genIndicesHardPartons(),
             calculables.top.TopJets( obj['jet'] ),
             calculables.top.TopLeptons( lepton ),
             calculables.top.mixedSumP4( transverse = obj["met"], longitudinal = obj["sumP4"] ),
@@ -504,7 +505,7 @@ class topAsymm(supy.analysis) :
     ########################################################################################
     def concludeAll(self) :
         self.orgMelded = {}
-        self.graphs = {}
+        self.sensitivityPoints = {}
         self.rowcolors = 2*[13] + 2*[45]
         super(topAsymm,self).concludeAll()
         for rw,lname in set([(pars['reweights']['abbr'],pars['lepton']['name']) for pars in self.readyConfs]) :
@@ -764,50 +765,52 @@ class topAsymm(supy.analysis) :
         org = self.orgMelded[(lname,rw)]
 
         steps = list(org.indicesOfStep("weighted"))
-        qqFracs = {0.07:r.kBlack, 0.14:r.kRed, 0.21:r.kGreen, 0.28:r.kBlue}
-        sampleSizeFactor = [0.5,1,2,4,8]
+        qqFracs = [0.07, 0.14, 0.21, 0.28]
+        self.sampleSizeFactor = sorted([0.5,1,2,4,8])
 
         args = [ (iStep, qqFrac, ssF, rw, lname)
                  for iStep in steps
                  for qqFrac in qqFracs
-                 for ssF in sampleSizeFactor
+                 for ssF in self.sampleSizeFactor
                  ]
         supy.utils.operateOnListUsingQueue(6, supy.utils.qWorker(self.pickleEnsemble), args)
         ensembles = dict([(arg[:-2],supy.utils.readPickle(self.ensembleFileName(*arg))) for arg in args])
 
-        graphs = {}
+        points = {}
         for (step,qqFrac),keys in itertools.groupby( sorted(ensembles), lambda key : key[:2] ) :
-            ssfs,sens = zip( *[(key[2],ensembles[key].sensitivity) for key in keys ] )
-            graph = r.TGraph(len(ssfs), np.array(ssfs), np.array(sens) )
-            graph.SetLineColor(qqFracs[qqFrac])
-            graph.SetLineStyle(1 if lname=="muon" else 2)
-            graph.SetMinimum(0)
-            graph.SetTitle(";N_{t#bar{t}} / (^{}N_{t#bar{t}} @5fb^{-1});expected uncertainty on asymmetry")
-            graph.GetYaxis().SetTitleOffset(1.4)
-            graphs[(step,qqFrac)] = graph
-        self.graphs[(lname,rw)] = graphs
+            ssfs,sens = zip( *sorted([(key[2],ensembles[key].sensitivity) for key in keys ]) )
+            points[(step,qqFrac)] = sens
+        self.sensitivityPoints[(lname,rw)] = points
 
     def sensitivity_graphs(self) :
+        qqFracs = {0.07:r.kBlack, 0.14:r.kRed, 0.21:r.kGreen, 0.28:r.kBlue}
         supy.plotter.setupStyle()
         supy.plotter.setupTdrStyle()
-        graphkeys = self.graphs.keys()
-        if not graphkeys : return
-        for (step,),keys in itertools.groupby( sorted(self.graphs[graphkeys[0]]), lambda key : key[:1] ) :
-            canvas = supy.plotter.canvas(anMode=True)
+        pointkeys = self.sensitivityPoints.keys()
+        if not pointkeys : return
+        for (step,),keys in itertools.groupby( sorted(self.sensitivityPoints[pointkeys[0]]), lambda key : key[:1] ) :
+            canvas = supy.plotter.tcanvas(anMode=True)
             canvas.UseCurrentStyle()
             legend = r.TLegend(0.75,0.7,0.95,0.9)
             legend.SetHeader("#frac{#sigma(q#bar{q}->t#bar{t})}{#sigma(pp=>t#bar{t})}   (%)")
             legend.SetFillStyle(0)
             legend.SetBorderSize(0)
-
+            graphs = []
             for i,key in enumerate(keys) :
-                for j,(graphskey,graphs) in enumerate(sorted(self.graphs.items())) :
-                    graphs[key].Draw('' if i or j else 'AL')
-                    if "muon" in graphskey : legend.AddEntry(graphs[key],"%.2f"%key[1],'l')
+                comb_sens = 1./np.sqrt(sum([1./np.square(points[key]) for pointskey,points in self.sensitivityPoints.items()]))
+                graph = r.TGraph(len(self.sampleSizeFactor), np.array(self.sampleSizeFactor), comb_sens)
+                graph.SetLineColor(qqFracs[key[1]])
+                graph.SetMinimum(0)
+                graph.SetTitle(";N_{t#bar{t}} / (^{}N_{t#bar{t}} @5fb^{-1});expected precision")
+                graph.GetYaxis().SetTitleOffset(1.4)
+                graph.Draw('' if i else 'AL')
+                legend.AddEntry(graph,"%.2f"%key[1],'l')
+                graphs.append(graph)
             legend.Draw()
             fileName = '%s/sensitivity_%d'%(self.globalStem,step) + ".eps"
             canvas.Print(fileName)
             del canvas
+            del graphs
             print "Wrote: %s"%fileName
                 
     def pickleEnsemble(self, iStep, qqFrac, sampleSizeFactor, rw, lname) :

@@ -274,28 +274,6 @@ class topPrinter(analysisStep) :
         print
         if abs(tt.E() - (p4s[4]+p4s[5]).E())>0.5 : print (50*' '), "2 -> 3+"
 #####################################
-class genSHatHistogrammer(analysisStep) :
-
-    def uponAcceptance (self,eventVars) :
-        p4 = eventVars["genP4"]
-        size=p4.size()
-        counts = [0,0]
-        indices = [-1,-1]
-        for iGen in range(size) :
-            if not eventVars["genMotherStored"].at(iGen) : continue
-            motherIndex = eventVars["genMother"].at(iGen)
-            if motherIndex!=0 and motherIndex!=1 : continue
-            counts[motherIndex] += 1
-            indices[motherIndex] = iGen
-
-        if counts[0]!=1 or counts[1]!=1 :
-            print "bad counts",counts
-            return
-        
-        rootSHat = ( p4.at(indices[0])+p4.at(indices[1]) ).mass()
-        print indices,rootSHat
-        self.book.fill(rootSHat, "rootSHat", 100, 0.0, 300.0, title = ";#sqrt{#hat{s}} (GeV);events / bin")
-#####################################
 class photonEfficiencyPlots(analysisStep) :
 
     def __init__(self, label, ptCut, etaCut, isoCut, deltaRCut, jets, photons) :
