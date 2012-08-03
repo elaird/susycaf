@@ -94,6 +94,22 @@ class genSumPt(wrappedChain.calculable) :
         p4 = self.source["genP4"]
         for i in indices :
             self.value += p4.at(i).pt()
+
+class JetIndices(wrappedChain.calculable) :
+    def __init__(self, collection = None, ptMin = None, etaMax = None) :
+        self.fixes = collection
+        self.p4 = "gen%sJetsP4"%collection[0]
+        self.ptMin = ptMin
+        self.etaMax = etaMax
+
+    def update(self,_) :
+        p4 = self.source[self.p4]
+        self.value = []
+        for i in range(p4.size()) :
+            jet = p4.at(i)
+            if jet.pt()<self.ptMin : continue
+            if abs(jet.eta())>self.etaMax : continue
+            self.value.append(i)
 ##############################
 class susyIniIndices(wrappedChain.calculable) :
     def __init__(self) :
