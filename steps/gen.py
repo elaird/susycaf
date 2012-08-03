@@ -9,21 +9,13 @@ except ImportError:
 #####################################
 class genJetPrinter(analysisStep) :
 
-    def __init__(self,jetCollection,jetSuffix) :
-        self.jetCollection=jetCollection
-        self.jetSuffix=jetSuffix
-        self.moreName="("
-        self.moreName+=self.jetCollection
-        self.moreName+="; "
-        self.moreName+=self.jetSuffix
-        self.moreName+=")"
+    def __init__(self, cs = None) :
+        self.cs = cs
+        self.moreName="(%s%s)"%self.cs
+        self.p4 = "%sGenJetsP4%s"%self.cs
 
     def uponAcceptance (self,eventVars) :
-        p4Vector        =eventVars[self.jetCollection+'GenJetsP4'     +self.jetSuffix]
-        #emEnergy        =eventVars[self.jetCollection+'EmEnergy'        +self.jetSuffix]
-        #hadEnergy       =eventVars[self.jetCollection+'HadEnergy'       +self.jetSuffix]
-        #invisibleEnergy =eventVars[self.jetCollection+'InvisibleEnergy' +self.jetSuffix]
-        #auxiliaryEnergy =eventVars[self.jetCollection+'AuxiliaryEnergy' +self.jetSuffix]
+        p4Vector = eventVars[self.p4]
 
         print " jet   pT (GeV)    eta    phi    emF   hadF   invF   auxF"
         print "---------------------------------------------------------"
@@ -31,19 +23,11 @@ class genJetPrinter(analysisStep) :
             jet=p4Vector[iJet]
             totalEnergy=jet.energy()
             
-            outString=" "
-            #if (iJet in otherJetIndices) : outString="-"
-            #if (iJet in cleanJetIndices) : outString="*"
-            
-            outString+=" %2d"   %iJet
-            outString+="     %#6.1f"%jet.pt()
-            outString+="   %#4.1f"%jet.eta()
-            outString+="   %#4.1f"%jet.phi()
-            #outString+="   %#4.2f"%(       emEnergy[iJet]/totalEnergy)
-            #outString+="   %#4.2f"%(      hadEnergy[iJet]/totalEnergy)
-            #outString+="   %#4.2f"%(invisibleEnergy[iJet]/totalEnergy)
-            #outString+="   %#4.2f"%(auxiliaryEnergy[iJet]/totalEnergy)
-            ##outString+="  %#4.2f"%( (emEnergy[iJet]+hadEnergy[iJet]+invisibleEnergy[iJet]+auxiliaryEnergy[iJet]) / totalEnergy )
+            outString  = " "
+            outString += " %2d"   %iJet
+            outString += "     %#6.1f"%jet.pt()
+            outString += "   %#4.1f"%jet.eta()
+            outString += "   %#4.1f"%jet.phi()
             print outString
         print
 #####################################
