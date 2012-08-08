@@ -2,12 +2,20 @@ import supy,steps,calculables,samples
 
 class topAsymmTemplates(supy.analysis) :
     def parameters(self) :
+        weightsQQ = [calculables.top.wQQbarHardAsym(0.0, a*0.05) for a in range(-20,21)]
+        weightsQQName = [w.name for w in weightsQQ]
+        weightsQg = [calculables.top.wQgHardAsym(0.0, a*0.05) for a in range(-20,21)]
+        weightsQgName = [w.name for w in weightsQg]
         return {"effectiveLumi" : 100000,
                 "generator" : self.vary({"compare":["_mg","_ph","_mn"],
                                          "mg":"_mg",
                                          "ph":"_ph",
                                          "mn":"_mn"
                                          }),
+                "weightsQQ" : weightsQQ,
+                "weightsQQName" : weightsQQName,
+                'weightsQg' : weightsQg,
+                'weightsQgName' : weightsQgName
                 }
 
     def listOfCalculables(self, pars) :
@@ -18,15 +26,20 @@ class topAsymmTemplates(supy.analysis) :
                    calculables.gen.genIndicesHardPartons( {"ttj_mg":(4,5),
                                                            "ttj_ph":(4,5),
                                                            "ttj_mn":(0,1)}[pars["baseSample"]] )
-                   ]
+                   ]+pars["weightsQQ"]+pars["weightsQg"]
                  )
     
     def listOfSteps(self, pars) :
         return [supy.steps.printer.progressPrinter(),
                 #steps.gen.topPrinter(),
-                steps.gen.particlePrinter(),
+                supy.steps.histos.weighted("genCosThetaStar", 100,-1,1, weights = pars["weightsQQName"], pred = "wQQ"),
+                supy.steps.histos.weighted("genCosThetaStarBar", 100,-1,1, weights = pars["weightsQQName"], pred = "wQQ"),
+                supy.steps.histos.weighted("genCosThetaStar", 100,-1,1, weights = pars["weightsQgName"], pred = "wQG"),
+                supy.steps.histos.weighted("genCosThetaStarBar", 100,-1,1, weights = pars["weightsQgName"], pred = "wQG"),
+                supy.steps.filters.label("end templates"),
+                #steps.gen.particlePrinter(),
                 steps.top.collisionType(),
-                supy.steps.filters.value('wQQbar', min=1),
+                supy.steps.filters.value('wQQ', min=1),
                 steps.top.mcQuestions(),
                 #steps.filters.label("all"),         steps.Top.mcTruthTemplates(),
                 #steps.filters.OR([steps.Filter.value('genTTbarIndices',min=0,index='lplus'),
@@ -45,7 +58,8 @@ class topAsymmTemplates(supy.analysis) :
 
         if type(pars["generator"]) is list :
             suffixColor = zip(pars["generator"],[r.kBlack,r.kRed,r.kBlue])
-            return sum([supy.samples.specify(names = "ttj%s"%suf, effectiveLumi = eL, color = col) for suf,col in suffixColor],[])
+            return sum([supy.samples.specify(names = "ttj%s"%suf, effectiveLumi = eL,
+                                             color = col) for suf,col in suffixColor],[])
 
         sample = "ttj%s"%pars["generator"]
         asymms = [(r.kBlue, -0.3),
