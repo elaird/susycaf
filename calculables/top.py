@@ -745,57 +745,56 @@ class IndicesGenTopExtra(wrappedChain.calculable) :
         indices = self.source[self.Indices]
         jet = self.source[self.CorrectedP4]
         self.value = [j for j in indices if any( self.rMax > r.Math.VectorUtil.DeltaR(jet[j],gen) for gen in extraP4 ) ]
+
 ######################################
-class qQbarHardAsym(wrappedChain.calculable) :
-    def __init__(self) :
-        self.a_qq_hard = utils.asymmWeighting.Asymm_qqbar_hard()
+class __HardAsym__(wrappedChain.calculable) :
     def update(self,_) :
         self.value = None
-        iqqbar = self.source['genQQbar']
-        ittbar = self.source['genTopTTbar']
-        iGlu = next(iter(self.source['genGlu']),None)
-        if not (iqqbar and ittbar and iGlu) : return
+        iZeroOne = self.source[self.ZeroOne]
+        ittbar = self.source['genTopTTbar'][::1 if self.source['genPdgId'][iZeroOne[0]]>0 else -1] # flip t,tbar for iZeroOne == qbar,g
+        iFour = next(iter(self.source[self.Four]),None)
+        if not (iZeroOne and ittbar and iFour) : return
 
-        qqbarQQbarg = [self.source['genP4'].at(i) for i in iqqbar+ittbar+(iGlu,)]
-        self.a_qq_hard.setMomenta(qqbarQQbarg)
-        self.value = self.a_qq_hard.weight
-
-class wQQbarHardAsym(wrappedChain.calculable) :
+        p4s = self.source['genP4']
+        self.hard.setMomenta([p4s.at(i) for i in iZeroOne+ittbar+(iFour,)], check=False)
+        self.value = self.hard
+class __wHardAsym__(wrappedChain.calculable) :
     def __init__(self,target,nominal) :
         self.fixes = ("","%+.2fon%+.2f"%(target,nominal))
         self.target = target
         self.nominal = nominal
-
     def update(self,_) :
-        w = self.source['qQbarHardAsym']
-        self.value = 1 if not w else w(self.target,self.nominal)
+        h = self.source[self.__class__.__name__[1:]]
+        self.value = 1 if not h else h.weight(self.target,self.nominal)
+class QQbarHardAsym(__HardAsym__) :
+    def __init__(self) :
+        self.hard = utils.asymmWeighting.Asymm_qqbar_hard()
+        for name,val in [("ZeroOne",'genQQbar'),('Four','genGlu')] : setattr(self,name,val)
+class QgHardAsym(__HardAsym__) :
+    def __init__(self) :
+        self.hard = utils.asymmWeighting.Asymm_qg_hard()
+        for name,val in [("ZeroOne",'genQG'),('Four','genQuark')] : setattr(self,name,val)
+class wQQbarHardAsym(__wHardAsym__) :
+    def __init__(self,target,nominal) : super(wQQbarHardAsym,self).__init__(target,nominal)
+class wQgHardAsym(__wHardAsym__) :
+    def __init__(self,target,nominal) : super(wQgHardAsym,self).__init__(target,nominal)
 ######################################
-class wTopAsym(wrappedChain.calculable) :
-    def __init__(self, R, R_sm = 0, intrinsicC = 1) :
-        self.fixes = ("", "%+03d"%(100*R))
-        for item in ['R','R_sm','intrinsicC'] : setattr(self,item,eval(item))
-        for a100 in range(101) :
-            a =  0.01*a100 * self.intrinsicC
-            ar = a*self.intrinsicC
-            g = self.g(a)
-            assert g*(6+2*ar)*self.R <  (6*math.sqrt(ar) if ar > 1 else 3*(1+ar))
-        
-    def g(self, a) : return math.sqrt(a)
-
-    def weight(self,a,x) :
-        base = (1+x*x*a*self.intrinsicC) * 3. / (6+2*a*self.intrinsicC)
-        g = self.g(a)
-        return ( base + x*g*self.R ) / ( base + x*g*self.R_sm )
-    
+class wQQbarSoftAsym(wrappedChain.calculable) :
+    def __init__(self,target,nominal) :
+        self.fixes = ("","%+.2fon%+.2f"%(target,nominal))
+        self.moreName = '''WARNING! Not yet implemented! (value is 1).'''
+        self.value = 1
+    def update(self,_) : pass
+######################################c
+class wQQbarAsym(wrappedChain.calculable) :
+    def __init__(self,target,nominal) :
+        self.fixes = ("","%+.2fon%+.2f"%(target,nominal))
+        self.hard = 'wQQbarHardAsym'.join(self.fixes)
+        self.soft = 'wQQbarSoftAsym'.join(self.fixes)
     def update(self,_) :
-        x = self.source['genCosThetaStar']
-        self.value = None if x==None else self.weight( self.source['genTopAlpha'], x )
-######################################
-class wTopAsymConst(wTopAsym) :
-    def f(self, a) : return math.sqrt(a)
-######################################
-class wTopAsymLine(wTopAsym) :
-    def f(self, a) : a
+        self.value = ( None if not self.source['genQQbar'] else
+                       self.source[self.hard] if self.source['genGlu'] else
+                       self.source[self.soft] )
 ######################################
 class TopComboQQBBLikelihood(wrappedChain.calculable) :
     def __init__(self, tag = None) :

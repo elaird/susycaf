@@ -1,30 +1,53 @@
 from supy import wrappedChain,utils,calculables
 import ROOT as r
 ##############################
-class genSumP4(wrappedChain.calculable) :
+class wGG(wrappedChain.calculable) :
     def update(self,_) :
-        genP4 = self.source['genP4']
-        self.value = genP4.at(4) + genP4.at(5)
+        self.value = None if self.source['genQQbar'] or self.source['genQG'] else 1
 ##############################
-class wNonQQbar(wrappedChain.calculable) :
-    def update(self,_) :
-        self.value = None if self.source['genQQbar'] else 1
-##############################
-class wQQbar(wrappedChain.calculable) :
+class wQQ(wrappedChain.calculable) :
     def update(self,_) :
         self.value = 1 if self.source['genQQbar'] else None
 ##############################
-class genQQbar(wrappedChain.calculable) :
+class wQG(wrappedChain.calculable) :
     def update(self,_) :
-        if self.source['isRealData'] :
-            self.value = ()
-            return
+        self.value = 1 if self.source['genQG'] else None
+##############################
+class genIndicesHardPartons(wrappedChain.calculable) :
+    def __init__(self,indices = (4,5)) : self.value = indices
+    def update(self,_) : pass
+##############################
+class genQQbar(wrappedChain.calculable) :
+    '''Index of quark and of antiquark with hard collision'''
+    def update(self,_) :
+        if self.source['isRealData'] : self.value = (); return
         ids = list(self.source['genPdgId'])
         iHard = self.source['genIndicesHardPartons']
         self.value = tuple(sorted(iHard,key = ids.__getitem__,reverse = True)) \
                      if not sum([ids[i] for i in iHard]) else tuple()
 ##############################
+class genQG(wrappedChain.calculable) :
+    '''Index of (anti)quark and of gluon with hard collision.'''
+    def update(self,_) :
+        if self.source['isRealData'] : self.value = (); return
+        ids = self.source['genPdgId']
+        iHard = self.source['genIndicesHardPartons']
+        iQg = (next((i for i in iHard if abs(ids[i]) in range(1,7)), None),
+               next((i for i in iHard if ids[i]==21), None))
+        self.value = iQg if None not in iQg else ()
+##############################
+class genQuark(wrappedChain.calculable) :
+    '''Indices of non-top quarks resulting from hard interaction.'''
+    def update(self,_) :
+        iHard = self.source["genIndicesHardPartons"]
+        moms = self.source['genMotherIndex']
+        iHardMax = max(iHard)
+        self.value = sorted([i for i,(id,imom) in enumerate(zip(self.source['genPdgId'],
+                                                                self.source['genMotherIndex']))
+                             if iHardMax<i and imom in iHard and abs(id) in range(1,6)])
+##############################
 class genGlu(wrappedChain.calculable) :
+    '''Indices of gluons resulting from hard interaction.'''
     def update(self,_) :
         iHardMax = max(self.source["genIndicesHardPartons"])
         self.value = sorted([i for i,(id,s) in enumerate(zip(self.source['genPdgId'],
@@ -32,9 +55,11 @@ class genGlu(wrappedChain.calculable) :
                             reverse=True,
                             key = lambda i: self.source['genP4'].at(i).Pt() )
 ##############################
-class genIndicesHardPartons(wrappedChain.calculable) :
-    def __init__(self,indices = (4,5)) : self.value = indices
-    def update(self,_) : pass
+class genSumP4(wrappedChain.calculable) :
+    def update(self,_) :
+        genP4 = self.source['genP4']
+        iHard = self.source['genIndicesHardPartons']
+        self.value = genP4.at(iHard[0]) + genP4.at(iHard[1])
 ##############################
 class genStatus1P4(wrappedChain.calculable) :
     def update(self,_) :
