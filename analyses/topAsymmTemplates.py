@@ -2,9 +2,11 @@ import supy,steps,calculables,samples
 
 class topAsymmTemplates(supy.analysis) :
     def parameters(self) :
-        weightsQQ = [calculables.top.wQQbarHardAsym(0.0, a*0.05) for a in range(-20,21)]
+        #weightsQQ = [calculables.top.wQQbarHardAsym(target = 0.0, nominal = a*0.05) for a in range(-20,21)]
+        weightsQQ = [calculables.top.wQQbarHardFlat(a*0.05) for a in range(-20,21)]
         weightsQQName = [w.name for w in weightsQQ]
-        weightsQg = [calculables.top.wQgHardAsym(0.0, a*0.05) for a in range(-20,21)]
+        #weightsQg = [calculables.top.wQgHardAsym(target = 0.0, nominal = a*0.05) for a in range(-20,21)]
+        weightsQg = [calculables.top.wQgHardFlat(a*0.15) for a in range(-20,21)]
         weightsQgName = [w.name for w in weightsQg]
         return {"effectiveLumi" : 100000,
                 "generator" : self.vary({"compare":["_mg","_ph","_mn"],
@@ -32,10 +34,10 @@ class topAsymmTemplates(supy.analysis) :
     def listOfSteps(self, pars) :
         return [supy.steps.printer.progressPrinter(),
                 #steps.gen.topPrinter(),
-                supy.steps.histos.weighted("genCosThetaStar", 100,-1,1, weights = pars["weightsQQName"], pred = "wQQ"),
-                supy.steps.histos.weighted("genCosThetaStarBar", 100,-1,1, weights = pars["weightsQQName"], pred = "wQQ"),
-                supy.steps.histos.weighted("genCosThetaStar", 100,-1,1, weights = pars["weightsQgName"], pred = "wQG"),
-                supy.steps.histos.weighted("genCosThetaStarBar", 100,-1,1, weights = pars["weightsQgName"], pred = "wQG"),
+                supy.steps.histos.weighted("genttCosThetaStar", 50,-1,1, weights = pars["weightsQQName"], pred = "wQQ"),
+                supy.steps.histos.weighted("genttCosThetaStarBar", 50,-1,1, weights = pars["weightsQQName"], pred = "wQQ"),
+                supy.steps.histos.weighted("genttCosThetaStar", 100,-1,1, weights = pars["weightsQgName"], pred = "wQG"),
+                supy.steps.histos.weighted("genttCosThetaStarBar", 100,-1,1, weights = pars["weightsQgName"], pred = "wQG"),
                 supy.steps.filters.label("end templates"),
                 #steps.gen.particlePrinter(),
                 steps.top.collisionType(),
