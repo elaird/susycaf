@@ -256,20 +256,32 @@ class __genCosThetaStar__(wrappedChain.calculable) :
         id = self.source['genPdgId']
         p4 = self.source['genP4']
         iHard = self.source['genIndicesHardPartons']
-        beta = (p4[iHard[0]]+p4[iHard[1]]).BoostToCM()
+        iTTbar = self.source['genTopTTbar']
+        iCOM = self.iCOM()
+        beta = (p4[iCOM[0]]+p4[iCOM[1]]).BoostToCM()
         boost = r.Math.Boost(beta.x(),beta.y(),beta.z())
 
         iQs = [i for i in iHard if id[i]!=21]
         iQ = max(iQs,key=lambda i:id[i]) if iQs else iHard[0]
-        iT = self.topOrBar(*self.source['genTopTTbar'])
+        iT = self.topOrBar(*iTTbar)
 
         self.value = r.Math.VectorUtil.CosTheta( boost(p4[iT]), boost(p4[iQ]) )
 class genCosThetaStar(__genCosThetaStar__) :
     @staticmethod
     def topOrBar(iTop,iTbar) : return iTop
+    def iCOM(self) : return self.source['genIndicesHardPartons']
 class genCosThetaStarBar(__genCosThetaStar__) :
     @staticmethod
     def topOrBar(iTop,iTbar) : return iTbar
+    def iCOM(self) : return self.source['genIndicesHardPartons']
+class genttCosThetaStar(__genCosThetaStar__) :
+    @staticmethod
+    def topOrBar(iTop,iTbar) : return iTop
+    def iCOM(self) : return self.source['genTopTTbar']
+class genttCosThetaStarBar(__genCosThetaStar__) :
+    @staticmethod
+    def topOrBar(iTop,iTbar) : return iTbar
+    def iCOM(self) : return self.source['genTopTTbar']
 ######################################
 class __CosThetaStar__(wrappedChain.calculable) :
     def __init__(self, collection = None, topKey = 't', boostz = "BoostZ") :
@@ -774,10 +786,20 @@ class QgHardAsym(__HardAsym__) :
     def __init__(self) :
         self.hard = utils.asymmWeighting.Asymm_qg_hard()
         for name,val in [("ZeroOne",'genQG'),('Four','genQuark')] : setattr(self,name,val)
-class wQQbarHardAsym(__wHardAsym__) :
-    def __init__(self,target,nominal) : super(wQQbarHardAsym,self).__init__(target,nominal)
-class wQgHardAsym(__wHardAsym__) :
-    def __init__(self,target,nominal) : super(wQgHardAsym,self).__init__(target,nominal)
+class wQQbarHardAsym(__wHardAsym__) : pass
+class wQgHardAsym(__wHardAsym__) : pass
+class __wHardFlat__(wrappedChain.calculable) :
+    def __init__(self,nominal) :
+        self.max = 0.001
+        self.fixes = ("","1_on%+.2f"%nominal)
+        self.nominal = nominal
+    def update(self,_) :
+        h = self.source[self.__class__.__name__[1:].replace("Flat","Asym")]
+        if not h : self.value = 0; return
+        w = 1e4 / (h.symm + h.anti * self.nominal)
+        self.value = min(self.max,w) if w>0 else self.max
+class wQQbarHardFlat(__wHardFlat__) : pass
+class wQgHardFlat(__wHardFlat__) : pass
 ######################################
 class wQQbarSoftAsym(wrappedChain.calculable) :
     def __init__(self,target,nominal) :
