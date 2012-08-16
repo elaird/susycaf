@@ -33,16 +33,19 @@ class topAsymmTemplates(supy.analysis) :
     
     def listOfSteps(self, pars) :
         return [supy.steps.printer.progressPrinter(),
+                supy.calculables.other.SymmAnti(pars['sample'],"genttCosThetaStar",1),
                 #steps.gen.topPrinter(),
-                supy.steps.histos.weighted("genttCosThetaStar", 50,-1,1, weights = pars["weightsQQName"], pred = "wQQ"),
-                supy.steps.histos.weighted("genttCosThetaStarBar", 50,-1,1, weights = pars["weightsQQName"], pred = "wQQ"),
-                supy.steps.histos.weighted("genttCosThetaStar", 100,-1,1, weights = pars["weightsQgName"], pred = "wQG"),
-                supy.steps.histos.weighted("genttCosThetaStarBar", 100,-1,1, weights = pars["weightsQgName"], pred = "wQG"),
-                supy.steps.filters.label("end templates"),
+                #supy.steps.histos.weighted("genttCosThetaStar", 50,-1,1, weights = pars["weightsQQName"], pred = "wQQ"),
+                #supy.steps.histos.weighted("genttCosThetaStarBar", 50,-1,1, weights = pars["weightsQQName"], pred = "wQQ"),
+                #supy.steps.histos.weighted("genttCosThetaStar", 100,-1,1, weights = pars["weightsQgName"], pred = "wQG"),
+                #supy.steps.histos.weighted("genttCosThetaStarBar", 100,-1,1, weights = pars["weightsQgName"], pred = "wQG"),
+                #supy.steps.filters.label("end templates"),
                 #steps.gen.particlePrinter(),
-                steps.top.collisionType(),
-                supy.steps.filters.value('wQQ', min=1),
-                steps.top.mcQuestions(),
+                #steps.top.collisionType(),
+                supy.steps.filters.value('wGG', max=0, allowNone = True),
+                #steps.top.mcQuestions(),
+                steps.top.mcQuestions2(pred = 'wQQ'),
+                steps.top.mcQuestions2(pred = 'wQG'),
                 #steps.filters.label("all"),         steps.Top.mcTruthTemplates(),
                 #steps.filters.OR([steps.Filter.value('genTTbarIndices',min=0,index='lplus'),
                 #                 steps.Filter.value('genTTbarIndices',min=0,index='lminus')]),
@@ -60,8 +63,8 @@ class topAsymmTemplates(supy.analysis) :
 
         if type(pars["generator"]) is list :
             suffixColor = zip(pars["generator"],[r.kBlack,r.kRed,r.kBlue])
-            return sum([supy.samples.specify(names = "ttj%s"%suf, effectiveLumi = eL,
-                                             color = col) for suf,col in suffixColor],[])
+            return sum([supy.samples.specify(names = "ttj%s"%suf, effectiveLumi = eL, weights = [w],
+                                             color = col) for suf,col in suffixColor for w in ['wQQ','wQG']],[])
 
         sample = "ttj%s"%pars["generator"]
         asymms = [(r.kBlue, -0.3),

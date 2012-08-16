@@ -17,7 +17,6 @@ class TopP4Calculable(wrappedChain.calculable) :
         self.fixes = collection
         self.stash(['P4'])
 ######################################
-######################################
 class DeltaPhiLNu(TopP4Calculable) :
     def update(self,_) : self.value = abs(r.Math.VectorUtil.DeltaPhi(self.source[self.P4]['lepton'],self.source[self.P4]['sumP4']))
 ######################################
@@ -160,12 +159,41 @@ class DeltaYttbar(TopP4Calculable) :
     def update(self,_) :
         self.value = self.source[self.P4]['t'].Rapidity() - self.source[self.P4]['tbar'].Rapidity()
 ######################################
+class CosThetaBoost(TopP4Calculable) :
+    def update(self,_) :
+        p4 = self.source[self.P4]
+        t = p4['t']
+        beta = (t+p4['tbar']).BoostToCM()
+        betaXYZM = beta.x(),beta.y(),beta.z(),0
+        boost = r.Math.Boost(*betaXYZM[:-1])
+        bv = utils.LorentzV(); bv.SetPxPyPzE(*betaXYZM)
+
+        self.value = -r.Math.VectorUtil.CosTheta(boost(t),bv)
+######################################
+class BetaProjection(TopP4Calculable) :
+    def update(self,_) :
+        p4 = self.source[self.P4]
+        t = p4['t']
+        beta = (t+p4['tbar']).BoostToCM()
+        betaXYZM = beta.x(),beta.y(),beta.z(),0
+        boost = r.Math.Boost(*betaXYZM[:-1])
+        bv = utils.LorentzV(); bv.SetPxPyPzE(*betaXYZM)
+
+        self.value = -r.Math.VectorUtil.CosTheta(boost(t),bv) * beta.rho()
+######################################
 class DirectedDeltaYttbar(wrappedChain.calculable) :
     def __init__(self, collection = None) :
         self.fixes = collection
         self.stash(['DeltaYttbar','SignQuarkZ'])
     def update(self,_) :
         self.value = self.source[self.SignQuarkZ] * self.source[self.DeltaYttbar]
+######################################
+class genttDDeltaY(wrappedChain.calculable) :
+    def update(self,_) :
+        iTTbar = self.source['genTopTTbar']
+        if not iTTbar : self.value = None; return
+        p4 = self.source['genP4']
+        self.value = self.source['qDir']* ( p4[iTTbar[0]].Rapidity() - p4[iTTbar[1]].Rapidity())
 ######################################
 class DeltaYLHadt(wrappedChain.calculable) :
     def __init__(self, collection = None) :
@@ -265,7 +293,7 @@ class __genCosThetaStar__(wrappedChain.calculable) :
         iQ = max(iQs,key=lambda i:id[i]) if iQs else iHard[0]
         iT = self.topOrBar(*iTTbar)
 
-        self.value = r.Math.VectorUtil.CosTheta( boost(p4[iT]), boost(p4[iQ]) )
+        self.value = r.Math.VectorUtil.CosTheta( boost(p4[iT]), boost(p4[iQ]) ) * (1 if id[iQ]>0 else -1)
 class genCosThetaStar(__genCosThetaStar__) :
     @staticmethod
     def topOrBar(iTop,iTbar) : return iTop
@@ -376,9 +404,10 @@ class genTopP4(wrappedChain.calculable) :
         indices = self.source['genTTbarIndices']
         p4 = self.source['genP4']
         qqbar = self.source['genQQbar']
+        qg = self.source['genQG']
         self.value = { 't':p4[indices['t']],
                        'tbar':p4[indices['tbar']],
-                       'quark':p4[qqbar[0] if qqbar else self.source['genIndexStrongerParton']],
+                       'quark':p4[qqbar[0] if qqbar else qg[0] if qg else self.source['genIndicesHardPartons'][0]],
                        'lepton': p4[indices['lplus']] if indices['lplus'] else p4[indices['lminus']] if indices['lminus'] else None,
                        'neutrino': None,
                        'p' : p4[indices['q'][0]] if indices['q'] else None,

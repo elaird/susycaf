@@ -648,3 +648,20 @@ class mcQuestions(analysisStep) :
             self.book.fill(cmGlu.P(), 'cmgluP', 200,0,200, title = ';q#bar{q}cm gluP')
             self.book.fill(cmzGlu.pt(), 'cmzgluPt', 200,0,200, title = ';q#bar{q}cm_{z} gluP_{T}')
             self.book.fill(abs(cmzGlu.eta()), 'cmzgluAbsEta', 100,0,5.5, title = ';|cmz glu #eta|')
+
+class mcQuestions2(analysisStep) :
+    def __init__(self,pred) :
+        self.pred = pred
+        self.maxes = {'genttCosThetaStar':1,
+                      'genTopCosThetaBoost':1,
+                      'genTopDeltaAbsYttbar':3,
+                      'genTopBetaProjection':1}
+
+    def uponAcceptance(self,ev) :
+        if not ev[self.pred] : return
+        for var,m in self.maxes.items() :
+            self.book.fill(ev[var], var          , 100, -m,m, title = ';%s;events / bin'%var)
+            self.book.fill(ev[var], var+"_lowres",   2, -m,m, title = ';%s;events / bin'%var)
+
+        for ((v1,m1),(v2,m2)) in itertools.combinations(self.maxes.items(),2) :
+            self.book.fill(ev[v1]*ev[v2], "product_%s_%s"%(v1,v2), 2, -m1*m2, m1*m2, title = ";%s . %s;events / bin"%(v1,v2))
