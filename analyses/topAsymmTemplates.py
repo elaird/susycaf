@@ -3,21 +3,21 @@ import supy,steps,calculables,samples
 class topAsymmTemplates(supy.analysis) :
     def parameters(self) :
         #weightsQQ = [calculables.top.wQQbarHardAsym(target = 0.0, nominal = a*0.05) for a in range(-20,21)]
-        weightsQQ = [calculables.top.wQQbarHardFlat(a*0.05) for a in range(-20,21)]
-        weightsQQName = [w.name for w in weightsQQ]
+        #weightsQQ = [calculables.top.wQQbarHardFlat(a*0.05) for a in range(-20,21)]
+        #weightsQQName = [w.name for w in weightsQQ]
         #weightsQg = [calculables.top.wQgHardAsym(target = 0.0, nominal = a*0.05) for a in range(-20,21)]
-        weightsQg = [calculables.top.wQgHardFlat(a*0.15) for a in range(-20,21)]
-        weightsQgName = [w.name for w in weightsQg]
+        #weightsQg = [calculables.top.wQgHardFlat(a*0.15) for a in range(-20,21)]
+        #weightsQgName = [w.name for w in weightsQg]
         return {"effectiveLumi" : 100000,
                 "generator" : self.vary({"compare":["_mg","_ph","_mn"],
                                          "mg":"_mg",
                                          "ph":"_ph",
                                          "mn":"_mn"
                                          }),
-                "weightsQQ" : weightsQQ,
-                "weightsQQName" : weightsQQName,
-                'weightsQg' : weightsQg,
-                'weightsQgName' : weightsQgName
+                #"weightsQQ" : weightsQQ,
+                #"weightsQQName" : weightsQQName,
+                #'weightsQg' : weightsQg,
+                #'weightsQgName' : weightsQgName
                 }
 
     def listOfCalculables(self, pars) :
@@ -28,12 +28,24 @@ class topAsymmTemplates(supy.analysis) :
                    calculables.gen.genIndicesHardPartons( {"ttj_mg":(4,5),
                                                            "ttj_ph":(4,5),
                                                            "ttj_mn":(0,1)}[pars["baseSample"]] )
-                   ]+pars["weightsQQ"]+pars["weightsQg"]
+                   ]#+pars["weightsQQ"]+pars["weightsQg"]
                  )
     
     def listOfSteps(self, pars) :
         return [supy.steps.printer.progressPrinter(),
-                supy.calculables.other.SymmAnti(pars['sample'],"genttCosThetaStar",1),
+                supy.calculables.other.SymmAnti(pars['sample'],"genttCosThetaStar",1, inspect=True),
+                supy.calculables.other.SymmAnti(pars['sample'],"genTopCosPhiBoost",1, inspect=True, func = '++'.join(['1']+['x**%d/((1-x)*(1+x))'%d for d in range(0,6)])),
+                #supy.calculables.other.SymmAnti(pars['sample'],"genTopCosThetaBoost",1, inspect=True),
+                supy.calculables.other.SymmAnti(pars['sample'],"genTopCosThetaBoostAlt",1, inspect=True),
+                supy.calculables.other.SymmAnti(pars['sample'],"genTopDeltaBetazRel",1, inspect=True, func = "++".join(['0.5']+["cos(%d*x*1.5707963267948966)++sin(%d*x*1.5707963267948966)"%(d,d) for d in range(1,8)])),
+                #supy.calculables.other.SymmAnti(pars['sample'],"genTopDeltaAbsYttbar",3, inspect=True),
+                #supy.steps.filters.label('reweighting'),
+                #supy.steps.histos.symmAnti('hard','genttOm',100,-2,2),
+                #supy.steps.histos.symmAnti('hard','genCosThetaStar',100,-1,1),
+                #supy.steps.histos.symmAnti('hard','genCosThetaStarBar',100,-1,1),
+                #supy.steps.histos.symmAnti('hard','genttCosThetaStar',100,-1,1),
+                #supy.steps.histos.symmAnti('hard','genttCosThetaStarBar',100,-1,1),
+                #supy.steps.histos.symmAnti('hard','genTopCosThetaBoost',100,-1,1),
                 #steps.gen.topPrinter(),
                 #supy.steps.histos.weighted("genttCosThetaStar", 50,-1,1, weights = pars["weightsQQName"], pred = "wQQ"),
                 #supy.steps.histos.weighted("genttCosThetaStarBar", 50,-1,1, weights = pars["weightsQQName"], pred = "wQQ"),
@@ -42,10 +54,9 @@ class topAsymmTemplates(supy.analysis) :
                 #supy.steps.filters.label("end templates"),
                 #steps.gen.particlePrinter(),
                 #steps.top.collisionType(),
-                supy.steps.filters.value('wGG', max=0, allowNone = True),
+                #supy.steps.filters.value('wGG', max=0, allowNone = True),
                 #steps.top.mcQuestions(),
-                steps.top.mcQuestions2(pred = 'wQQ'),
-                steps.top.mcQuestions2(pred = 'wQG'),
+                steps.top.mcQuestions2(),
                 #steps.filters.label("all"),         steps.Top.mcTruthTemplates(),
                 #steps.filters.OR([steps.Filter.value('genTTbarIndices',min=0,index='lplus'),
                 #                 steps.Filter.value('genTTbarIndices',min=0,index='lminus')]),
@@ -64,7 +75,7 @@ class topAsymmTemplates(supy.analysis) :
         if type(pars["generator"]) is list :
             suffixColor = zip(pars["generator"],[r.kBlack,r.kRed,r.kBlue])
             return sum([supy.samples.specify(names = "ttj%s"%suf, effectiveLumi = eL, weights = [w],
-                                             color = col) for suf,col in suffixColor for w in ['wQQ','wQG']],[])
+                                             color = col + (0 if w=='wQQ' else 2)) for suf,col in suffixColor for w in ['wQQ','wQG']],[])
 
         sample = "ttj%s"%pars["generator"]
         asymms = [(r.kBlue, -0.3),
@@ -80,7 +91,7 @@ class topAsymmTemplates(supy.analysis) :
     
     def conclude(self,pars) :
         org = self.organizer(pars)
-        org.scale(toPdf=True)
+        org.scale(1000,toPdf=False)
 
         from supy import plotter
         pl = supy.plotter(org,
