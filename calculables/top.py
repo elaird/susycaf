@@ -488,10 +488,8 @@ class fitTopLeptonCharge(wrappedChain.calculable) :
 
 class genTopTTbar(wrappedChain.calculable) :
     def update(self,_) :
-        ids = list(self.source['genPdgId'])
-        self.value = tuple(ids.index(i) for i in [6,-6]) if \
-                     (not self.source['isRealData']) and \
-                     all([id in ids for id in [-6,6]]) else ()
+        ids = [] if self.source['isRealData'] else list(self.source['genPdgId'])
+        self.value = tuple(ids.index(i) for i in [6,-6]) if all([id in ids for id in [-6,6]]) else ()
 class genTopIndicesX(wrappedChain.calculable) :
     def update(self,_) :
         moms = self.source['genMotherIndex']
