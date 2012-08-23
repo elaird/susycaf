@@ -31,6 +31,7 @@ class mbbHistogrammer(analysisStep) :
             self.book.fill(m, self.mbbList+nb, 50, 0.0, 500.0, title = ";m_{bb} (GeV) (%s jets);b-pair / bin"%nb)
 
             if not nMbb==1 : continue
+            if eventVars["isRealData"] : continue
             if len(eventVars[self.bZDaughters])!=2 : continue
 
             nMatch = 0
