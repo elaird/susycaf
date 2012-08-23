@@ -57,9 +57,8 @@ class genGlu(wrappedChain.calculable) :
 ##############################
 class qDir(wrappedChain.calculable) :
     def update(self,_) :
-        iQ = max(self.source['genQQbar'],self.source['genQG'])[0]
-        q = self.source['genP4'][iQ]
-        self.value = 1 if q.pz() > 0 else -1
+        iQ = next(iter(max(self.source['genQQbar'],self.source['genQG'])),None)
+        self.value = (1 if self.source['genP4'][iQ].pz() > 0 else -1) if iQ!=None else None
 ##############################
 class genSumP4(wrappedChain.calculable) :
     def update(self,_) :
@@ -398,7 +397,7 @@ class qDirExpectation(calculables.secondary) :
         if ev['isRealData'] : return
         qdir = ev['qDir']
         iTT = ev['genTopTTbar']
-        if not iTT : return
+        if not iTT or qdir==None : return
         p4 = ev['genP4']
         var = self.varFunction(p4[iTT[0]],p4[iTT[1]])
         self.book.fill(qdir*var, self.var, 1000, -self.limit, self.limit, title = ";qdir * %s;events / bin"%self.var )
