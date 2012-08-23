@@ -49,21 +49,19 @@ class topAsymm(supy.analysis) :
         bCut = {"normal"   : {"index":0, "min":csvWP['CSVT']},
                 "inverted" : {"index":0, "min":csvWP['CSVL'], "max":csvWP['CSVM']}}
 
-        return { "vary" : ['selection','lepton','objects','reweights'],
+        return { "vary" : ['selection','lepton','toptype'],
                  "discriminant2DPlots": True,
                  "nJets" :  {"min":4,"max":None},
                  "unreliable": self.unreliableTriggers(),
                  "bVar" : "CSV", # "Combined Secondary Vertex"
-                 "objects": self.vary([ ( objects['label'][index], dict((key,val[index]) for key,val in objects.iteritems())) for index in range(2) if objects['label'][index] in ['pf']]),
+                 "objects" : dict((key,val[0]) for key,val in objects.iteritems()),
                  "lepton" : self.vary([ ( leptons['name'][index], dict((key,val[index]) for key,val in leptons.iteritems())) for index in range(2) if leptons['name'][index] in ['muon','electron'][:2]]),
-                 "reweights" : self.vary([ ( reweights['label'][index], dict((key,val[index]) for key,val in reweights.iteritems())) for index in range(3) if reweights['label'][index] in ['pu']]),
+                 "reweights" : dict((key,val[reweights['label'].index('pu')]) for key,val in reweights.iteritems()),
                  "selection" : self.vary({"top" : {"bCut":bCut["normal"],  "iso":"isoNormal"},
                                           "QCD" : {"bCut":bCut["normal"],  "iso":"isoInvert"}
-                                          #"Wlv" : {"bCut":bCut["inverted"],"iso":"isoNormal"},
                                           }),
-                 "topBsamples": { "pythia"   : ("tt_tauola_fj",["tt_tauola_fj.wNonQQbar.tw.%s","tt_tauola_fj.wQQbar.tw.%s"]),
-                                  "madgraph" : ("ttj_mg",['ttj_mg.wNonQQbar.tw.%s','ttj_mg.wQQbar.tw.%s']),
-                                  }["madgraph"]
+                 "toptype" : self.vary({"mg":"mg","ph":"ph"}),
+                 "topBsamples": ("ttj_%s",['ttj_%s.wGG.tw.%s','ttj_%s.wQG.tw.%s','ttj_%s.wQQ.tw.%s'])
                  }
 
     @staticmethod
@@ -134,8 +132,7 @@ class topAsymm(supy.analysis) :
                                                   "qcd_mu_120_150",
                                                   "qcd_mu_150"],  weights = ['tw',rw], effectiveLumi = eL )     if 'Wlv' not in pars['tag'] else []
         def ewk(eL = None) :
-            return supy.samples.specify( names = [#"wj_lv_mg",
-                                                  "dyj_ll_mg",
+            return supy.samples.specify( names = ["dyj_ll_mg",
                                                   "w2j_mg",
                                                   "w3j_mg",
                                                   "w4j_mg"], effectiveLumi = eL, color = 28, weights = ['tw',rw] ) if "QCD" not in pars['tag'] else []
@@ -145,8 +142,11 @@ class topAsymm(supy.analysis) :
                                          effectiveLumi = eL, color = r.kGray, weights = ['tw',rw]) if "QCD" not in pars['tag'] else []
         
         def ttbar_mg(eL = None) :
-            return (supy.samples.specify(names = "ttj_mg", effectiveLumi = eL, color = r.kBlue, weights = ["wNonQQbar",'tw',rw] ) +
-                    supy.samples.specify(names = "ttj_mg", effectiveLumi = eL, color = r.kOrange, weights = [ "wQQbar", 'tw', rw ] ))
+            tt = pars['toptype']
+            return (supy.samples.specify(names = "ttj_%s"%tt, effectiveLumi = eL, color = r.kBlue,   weights = ["wGG",'tw',rw] ) +
+                    supy.samples.specify(names = "ttj_%s"%tt, effectiveLumi = eL, color = r.kViolet, weights = [ "wQG", 'tw', rw ] ) +
+                    supy.samples.specify(names = "ttj_%s"%tt, effectiveLumi = eL, color = r.kRed,    weights = [ "wQQ", 'tw', rw ] )
+                    )
         
         return  ( self.data(pars) + qcd_py6_mu() + ewk() + ttbar_mg(8e4) + single_top() )
 
@@ -212,12 +212,8 @@ class topAsymm(supy.analysis) :
             supy.calculables.other.abbreviation( {'muon':'muonTriggerWeightPF','electron':"CrossTriggerWeight"}[pars['lepton']['name']], 'tw' ),
             supy.calculables.other.abbreviation( "xcak5JetPFCorrectedP4Pat","xcak5JetPFCorrectedP4Pattriggering"),
             ]
-        calcs += [ calculables.top.wTopAsym(asym, R_sm = -0.03) for asym in self.asyms()]
         return calcs
     ########################################################################################
-
-    @staticmethod
-    def asyms() : return [0.1*a for a in range(-6,7)]
 
     def listOfSteps(self, pars) :
         obj = pars["objects"]
@@ -228,21 +224,36 @@ class topAsymm(supy.analysis) :
         lIndices = 'IndicesAnyIsoIsoOrder'.join(lepton)
         lIso = pars['lepton']['iso'].join(lepton)
         lIsoMinMax = pars["lepton"][pars['selection']['iso']]
-        topTag = pars['tag'].replace("Wlv","top").replace("QCD","top")
+        topTag = pars['tag'].replace("QCD","top")
         bVar = pars["bVar"].join(obj["jet"])[2:]
         rw = pars['reweights']['abbr']
+        tt = pars['toptype']
         
         ssteps = supy.steps
 
-        
-        weights = ["wTopAsym%+03d"%(100*a) for a in self.asyms()]
-        baseweight = "weight"
-        pred = "wQQbar"
-
+        saDisable = 'ttj' not in pars['sample'] or not any(w in pars['sample'].split('.') for w in ['wQQ','wQG'])
+        saWeights = [rw]
         return (
             [ssteps.printer.progressPrinter()
              , ssteps.histos.value("genpthat",200,0,1000,xtitle="#hat{p_{T}} (GeV)").onlySim()
-             , ssteps.histos.value("genQ",200,0,1000,xtitle="#hat{Q} (GeV)").onlySim()
+             , ssteps.histos.value("genQ",200,0,1000,xtitle="#hat{Q} (GeV)").onlySim(),
+             supy.calculables.other.SymmAnti(pars['sample'],"genTopCosPhiBoost",1, inspect=True, nbins=160, weights = saWeights,
+                                             funcEven = r.TF1('phiboost',"[0]*(1+[1]*x**2)/sqrt(1-x**2)",-1,1),
+                                             funcOdd = r.TF1('phiboostodd','[0]*x/sqrt(1-x**2)',-1,1)).disable(saDisable),
+             #supy.calculables.other.SymmAnti(pars['sample'],"genttCosThetaStar",1, inspect=True, weights = saWeights,
+             #                                funcEven = '++'.join('x**%d'%(2*d) for d in range(5)),
+             #                                funcOdd = '++'.join('x**%d'%(2*d+1) for d in range(5))).disable(saDisable),
+             supy.calculables.other.SymmAnti(pars['sample'],"genTopCosThetaBoostAlt",1, inspect=True, weights = saWeights,
+                                             funcEven = '++'.join('x**%d'%(2*d) for d in range(5)),
+                                             funcOdd = '++'.join('x**%d'%(2*d+1) for d in range(5))).disable(saDisable),
+             supy.calculables.other.SymmAnti(pars['sample'],"genTopDeltaBetazRel",1, inspect=True, weights = saWeights,
+                                             funcEven = '++'.join(['(1-abs(x))']+['x**%d'%d for d in [0,2,4,6,8,10,12,14,16,18]]),
+                                             funcOdd = '++'.join(['x**%d'%d for d in [1,3,5,7,9,11,13]])).disable(saDisable)
+             , ssteps.filters.label('symm anti')
+             , ssteps.filters.value('tw',min=1e-6)
+             , ssteps.histos.symmAnti('genTopCosPhiBoost','genTopCosPhiBoost',100,-1,1).onlySim()
+             , ssteps.histos.symmAnti('genTopDeltaBetazRel','genTopDeltaBetazRel',100,-1,1).onlySim()
+             , ssteps.histos.symmAnti('genTopCosThetaBoostAlt','genTopCosThetaBoostAlt',100,-1,1).onlySim()
              ####################################
              , ssteps.filters.label('data cleanup'),
              ssteps.filters.multiplicity("vertexIndices",min=1),
@@ -291,7 +302,7 @@ class topAsymm(supy.analysis) :
              , ssteps.histos.value( lIso, 55,0,1.1, indices = lIndices, index=0),
              ssteps.filters.value( lIso, indices = lIndices, index = 0, **lIsoMinMax)
 
-             , calculables.jet.ProbabilityGivenBQN(obj["jet"], pars['bVar'], binning=(51,-0.02,1), samples = (pars['topBsamples'][0],[s%rw for s in pars['topBsamples'][1]]), tag = topTag)
+             , calculables.jet.ProbabilityGivenBQN(obj["jet"], pars['bVar'], binning=(51,-0.02,1), samples = (pars['topBsamples'][0]%tt,[s%(tt,rw) for s in pars['topBsamples'][1]]), tag = topTag)
              , ssteps.histos.value("TopRatherThanWProbability", 100,0,1)
              , ssteps.histos.value(bVar, 51,-0.02,1, indices = "IndicesBtagged".join(obj["jet"]), index = 0)
              , ssteps.histos.value(bVar, 51,-0.02,1, indices = "IndicesBtagged".join(obj["jet"]), index = 1)
@@ -352,25 +363,16 @@ class topAsymm(supy.analysis) :
              , ssteps.histos.value('fitTopJetAbsEtaMax', 40,0,4)
              
              , ssteps.filters.label('signal distributions')
-             , ssteps.histos.weighted( "fitTopDeltaAbsYttbar", 41,-3,3, baseweight, weights, pred )
-             , ssteps.histos.weighted( "TTbarSignExpectation", 41,-1,1, baseweight, weights, pred )
+             , ssteps.histos.symmAnti('genTopCosPhiBoost','genTopCosPhiBoost',100,-1,1).onlySim()
+             , ssteps.histos.symmAnti('genTopDeltaBetazRel','genTopDeltaBetazRel',100,-1,1).onlySim()
+             , ssteps.histos.symmAnti('genTopCosThetaBoostAlt','genTopCosThetaBoostAlt',100,-1,1).onlySim()
+
+             , ssteps.histos.symmAnti('genTopCosPhiBoost','fitTopCosPhiBoost',100,-1,1)
+             , ssteps.histos.symmAnti('genTopCosThetaBoostAlt','fitTopCosThetaBoostAlt',100,-1,1)
+             , ssteps.histos.symmAnti('genTopDeltaBetazRel','fitTopDeltaBetazRel',100,-1,1)
+             , ssteps.histos.symmAnti('genTopDeltaBetazRel','TTbarSignExpectation',100,-1,1)
              , ssteps.filters.label('sign check'),           steps.top.signCheck()
 
-             #steps.histos.value('fitTopSumP4Eta', 12, -6, 6),
-             #steps.filters.absEta('fitTopSumP4', min = 1),
-             #steps.histos.value('fitTopSumP4Eta', 12, -6, 6),
-             #steps.top.Asymmetry(('fitTop',''), bins = 640),
-             #steps.top.Spin(('fitTop','')),
-             
-             #steps.top.kinFitLook("fitTopRecoIndex"),
-             #steps.filters.value("TriDiscriminant",min=-0.64,max=0.8),
-             #steps.histos.value("TriDiscriminant",50,-1,1),
-             #steps.top.Asymmetry(('fitTop',''), bins = 640),
-             #steps.top.Spin(('fitTop','')),
-             #steps.filters.value("TriDiscriminant",min=-.56,max=0.72),
-             #steps.histos.value("TriDiscriminant",50,-1,1),
-             #steps.top.Asymmetry(('fitTop','')),
-             #steps.top.Spin(('fitTop','')),
              ])
     ########################################################################################
 
@@ -745,7 +747,7 @@ class topAsymm(supy.analysis) :
             return bins * (scaleToN / sum(bins)) if scaleToN else bins
 
         nTT = sum(nparray('top.t#bar{t}'))
-        asymm = self.asyms()
+        asymm = None # FIXME
         qqtts = [ nparray( "top.ttj_mg.wQQbar.tw.%s"%rw, "%02d%s"%(i+1,dist[2:]), qqFrac*nTT) * sampleSizeFactor for i,a in enumerate(asymm)]
         base = ( nparray('QCD.multijet') +
                  nparray('top.W') +
