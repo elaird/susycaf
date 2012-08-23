@@ -183,6 +183,17 @@ class IndicesBtagged2(wrappedChain.calculable) :
             v = self.source[self.tag].at(i)
             if v > self.threshold :
                 self.value.append(i)
+#####################################
+class MbbList(wrappedChain.calculable) :
+    def __init__(self, collection) :
+        self.fixes = collection
+        self.stash(["CorrectedP4", "IndicesBtagged2"])
+
+    def update(self,_) :
+        self.value = []
+        p4 = self.source[self.CorrectedP4]
+        for l,r in utils.pairs(self.source[self.IndicesBtagged2]) :
+            self.value.append( (p4.at(l)+p4.at(r)).mass() )
 ###################################
 class IndicesGenB(wrappedChain.calculable) :
     def __init__(self,collection) :
