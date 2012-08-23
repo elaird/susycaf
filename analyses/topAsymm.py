@@ -240,9 +240,6 @@ class topAsymm(supy.analysis) :
              supy.calculables.other.SymmAnti(pars['sample'],"genTopCosPhiBoost",1, inspect=True, nbins=160, weights = saWeights,
                                              funcEven = r.TF1('phiboost',"[0]*(1+[1]*x**2)/sqrt(1-x**2)",-1,1),
                                              funcOdd = r.TF1('phiboostodd','[0]*x/sqrt(1-x**2)',-1,1)).disable(saDisable),
-             #supy.calculables.other.SymmAnti(pars['sample'],"genttCosThetaStar",1, inspect=True, weights = saWeights,
-             #                                funcEven = '++'.join('x**%d'%(2*d) for d in range(5)),
-             #                                funcOdd = '++'.join('x**%d'%(2*d+1) for d in range(5))).disable(saDisable),
              supy.calculables.other.SymmAnti(pars['sample'],"genTopCosThetaBoostAlt",1, inspect=True, weights = saWeights,
                                              funcEven = '++'.join('x**%d'%(2*d) for d in range(5)),
                                              funcOdd = '++'.join('x**%d'%(2*d+1) for d in range(5))).disable(saDisable),
@@ -251,9 +248,9 @@ class topAsymm(supy.analysis) :
                                              funcOdd = '++'.join(['x**%d'%d for d in [1,3,5,7,9,11,13]])).disable(saDisable)
              , ssteps.filters.label('symm anti')
              , ssteps.filters.value('tw',min=1e-6)
-             , ssteps.histos.symmAnti('genTopCosPhiBoost','genTopCosPhiBoost',100,-1,1).onlySim()
-             , ssteps.histos.symmAnti('genTopDeltaBetazRel','genTopDeltaBetazRel',100,-1,1).onlySim()
-             , ssteps.histos.symmAnti('genTopCosThetaBoostAlt','genTopCosThetaBoostAlt',100,-1,1).onlySim()
+             , ssteps.histos.symmAnti('genTopCosPhiBoost','genTopCosPhiBoost',100,-1,1).disable(saDisable)
+             , ssteps.histos.symmAnti('genTopDeltaBetazRel','genTopDeltaBetazRel',100,-1,1).disable(saDisable)
+             , ssteps.histos.symmAnti('genTopCosThetaBoostAlt','genTopCosThetaBoostAlt',100,-1,1).disable(saDisable)
              ####################################
              , ssteps.filters.label('data cleanup'),
              ssteps.filters.multiplicity("vertexIndices",min=1),
@@ -272,10 +269,10 @@ class topAsymm(supy.analysis) :
              , ssteps.histos.value(obj["sumPt"],50,0,1500)
              , ssteps.histos.value("rho",100,0,40)
 
-             , ssteps.filters.label('trigger reweighting'),
-             self.triggerWeight(pars, [ss.weightedName for ss in self.data(pars)])
+             , ssteps.filters.label('trigger reweighting')
+             , self.triggerWeight(pars, [ss.weightedName for ss in self.data(pars)])
              , steps.trigger.lowestUnPrescaledTriggerHistogrammer().onlyData()
-             
+
              ####################################
              , ssteps.filters.label('selection'),
 
@@ -363,9 +360,9 @@ class topAsymm(supy.analysis) :
              , ssteps.histos.value('fitTopJetAbsEtaMax', 40,0,4)
              
              , ssteps.filters.label('signal distributions')
-             , ssteps.histos.symmAnti('genTopCosPhiBoost','genTopCosPhiBoost',100,-1,1).onlySim()
-             , ssteps.histos.symmAnti('genTopDeltaBetazRel','genTopDeltaBetazRel',100,-1,1).onlySim()
-             , ssteps.histos.symmAnti('genTopCosThetaBoostAlt','genTopCosThetaBoostAlt',100,-1,1).onlySim()
+             , ssteps.histos.symmAnti('genTopCosPhiBoost','genTopCosPhiBoost',100,-1,1).disable(saDisable)
+             , ssteps.histos.symmAnti('genTopDeltaBetazRel','genTopDeltaBetazRel',100,-1,1).disable(saDisable)
+             , ssteps.histos.symmAnti('genTopCosThetaBoostAlt','genTopCosThetaBoostAlt',100,-1,1).disable(saDisable)
 
              , ssteps.histos.symmAnti('genTopCosPhiBoost','fitTopCosPhiBoost',100,-1,1)
              , ssteps.histos.symmAnti('genTopCosThetaBoostAlt','fitTopCosThetaBoostAlt',100,-1,1)
