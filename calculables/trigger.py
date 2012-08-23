@@ -65,9 +65,9 @@ class TriggerWeight(calculables.secondary) :
 
     def update(self,_) :
         index = self.source[self.index]
-        self.value = (None if index is None else
+        self.value = (0 if index is None else
                       self.weights.GetBinContent(self.weights.FindFixBin(self.source[self.var][index])) if not self.source['isRealData'] else
-                      1 if self.triggerFired(self.source[self.var][index], self.source['triggered']) else None )
+                      1 if self.triggerFired(self.source[self.var][index], self.source['triggered']) else 0 )
 
     def uponAcceptance(self,ev) :
         index = ev[self.index]
@@ -201,7 +201,7 @@ class CrossTriggerWeight(calculables.secondary) :
     def update(self,_) :
         self.value = ( self.mcTriggeringProb() if not self.source['isRealData'] else
                        1                       if self.triggerFired() else
-                       None )
+                       0 )
 
     def uponAcceptance(self,ev) :
         jets = self.source['CorrectedP4'.join(self.jets)]
@@ -259,7 +259,7 @@ class CrossTriggerWeight(calculables.secondary) :
         hists = self.fromCache( self.samples, ["lumis"], tag = None )
         lumiHists = [shists['lumis'] for shists in hists.values()]
         if not all(lumiHists) :
-            self.trigTypCumProbs = 3*[1]
+            self.trigTypeCumProbs = 3*[1]
             return
         lumis = sum( [np.array([h.GetBinContent(i) for i in [1,2,3]]) for h in lumiHists ])
         self.trigTypeCumProbs = np.cumsum( lumis / sum(lumis) )
