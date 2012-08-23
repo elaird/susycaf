@@ -650,15 +650,19 @@ class mcQuestions(analysisStep) :
             self.book.fill(abs(cmzGlu.eta()), 'cmzgluAbsEta', 100,0,5.5, title = ';|cmz glu #eta|')
 
 class mcQuestions2(analysisStep) :
-    def __init__(self,pred) :
+    def __init__(self,pred=None) :
         self.pred = pred
         self.maxes = {'genttCosThetaStar':1,
-                      'genTopCosThetaBoost':1,
-                      'genTopDeltaAbsYttbar':3,
-                      'genTopBetaProjection':1}
+                      #'genTopCosEqualThetaZ':1,
+                      #'genTopCosThetaBoost':1,
+                      'genTopCosThetaBoostAlt':1,
+                      #'genTopDeltaAbsYttbar':3,
+                      #'genTopBetaProjection':1,
+                      'genTopDeltaBetazRel':1,
+                      'genTopCosPhiBoost':1}
 
     def uponAcceptance(self,ev) :
-        if not ev[self.pred] : return
+        if self.pred and not ev[self.pred] : return
         for var,m in self.maxes.items() :
             self.book.fill(ev[var], var          , 100, -m,m, title = ';%s;events / bin'%var)
             self.book.fill(ev[var], var+"_lowres",   2, -m,m, title = ';%s;events / bin'%var)

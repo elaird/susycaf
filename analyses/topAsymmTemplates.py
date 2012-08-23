@@ -1,4 +1,4 @@
-import supy,steps,calculables,samples
+import supy,steps,calculables,samples,ROOT as r
 
 class topAsymmTemplates(supy.analysis) :
     def parameters(self) :
@@ -33,11 +33,19 @@ class topAsymmTemplates(supy.analysis) :
     
     def listOfSteps(self, pars) :
         return [supy.steps.printer.progressPrinter(),
-                supy.calculables.other.SymmAnti(pars['sample'],"genttCosThetaStar",1, inspect=True),
-                supy.calculables.other.SymmAnti(pars['sample'],"genTopCosPhiBoost",1, inspect=True, func = '++'.join(['1']+['x**%d/((1-x)*(1+x))'%d for d in range(0,6)])),
                 #supy.calculables.other.SymmAnti(pars['sample'],"genTopCosThetaBoost",1, inspect=True),
-                supy.calculables.other.SymmAnti(pars['sample'],"genTopCosThetaBoostAlt",1, inspect=True),
-                supy.calculables.other.SymmAnti(pars['sample'],"genTopDeltaBetazRel",1, inspect=True, func = "++".join(['0.5']+["cos(%d*x*1.5707963267948966)++sin(%d*x*1.5707963267948966)"%(d,d) for d in range(1,8)])),
+                supy.calculables.other.SymmAnti(pars['sample'],"genTopCosPhiBoost",1, inspect=True, nbins=160,
+                                                funcEven = r.TF1('phiboost',"[0]*(1+[1]*x**2)/sqrt(1-x**2)",-1,1),
+                                                funcOdd = r.TF1('phiboostodd','[0]*x/sqrt(1-x**2)',-1,1)),
+                supy.calculables.other.SymmAnti(pars['sample'],"genttCosThetaStar",1, inspect=True,
+                                                funcEven = '++'.join('x**%d'%(2*d) for d in range(5)),
+                                                funcOdd = '++'.join('x**%d'%(2*d+1) for d in range(5))),
+                supy.calculables.other.SymmAnti(pars['sample'],"genTopCosThetaBoostAlt",1, inspect=True,
+                                                funcEven = '++'.join('x**%d'%(2*d) for d in range(5)),
+                                                funcOdd = '++'.join('x**%d'%(2*d+1) for d in range(5))),
+                supy.calculables.other.SymmAnti(pars['sample'],"genTopDeltaBetazRel",1, inspect=True,
+                                                funcEven = '++'.join(['(1-abs(x))']+['x**%d'%d for d in [0,2,4,6,8,10,12,14,16,18]]),
+                                                funcOdd = '++'.join(['x**%d'%d for d in [1,3,5,7,9,11,13]])),
                 #supy.calculables.other.SymmAnti(pars['sample'],"genTopDeltaAbsYttbar",3, inspect=True),
                 #supy.steps.filters.label('reweighting'),
                 #supy.steps.histos.symmAnti('hard','genttOm',100,-2,2),
