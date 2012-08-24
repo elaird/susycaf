@@ -67,7 +67,7 @@ class TriggerWeight(calculables.secondary) :
         index = self.source[self.index]
         self.value = (0 if index is None else
                       self.weights.GetBinContent(self.weights.FindFixBin(self.source[self.var][index])) if not self.source['isRealData'] else
-                      1 if self.triggerFired(self.source[self.var][index], self.source['triggered']) else 0 )
+                      1 if self.triggerFired(self.source[self.var][index], self.source['triggered']) else None )
 
     def uponAcceptance(self,ev) :
         index = ev[self.index]
@@ -201,7 +201,7 @@ class CrossTriggerWeight(calculables.secondary) :
     def update(self,_) :
         self.value = ( self.mcTriggeringProb() if not self.source['isRealData'] else
                        1                       if self.triggerFired() else
-                       0 )
+                       None )
 
     def uponAcceptance(self,ev) :
         jets = self.source['CorrectedP4'.join(self.jets)]
