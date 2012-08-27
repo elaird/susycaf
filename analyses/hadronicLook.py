@@ -11,21 +11,18 @@ def triggerTuple(l = [], keys = []) :
     return tuple(out)
 
 #required to be sorted
-triggers_alphaT_2012 = triggerTuple(l  = [{"HT":200, "AlphaT": 0.57, "v":range(1,5)},
+triggers_alphaT_2012 = triggerTuple(l  = [{"HT":250, "AlphaT": 0.55, "v":range(1,10)},
                                           
-                                          {"HT":250, "AlphaT": 0.55, "v":range(1,4)},
-                                          {"HT":250, "AlphaT": 0.57, "v":range(1,4)},
-                                          
-                                          {"HT":300, "AlphaT": 0.53, "v":range(1,4)},
-                                          {"HT":300, "AlphaT": 0.54, "v":range(1,10)},
-                                          
-                                          {"HT":350, "AlphaT": 0.52, "v":range(1,4)},
-                                          {"HT":350, "AlphaT": 0.53, "v":range(1,15)},
-                                          
-                                          {"HT":400, "AlphaT": 0.51, "v":range(1,15)},
-                                          {"HT":400, "AlphaT": 0.52, "v":range(1,10)},
-                                          
-                                          {"HT":450, "AlphaT": 0.51, "v":range(1,10)},
+                                          #{"HT":300, "AlphaT": 0.53, "v":range(1,4)},
+                                          #{"HT":300, "AlphaT": 0.54, "v":range(1,10)},
+                                          #
+                                          #{"HT":350, "AlphaT": 0.52, "v":range(1,4)},
+                                          #{"HT":350, "AlphaT": 0.53, "v":range(1,15)},
+                                          #
+                                          #{"HT":400, "AlphaT": 0.51, "v":range(1,15)},
+                                          #{"HT":400, "AlphaT": 0.52, "v":range(1,10)},
+                                          #
+                                          #{"HT":450, "AlphaT": 0.51, "v":range(1,10)},
                                           ], keys = ("HT", "AlphaT"))
 
 
@@ -55,7 +52,7 @@ class hadronicLook(supy.analysis) :
                                                 ("325_scaled", (325.0, 375.0,  86.7, 43.3)),#3
                                                 ("275_scaled", (275.0, 325.0,  73.3, 36.7)),#4
                                                 ("675",        (675.0, None,  100.0, 50.0)),#5
-                                                ][3:5] )),
+                                                ][2:5] )),
                  "triggerList": triggers_alphaT_2012, 
                  }
 
@@ -134,8 +131,10 @@ class hadronicLook(supy.analysis) :
 
     def stepsTrigger(self, params) :
         return [
-            #steps.trigger.lowestUnPrescaledTriggerFilter(),
+            #steps.trigger.lowestUnPrescaledTriggerFilter().onlyData(),
             #steps.trigger.hltPrescaleHistogrammer(params["triggerList"]).onlyData(),
+            ]+([] if params["thresholds"][1]!=325.0 else [steps.trigger.lowestUnPrescaledTriggerFilter().onlyData()])+[ #apply trigger in lowest HT bin
+            ]+([] if params["thresholds"][1]!=None else [steps.trigger.hltPrescaleHistogrammer(params["triggerList"]).onlyData()])+[ #compat. w/earlier run
             steps.trigger.l1Filter("L1Tech_BPTX_plus_AND_minus.v0").onlyData(),
             steps.trigger.physicsDeclaredFilter().onlyData(),
             ]
@@ -443,6 +442,14 @@ class hadronicLook(supy.analysis) :
         #self.makeEfficiencyPlots(org, tag, sampleName = "LM1")
 
     def makeIndividualPlots(self, org) :
+        ht = "H_{T}^{#color[0]{T}}"
+        if "275" in org.tag :
+            htLabel = "275 < %s < 325"%ht
+        if "325" in org.tag :
+            htLabel = "325 < %s < 375"%ht
+        if "375" in org.tag :
+            htLabel = "375 < %s"%ht
+
         #plot all
         pl = supy.plotter(org,
                           pdfFileName = self.pdfFileName(org.tag),
@@ -502,8 +509,9 @@ class hadronicLook(supy.analysis) :
                                          "stepDesc" :"mbbHistogrammer",
                                          "index" : -1,
                                          "stamp": False,
-                                         "newTitle":";m_{bb} (GeV) [2 b-jets];events / bin / 5.0 fb^{-1}",
+                                         "newTitle":"%s;m_{bb} (GeV) [2 b-jets];events / bin / 5.0 fb^{-1}"%htLabel,
                                          "legendCoords": (0.55, 0.6, 0.8, 0.75),
+                                         "reBinFactor": 5,
                                          },
                                         ][-1:],
                            newSampleNames = {"tt": "Madgraph t#bar{t}",
