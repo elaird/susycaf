@@ -126,19 +126,23 @@ class hadronicLook(supy.analysis) :
         outList += self.calcListOther(obj, params["triggerList"])
         outList += self.calcListJet(obj, params["etRatherThanPt"], params["thresholds"][3],
                                     params["lowPtThreshold"], params["lowPtName"], params["highPtThreshold"], params["highPtName"], params["thresholds"][0])
+
+        outList += [calculables.gen.genIndices( pdgs = [-5,5], label = "Status3b", status = [3]),
+                    calculables.gen.genIndices( pdgs = [-5,5], label = "Status3bZDaughters", status = [3], motherPdgs = [23]),
+                    ]
         return outList
 
     def stepsTrigger(self, params) :
         return [
             #steps.trigger.lowestUnPrescaledTriggerFilter(),
-            steps.trigger.l1Filter("L1Tech_BPTX_plus_AND_minus.v0"),
-            steps.trigger.physicsDeclaredFilter(),
-            steps.trigger.hltPrescaleHistogrammer(params["triggerList"]),
+            steps.trigger.l1Filter("L1Tech_BPTX_plus_AND_minus.v0").onlyData(),
+            steps.trigger.physicsDeclaredFilter().onlyData(),
+            steps.trigger.hltPrescaleHistogrammer(params["triggerList"]).onlyData(),
             ]
 
     def stepsEvent(self) :
         return [steps.filters.monster(),
-                steps.filters.hbheNoise(),
+                steps.filters.hbheNoise().onlyData(),
                 supy.steps.histos.multiplicity("vertexIndices"),
                 supy.steps.filters.multiplicity("vertexIndices", min = 1),
                 #supy.steps.histos.histogrammer("genpthat",200,0,1000,title=";#hat{p_{T}} (GeV);events / bin").onlySim(),
@@ -178,84 +182,80 @@ class hadronicLook(supy.analysis) :
             #steps.jet.uniquelyMatchedNonisoMuons(_jet),
             ]
 
-    def listOfSteps(self, params) :
-        _jet  = params["objects"]["jet"]
-        _met  = params["objects"]["met"]
-        _etRatherThanPt = params["etRatherThanPt"]
-        _et = "Et" if _etRatherThanPt else "Pt"
-
-        return ([supy.steps.printer.progressPrinter()] +
-                self.stepsTrigger(params) +
-                self.stepsEvent() +
-                self.stepsHtLeadingJets(params) +
-                self.stepsXclean(params) +
-                [
-
+    def stepsPlotsOne(self, params) :
+        _jet = params["objects"]["jet"]
+        _met = params["objects"]["met"]
+        _et = "Et" if params["etRatherThanPt"] else "Pt"
+        return [
             supy.steps.histos.multiplicity("%sIndicesBtagged2%s"%_jet),
-
-            
-            supy.steps.histos.histogrammer("%sSum%s%s"%(_jet[0], _et, _jet[1]), 50, 0, 2500, title = ";H_{T} (GeV) from %s%s %ss;events / bin"%(_jet[0], _jet[1], _et)),
-            supy.steps.histos.histogrammer("%sSum%s%s"%(_jet[0], _et, _jet[1]), 60, 675, 1275, title = ";H_{T} (GeV) from %s%s %ss;events / bin"%(_jet[0], _jet[1], _et)),
-            supy.steps.histos.histogrammer("%sSum%s%s"%(_jet[0], _et, _jet[1]), 120, 675, 1275, title = ";H_{T} (GeV) from %s%s %ss;events / bin"%(_jet[0], _jet[1], _et)),
-
-
-            supy.steps.histos.histogrammer("%sMht%sOver%s"%(_jet[0],_jet[1]+params["highPtName"],_met), 100, 0.0, 3.0,
-                                     title = ";MHT %s%s / %s;events / bin"%(_jet[0],_jet[1]+params["highPtName"],_met)),
-            supy.steps.filters.value("%sMht%sOver%s"%(_jet[0],_jet[1]+params["highPtName"],_met), max = 1.25),
+            supy.steps.histos.histogrammer("%sSum%s%s"%(_jet[0], _et, _jet[1]), 50, 0, 2500,
+                                           title = ";H_{T} (GeV) from %s%s %ss;events / bin"%(_jet[0], _jet[1], _et)),
+            supy.steps.histos.histogrammer("%sSum%s%s"%(_jet[0], _et, _jet[1]), 60, 675, 1275,
+                                           title = ";H_{T} (GeV) from %s%s %ss;events / bin"%(_jet[0], _jet[1], _et)),
+            supy.steps.histos.histogrammer("%sSum%s%s"%(_jet[0], _et, _jet[1]), 120, 675, 1275,
+                                           title = ";H_{T} (GeV) from %s%s %ss;events / bin"%(_jet[0], _jet[1], _et)),
             
             supy.steps.histos.histogrammer("%sSumP4%s"%_jet, 50, 0, 500, title = ";MHT from %s%s (GeV);events / bin"%_jet, funcString = "lambda x:x.pt()"),
-            supy.steps.filters.pt("%sSumP4%s"%_jet, min = 100.0),
             supy.steps.histos.histogrammer("vertexIndices", 20, -0.5, 19.5, title=";N vertices;events / bin", funcString="lambda x:len(x)"),
             supy.steps.histos.histogrammer("vertexSumPt", 100, 0.0, 1.0e3, title = ";SumPt of 2nd vertex (GeV);events / bin", funcString = "lambda x:([0.0,0.0]+sorted(x))[-2]"),
             
-            #many plots=
             #steps.trigger.lowestUnPrescaledTriggerHistogrammer(),
             supy.steps.filters.label("singleJetPlots1"),
             steps.jet.singleJetHistogrammer(_jet),
             supy.steps.filters.label("jetSumPlots1"), 
-            steps.jet.cleanJetHtMhtHistogrammer(_jet,_etRatherThanPt),
+            steps.jet.cleanJetHtMhtHistogrammer(_jet,params["etRatherThanPt"]),
             supy.steps.histos.histogrammer("%sDeltaPhiStar%s%s"%(_jet[0], _jet[1], params["lowPtName"]), 20, 0.0, r.TMath.Pi(), title = ";#Delta#phi*;events / bin", funcString = 'lambda x:x[0][0]'),
             supy.steps.histos.histogrammer("%sDeltaPhiStar%s"%(_jet[0], _jet[1]), 20, 0.0, r.TMath.Pi(), title = ";#Delta#phi*;events / bin", funcString = 'lambda x:x[0][0]'),
             supy.steps.histos.histogrammer("%sMaxEmEnergyFraction%s"%(_jet[0], _jet[1]), 20, 0.0, 1.0, title = ";MaxEmEnergyFraction;events / bin"),
             supy.steps.histos.histogrammer(_met,100,0.0,500.0,title=";"+_met+" (GeV);events / bin", funcString = "lambda x: x.pt()"),
             supy.steps.filters.label("kinematicPlots1"),
 
-            steps.jet.alphaHistogrammer(cs = _jet, deltaPhiStarExtraName = params["lowPtName"], etRatherThanPt = _etRatherThanPt),
+            steps.jet.alphaHistogrammer(cs = _jet, deltaPhiStarExtraName = params["lowPtName"], etRatherThanPt = params["etRatherThanPt"]),
+            ]
+
+    def stepsQcdRejection(self, params) :
+        _jet = params["objects"]["jet"]
+        _met = params["objects"]["met"]
+        _et = "Et" if params["etRatherThanPt"] else "Pt"
+
+        return [
+            supy.steps.histos.histogrammer("%sMht%sOver%s"%(_jet[0],_jet[1]+params["highPtName"],_met), 100, 0.0, 3.0,
+                                     title = ";MHT %s%s / %s;events / bin"%(_jet[0],_jet[1]+params["highPtName"],_met)),
+            supy.steps.filters.value("%sMht%sOver%s"%(_jet[0],_jet[1]+params["highPtName"],_met), max = 1.25),
             steps.other.deadEcalFilter(jets = _jet, extraName = params["lowPtName"], dR = 0.3, dPhiStarCut = 0.5),
             
-            steps.jet.cleanJetHtMhtHistogrammer(_jet,_etRatherThanPt),
-            steps.jet.alphaHistogrammer(cs = _jet, deltaPhiStarExtraName = params["lowPtName"], etRatherThanPt = _etRatherThanPt),
+            steps.jet.cleanJetHtMhtHistogrammer(_jet, params["etRatherThanPt"]),
+            steps.jet.alphaHistogrammer(cs = _jet, deltaPhiStarExtraName = params["lowPtName"], etRatherThanPt = params["etRatherThanPt"]),
             #steps.jet.alphaMetHistogrammer(cs = _jet, deltaPhiStarExtraName = params["lowPtName"], etRatherThanPt = _etRatherThanPt, metName = _met),
 
-            #signal selection
-            #supy.steps.filters.pt("%sSumP4%s"%_jet, min = 140.0),
-            supy.steps.filters.value("%sAlphaT%s%s"%(_jet[0],"Et" if _etRatherThanPt else "Pt",_jet[1]), min = 0.55),
-            supy.steps.histos.histogrammer("%sMaxEmEnergyFraction%s"%(_jet[0], _jet[1]), 20, 0.0, 1.0, title = ";MaxEmEnergyFraction;events / bin"),
-            supy.steps.filters.value("%sMaxEmEnergyFraction%s"%(_jet[0],_jet[1]), max = .1),
-            #]), #end cutSorter
+            supy.steps.histos.histogrammer("%sRecHitSumPt"%params["objects"]["rechit"], 30, 0, 300, title = ";Sum of HBHE (sev.#geq10), EB,EE (sev.#geq2) RecHit p_{T} (GeV);events / bin"),
+            supy.steps.filters.value("%sRecHitSumPt"%params["objects"]["rechit"], max = 30.0),
 
-            #steps.Trigger.lowestUnPrescaledTriggerFilter(),
-            #steps.Trigger.l1Filter("L1Tech_BPTX_plus_AND_minus.v0"),
-            #
-            #steps.Trigger.physicsDeclaredFilter(),
-            #steps.other.monsterEventFilter(),
-            #steps.other.hbheNoiseFilter(),
-            #
-            #steps.other.variableLessFilter(1.25,"%sMht%sOver%s"%(_jet[0],_jet[1]+params["highPtName"],_met)),
-            #steps.other.deadEcalFilter(jets = _jet, extraName = params["lowPtName"], dR = 0.3, dPhiStarCut = 0.5),
-            
-            
+            supy.steps.filters.value("%sAlphaT%s%s"%(_jet[0], _et, _jet[1]), min = 0.55),
+
+            #supy.steps.histos.histogrammer("%sMaxEmEnergyFraction%s"%(_jet[0], _jet[1]), 20, 0.0, 1.0, title = ";MaxEmEnergyFraction;events / bin"),
+            #supy.steps.filters.value("%sMaxEmEnergyFraction%s"%(_jet[0],_jet[1]), max = .1),
+            ]
+
+    def stepsPlotsTwo(self, params) :
+        _jet = params["objects"]["jet"]
+        _met = params["objects"]["met"]
+        return [
             supy.steps.histos.histogrammer("vertexIndices", 20, -0.5, 19.5, title=";N vertices;events / bin", funcString="lambda x:len(x)"),
             supy.steps.histos.histogrammer("%sIndices%s"%_jet, 20, -0.5, 19.5, title=";number of %s%s passing ID#semicolon p_{T}#semicolon #eta cuts;events / bin"%_jet, funcString="lambda x:len(x)"),
-            steps.jet.cleanJetHtMhtHistogrammer(_jet,_etRatherThanPt),
+            steps.jet.cleanJetHtMhtHistogrammer(_jet,params["etRatherThanPt"]),
             supy.steps.histos.histogrammer("%sDeltaPhiStar%s%s"%(_jet[0], _jet[1], params["lowPtName"]), 20, 0.0, r.TMath.Pi(), title = ";#Delta#phi*;events / bin", funcString = 'lambda x:x[0][0]'),
             supy.steps.histos.histogrammer("%sDeltaPhiStar%s"%(_jet[0], _jet[1]), 20, 0.0, r.TMath.Pi(), title = ";#Delta#phi*;events / bin", funcString = 'lambda x:x[0][0]'),
             supy.steps.histos.histogrammer("%sMht%sOver%s"%(_jet[0],_jet[1]+params["highPtName"],_met), 100, 0.0, 3.0,
                                      title = ";MHT %s%s / %s;events / bin"%(_jet[0],_jet[1]+params["highPtName"],_met)),
+            ]
 
-            supy.steps.histos.histogrammer("%sRecHitSumPt"%params["objects"]["rechit"], 30, 0, 300, title = ";Sum of HBHE (sev.#geq10), EB,EE (sev.#geq2) RecHit p_{T} (GeV);events / bin"),
-            supy.steps.filters.value("%sRecHitSumPt"%params["objects"]["rechit"], max = 30.0),
-            
+    def stepsHtBins(self, params) :
+        _jet = params["objects"]["jet"]
+        return [supy.steps.filters.value("%sSumEt%s"%_jet, min = bin) for bin in [475, 575, 675, 775, 875]]
+
+    def stepsOptional(self, params) :
+        return [
             #steps.other.skimmer(),
             #steps.other.duplicateEventCheck(),
             #steps.other.cutBitHistogrammer(self.togglePfJet(_jet), self.togglePfMet(_met)),
@@ -288,12 +288,42 @@ class hadronicLook(supy.analysis) :
             #                          #doGenJets = True,
             #                          markusMode = False,
             #                          ),
-            ] + [supy.steps.filters.value("%sSumEt%s"%_jet, min = bin) for bin in [475, 575, 675, 775, 875]]
-                )
+            ]
+
+    def stepsMbb(self, params) :
+        _jet = params["objects"]["jet"]
+        return [
+            #supy.steps.filters.multiplicity("genIndicesStatus3b", min = 4, max = 4),
+            #steps.printer.eventPrinter(),
+            #steps.printer.jetPrinter(_jet),
+            #steps.gen.particlePrinter(),
+            supy.steps.filters.multiplicity("%sIndicesBtagged2%s"%_jet, min = 2),
+            supy.steps.histos.multiplicity("%sIndicesBtagged2%s"%_jet),
+            steps.jet.mbbHistogrammer(_jet, drMatch = 0.2, bZDaughters = "genIndicesStatus3bZDaughters"),
+            ]
+
+    def listOfSteps(self, params) :
+        _jet  = params["objects"]["jet"]
+        _met  = params["objects"]["met"]
+        _etRatherThanPt = params["etRatherThanPt"]
+        _et = "Et" if _etRatherThanPt else "Pt"
+
+        return ([supy.steps.printer.progressPrinter()] +
+                self.stepsTrigger(params) +
+                self.stepsEvent() +
+                self.stepsHtLeadingJets(params) +
+                self.stepsXclean(params) +
+                #self.stepsPlotsOne(params) +
+                self.stepsQcdRejection(params) +
+                self.stepsPlotsTwo(params) +
+                self.stepsMbb(params) +
+                #self.stepsOptional(params) +
+                #self.stepsHtBins(params) +
+                [])
 
     def listOfSampleDictionaries(self) :
         #sampleDict = supy.samples.SampleHolder() #added to run over skim
-        return [samples.ht17]
+        return [samples.ht17, samples.top17]
         #sampleDict.add("Data_High_HT", '["~/nobackup/supy-output/hadronicLook/675_ge2_caloAK5JetMet_recoLepPhot_pythia6/High_HT_skim.root"]', lumi = 1.1e3)
         #return [sampleDict]
     
@@ -304,9 +334,9 @@ class hadronicLook(supy.analysis) :
             jw2012 = calculables.other.jsonWeight("cert/Cert_190456-196531_8TeV_PromptReco_Collisions12_JSON.txt")
 
             out = []
-            out += specify(names = "HT.Run2012A-PromptReco-v1.AOD.job229", weights = jw2012, overrideLumi = 707.3810, nFilesMax = 1, nEventsMax = 1000)
-            #out += specify(names = "HTMHT.Run2012B-PromptReco-v1.AOD.job228", weights = jw2012, overrideLumi = 3354.0000)
-            #out += specify(names = "HTMHT.Run2012B-PromptReco-v1.AOD.job238",  weights = jw2012, overrideLumi = 923.7680)
+            out += specify(names = "HT.Run2012A-PromptReco-v1.AOD.job229", weights = jw2012, overrideLumi = 707.3810)
+            out += specify(names = "HTMHT.Run2012B-PromptReco-v1.AOD.job228", weights = jw2012, overrideLumi = 3354.0000)
+            out += specify(names = "HTMHT.Run2012B-PromptReco-v1.AOD.job238",  weights = jw2012, overrideLumi = 923.7680)
             return out
 
         def qcd_py6(eL) :
@@ -349,11 +379,10 @@ class hadronicLook(supy.analysis) :
         smLumi = 30000 # 1/pb
         susyLumi = 60000
         return ( data_52X() +
+                 specify(names = "tt_8_mg.job188") +
+                 #specify(names = "ttz_8_mg.job269", nFilesMax = 3) +
                  []
                  )
-                 #ttbar_mg(smLumi, era = era) #+ ewk(smLumi, era = era) +
-#                 qcd_func(smLumi) + #g_jets_func(eL) +
-#                 susy(susyLumi)
 
     def mergeSamples(self, org) :
         def md(x, y) :
@@ -365,19 +394,20 @@ class hadronicLook(supy.analysis) :
         mcOps = {"markerStyle":1, "lineWidth":3, "goptions":"hist"}
         if "pythia6"  in org.tag :
             org.mergeSamples(targetSpec = md({"name":"QCD Multijet", "color":r.kGreen+3}, mcOps), allWithPrefix = "qcd_py6")
-        org.mergeSamples(targetSpec = md({"name":"tt", "color": r.kBlue}, mcOps), allWithPrefix = "tt")
+        org.mergeSamples(targetSpec = md({"name":"ttz", "color": r.kBlue}, mcOps), allWithPrefix = "ttz")
+        org.mergeSamples(targetSpec = md({"name":"tt", "color": r.kRed+1}, mcOps), allWithPrefix = "tt_")
         org.mergeSamples(targetSpec = md({"name":"Z + jets", "color": r.kRed+1}, mcOps), allWithPrefix = "z")
         org.mergeSamples(targetSpec = md({"name":"W + jets", "color": r.kOrange-3}, mcOps), allWithPrefix = "w_jets")
         org.mergeSamples(targetSpec = md({"name":"LM6", "color":r.kMagenta}, mcOps), allWithPrefix = "lm6")
         ewkSources = ["tt", "Z + jets", "W + jets"]
         qcdSources = ["QCD Multijet"]
 
-        if not self.ra1Cosmetics() :
-            org.mergeSamples(targetSpec = md({"name":"Standard Model ", "color":r.kAzure+6}, mcOps), sources = ewkSources + qcdSources, keepSources = True)
-        else :
-            ewk = "t#bar{t}, W, Z + Jets"
-            org.mergeSamples(targetSpec = md({"name":ewk, "color":r.kBlue}, mcOps), sources = ewkSources)
-            org.mergeSamples(targetSpec = md({"name":"Standard Model ", "color":r.kAzure+6}, mcOps), sources = qcdSources + [ewk], keepSources = True)
+        #if not self.ra1Cosmetics() :
+        #    org.mergeSamples(targetSpec = md({"name":"Standard Model ", "color":r.kAzure+6}, mcOps), sources = ewkSources + qcdSources, keepSources = True)
+        #else :
+        #    ewk = "t#bar{t}, W, Z + Jets"
+        #    org.mergeSamples(targetSpec = md({"name":ewk, "color":r.kBlue}, mcOps), sources = ewkSources)
+        #    org.mergeSamples(targetSpec = md({"name":"Standard Model ", "color":r.kAzure+6}, mcOps), sources = qcdSources + [ewk], keepSources = True)
 
     def conclude(self, conf) :
         org = self.organizer(conf)
@@ -385,22 +415,24 @@ class hadronicLook(supy.analysis) :
         #utils.printSkimResults(org)            
 
         self.mergeSamples(org)
-        #org.scale() if not self.parameters()["tanBeta"] else org.scale(100.0)
+        org.scale() if not self.parameters()["tanBeta"] else org.scale(100.0)
         
-        self.makeStandardPlots(org)
-        #self.makeIndividualPlots(org)
+        #self.makeStandardPlots(org)
+        self.makeIndividualPlots(org)
 
     def makeStandardPlots(self, org) :
         #plot
         pl = supy.plotter(org,
                           pdfFileName = self.pdfFileName(org.tag),
-                          samplesForRatios = ("2011 Data","Standard Model "),
-                          sampleLabelsForRatios = ("data","s.m."),
+                          #samplesForRatios = ("2012 Data","Standard Model "),
+                          #sampleLabelsForRatios = ("data","s.m."),
+                          samplesForRatios = ("2012 Data","tt"),
+                          sampleLabelsForRatios = ("data","tt"),
                           printRatios = True,
                           showStatBox = not self.ra1Cosmetics(),
                           rowColors = [r.kBlack, r.kViolet+4],
                           #whiteList = ["lowestUnPrescaledTrigger"],
-                          #doLog = False,
+                          doLog = False,
                           #compactOutput = True,
                           #noSci = True,
                           #latexYieldTable = True,
@@ -414,12 +446,12 @@ class hadronicLook(supy.analysis) :
     def makeIndividualPlots(self, org) :
         #plot all
         pl = supy.plotter(org,
-                             pdfFileName = self.pdfFileName(org.tag),
-                             showStatBox = False,
-                             doLog = True,
-                             pegMinimum = 0.1,                             
-                             anMode = True,
-                             )
+                          pdfFileName = self.pdfFileName(org.tag),
+                          showStatBox = False,
+                          doLog = False,
+                          #pegMinimum = 0.1,
+                          anMode = False,
+                          )
         pl.individualPlots(plotSpecs = [{"plotName":"xcak5JetAlphaTRoughPat",
                                          "stepName" :"alphaHistogrammer",
                                          "stepDesc" :"xcak5JetPat",
@@ -465,15 +497,25 @@ class hadronicLook(supy.analysis) :
                                          "newTitle":";N_{jets};events / bin",
                                          "legendCoords": (0.6, 0.6, 0.92, 0.92),
                                          "stampCoords": (0.6, 0.38),
-                                         }
-                                        ],
-                           newSampleNames = None,
+                                         },
+                                        {"plotName":"xcak5JetMbbListPat_2b",
+                                         "stepName":"mbbHistogrammer",
+                                         "stepDesc" :"mbbHistogrammer",
+                                         "index" : -1,
+                                         "stamp": False,
+                                         "newTitle":";m_{bb} (GeV) [2 b-jets];events / bin / 5.0 fb^{-1}",
+                                         "legendCoords": (0.55, 0.6, 0.8, 0.75),
+                                         },
+                                        ][-1:],
+                           newSampleNames = {"tt": "Madgraph t#bar{t}",
+                                             "2012 Data": "Data"},
                            #newSampleNames = {"qcd_mg_nVtx": "Madgraph QCD",
                            #                  "g_jets_mg_nVtx": "Madgraph #gamma + jets",
                            #                  "2011 Data": "Data",
                            #                  "standard_model_nVtx": "Standard Model",
                            #                  },
                            preliminary = True,
+                           tdrStyle = False,
                            )
 
 
