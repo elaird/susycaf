@@ -52,7 +52,7 @@ class hadronicLook(supy.analysis) :
                                                 ("325_scaled", (325.0, 375.0,  86.7, 43.3)),#3
                                                 ("275_scaled", (275.0, 325.0,  73.3, 36.7)),#4
                                                 ("675",        (675.0, None,  100.0, 50.0)),#5
-                                                ][2:5] )),
+                                                ][4:5] )),
                  "triggerList": triggers_alphaT_2012, 
                  }
 
@@ -253,8 +253,9 @@ class hadronicLook(supy.analysis) :
         return [supy.steps.filters.value("%sSumEt%s"%_jet, min = bin) for bin in [475, 575, 675, 775, 875]]
 
     def stepsOptional(self, params) :
+        jet = params["objects"]["jet"]
         return [
-            #steps.other.skimmer(),
+            #supy.steps.other.skimmer(),
             #steps.other.duplicateEventCheck(),
             #steps.other.cutBitHistogrammer(self.togglePfJet(_jet), self.togglePfMet(_met)),
             #steps.Print.eventPrinter(),
@@ -268,23 +269,22 @@ class hadronicLook(supy.analysis) :
             #steps.Gen.genParticlePrinter(minPt = 10.0, minStatus = 3),
                    
             #steps.other.pickEventSpecMaker(),
-            #steps.Displayer.displayer(jets = _jet,
-            #                          muons = _muon,
+            #steps.displayer.displayer(jets      = jet,
+            #                          muons     = params["objects"]["muon"],
             #                          met       = params["objects"]["met"],
             #                          electrons = params["objects"]["electron"],
-            #                          photons   = params["objects"]["photon"],                            
+            #                          photons   = params["objects"]["photon"],
             #                          recHits   = params["objects"]["rechit"], recHitPtThreshold = 1.0,#GeV
             #                          scale = 400.0,#GeV
-            #                          etRatherThanPt = _etRatherThanPt,
+            #                          etRatherThanPt = params["etRatherThanPt"],
             #                          deltaPhiStarExtraName = params["lowPtName"],
             #                          deltaPhiStarCut = 0.5,
             #                          deltaPhiStarDR = 0.3,
             #                          j2Factor = params["thresholds"][2]/params["thresholds"][0],
-            #                          mhtOverMetName = "%sMht%sOver%s"%(_jet[0],_jet[1]+params["highPtName"],_met),
+            #                          mhtOverMetName = "%sMht%sOver%s"%(jet[0],jet[1]+params["highPtName"],params["objects"]["met"]),
             #                          metOtherAlgo  = params["objects"]["compMet"],
             #                          jetsOtherAlgo = params["objects"]["compJet"],
             #                          #doGenJets = True,
-            #                          markusMode = False,
             #                          ),
             ]
 
@@ -320,10 +320,9 @@ class hadronicLook(supy.analysis) :
                 [])
 
     def listOfSampleDictionaries(self) :
-        #sampleDict = supy.samples.SampleHolder() #added to run over skim
-        return [samples.ht17, samples.top17]
-        #sampleDict.add("Data_High_HT", '["~/nobackup/supy-output/hadronicLook/675_ge2_caloAK5JetMet_recoLepPhot_pythia6/High_HT_skim.root"]', lumi = 1.1e3)
-        #return [sampleDict]
+        sh = supy.samples.SampleHolder()
+        sh.add("275_ge2b", '["/uscms/home/elaird/08_mbb/02_skim/2012_5fb_275_ge2b.root"]', lumi = 5.0e3)
+        return [samples.ht17, samples.top17, sh]
     
     def listOfSamples(self,params) :
         from supy.samples import specify
@@ -336,6 +335,9 @@ class hadronicLook(supy.analysis) :
             out += specify(names = "HTMHT.Run2012B-PromptReco-v1.AOD.job228", weights = jw2012, overrideLumi = 3354.0000)
             out += specify(names = "HTMHT.Run2012B-PromptReco-v1.AOD.job238",  weights = jw2012, overrideLumi = 923.7680)
             return out
+
+        def data_52X_2b_skim() :
+            return specify(names = "275_ge2b")
 
         def qcd_py6(eL) :
             q6 = [0,5,15,30,50,80,120,170,300,470,600,800,1000,1400,1800]
@@ -376,8 +378,9 @@ class hadronicLook(supy.analysis) :
 
         smLumi = 30000 # 1/pb
         susyLumi = 60000
-        return ( data_52X() +
-                 specify(names = "tt_8_mg.job188") +
+        return ( #data_52X() +
+                 data_52X_2b_skim() +
+                 #specify(names = "tt_8_mg.job188") +
                  #specify(names = "ttz_8_mg.job269", nFilesMax = 3) +
                  []
                  )
