@@ -1,6 +1,10 @@
 import ROOT as r
 from supy import wrappedChain,utils
 ##############################
+class genpartonHT(wrappedChain.calculable) :
+    def update(self,_) :
+        self.value = -1.0
+##############################
 class susyScanmGL(wrappedChain.calculable) :
     def update(self,_) :
         self.value = self.source["SimpModelScanmGL"]
