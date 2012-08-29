@@ -15,3 +15,8 @@ ewk17.add("zinv_mg_ht_50_100.job214", '%s/clucas//ICF/automated/2012_06_10_22_27
 ewk17.add("zinv_mg_ht_100_200.job234", '%s/clucas//ICF/automated/2012_06_17_22_29_52/")'%pnfs, xs = {"NNLO":190.39, "LO":160.3}["NNLO"])
 ewk17.add("zinv_mg_ht_200_400.job233", '%s/clucas//ICF/automated/2012_06_15_00_32_54/")'%pnfs, xs = {"NNLO":49.2776, "LO":41.49}["NNLO"])
 ewk17.add("zinv_mg_ht_400_inf.job213", '%s/clucas//ICF/automated/2012_06_10_22_08_24/")'%pnfs, xs = {"NNLO":6.2639, "LO":5.274}["NNLO"])
+
+vv = '%s/clucas//ICF/automated/2012_06_05_09_30_46/'%pnfs
+ewk17.add("ww_py.job188", '%s/WW_TuneZ2star_8TeV_pythia6_tauola.Summer12-PU_S7_START52_V9-v1.AODSIM/")'%vv, xs = {"NNLO":57.1097, "LO":33.61}["NNLO"])
+ewk17.add("wz_py.job188", '%s/WZ_TuneZ2star_8TeV_pythia6_tauola.Summer12-PU_S7_START52_V9-v1.AODSIM/")'%vv, xs = {"NNLO":32.3161, "LO":12.63}["NNLO"])
+ewk17.add("zz_py.job188", '%s/ZZ_TuneZ2star_8TeV_pythia6_tauola.Summer12-PU_S7_START52_V9-v1.AODSIM/")'%vv, xs = {"NNLO":8.25561, "LO":5.196}["NNLO"])
