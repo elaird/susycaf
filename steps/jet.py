@@ -28,7 +28,9 @@ class mbbHistogrammer(analysisStep) :
         nb = "_2b" if nMbb==1 else "_ge3b"
 
         for m in mbbList :
-            self.book.fill(m, self.mbbList+nb, 50, 0.0, 500.0, title = ";m_{bb} (GeV) (%s jets);b-pair / bin"%nb)
+            self.book.fill(m, self.mbbList+nb+"_orig",    50, 0.0,  500.0, title = ";m_{bb} (GeV) (%s jets);b-pair / bin"%nb)
+            self.book.fill(m, self.mbbList+nb,           120, 0.0, 1200.0, title = ";m_{bb} (GeV) (%s jets);b-pair / bin"%nb)
+            self.book.fill(m, self.mbbList+nb+"_coarse",  24, 0.0, 1200.0, title = ";m_{bb} (GeV) (%s jets);b-pair / bin"%nb)
 
             if not nMbb==1 : continue
             if eventVars["isRealData"] : continue
