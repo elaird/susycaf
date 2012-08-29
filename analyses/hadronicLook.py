@@ -56,8 +56,6 @@ class hadronicLook(supy.analysis) :
                  "triggerList": triggers_alphaT_2012, 
                  }
 
-    def ra1Cosmetics(self) : return False
-    
     def calcListJet(self, obj, etRatherThanPt, ptMin, lowPtThreshold, lowPtName, highPtThreshold, highPtName, htThreshold) :
         def calcList(jet, met, photon, muon, electron, muonsInJets, jetIdFlag) :
             outList = [
@@ -145,6 +143,7 @@ class hadronicLook(supy.analysis) :
                 supy.steps.histos.multiplicity("vertexIndices"),
                 supy.steps.filters.multiplicity("vertexIndices", min = 1),
                 #supy.steps.histos.histogrammer("genpthat",200,0,1000,title=";#hat{p_{T}} (GeV);events / bin").onlySim(),
+                #supy.steps.histos.histogrammer("genpartonHT",200,0,1000,title=";parton H_{T} (GeV);events / bin").onlySim(),
                 #supy.steps.histos.histogrammer("logErrorTooManySeeds",    2, 0.0, 1.0, title = ";logErrorTooManySeeds;events / bin"),
                 #supy.steps.histos.histogrammer("logErrorTooManyClusters", 2, 0.0, 1.0, title = ";logErrorTooManyClusters;events / bin"),
                 ]
@@ -190,7 +189,7 @@ class hadronicLook(supy.analysis) :
                                            title = ";H_{T} (GeV) from %s%s %ss;events / bin"%(_jet[0], _jet[1], _et)),
             supy.steps.histos.histogrammer("%sSum%s%s"%(_jet[0], _et, _jet[1]), 60, 675, 1275,
                                            title = ";H_{T} (GeV) from %s%s %ss;events / bin"%(_jet[0], _jet[1], _et)),
-            supy.steps.histos.histogrammer("%sSum%s%s"%(_jet[0], _et, _jet[1]), 120, 675, 1275,
+            supy.steps.histos.histogrammer("%sSum%s%s"%(_jet[0], _et, _jet[1]), 100, 0, 1000,
                                            title = ";H_{T} (GeV) from %s%s %ss;events / bin"%(_jet[0], _jet[1], _et)),
             
             supy.steps.histos.histogrammer("%sSumP4%s"%_jet, 50, 0, 500, title = ";MHT from %s%s (GeV);events / bin"%_jet, funcString = "lambda x:x.pt()"),
@@ -198,8 +197,8 @@ class hadronicLook(supy.analysis) :
             supy.steps.histos.histogrammer("vertexSumPt", 100, 0.0, 1.0e3, title = ";SumPt of 2nd vertex (GeV);events / bin", funcString = "lambda x:([0.0,0.0]+sorted(x))[-2]"),
             
             #steps.trigger.lowestUnPrescaledTriggerHistogrammer(),
-            supy.steps.filters.label("singleJetPlots1"),
-            steps.jet.singleJetHistogrammer(_jet),
+            #supy.steps.filters.label("singleJetPlots1"),
+            #steps.jet.singleJetHistogrammer(_jet),
             supy.steps.filters.label("jetSumPlots1"), 
             steps.jet.cleanJetHtMhtHistogrammer(_jet,params["etRatherThanPt"]),
             supy.steps.histos.histogrammer("%sDeltaPhiStar%s%s"%(_jet[0], _jet[1], params["lowPtName"]), 20, 0.0, r.TMath.Pi(), title = ";#Delta#phi*;events / bin", funcString = 'lambda x:x[0][0]'),
@@ -322,7 +321,7 @@ class hadronicLook(supy.analysis) :
     def listOfSampleDictionaries(self) :
         sh = supy.samples.SampleHolder()
         sh.add("275_ge2b", '["/uscms/home/elaird/08_mbb/02_skim/2012_5fb_275_ge2b.root"]', lumi = 5.0e3)
-        return [samples.ht17, samples.top17, sh]
+        return [samples.ht17, samples.top17, samples.ewk17, sh]
     
     def listOfSamples(self,params) :
         from supy.samples import specify
@@ -359,56 +358,89 @@ class hadronicLook(supy.analysis) :
             return specify( effectiveLumi = eL, color = r.kGreen,
                             names = [("g_jets_mg_ht_%d_%d")[:None if t[1] else -2] for t in zip(gM,gM[1:]+["inf"])] )
 
-        def ewk(eL, era = "") :
-            zName = ""
-            wName = ""
-            if era=="spring11" :
-                zName = "zinv_jets_mg"
-                wName = "w_jets_mg"
-            if era=="summer11" :
-                zName = "znunu_jets_mg_ht_200_inf_summer11_skim"
-                wName = "w_jets_mg_tauola_ht_300_inf_summer11"
+        def w_binned() :
+            out = []
+            #out += specify(names = "wj_lv_mg_ht_0_250_other_reqs", nFilesMax = 1, nEventsMax = 20000, color = r.kRed)
+            out += specify(names = "wj_lv_mg_ht_250_300", color = r.kBlue)
+            out += specify(names = "wj_lv_mg_ht_300_400", color = r.kGreen)
+            out += specify(names = "wj_lv_mg_ht_400_inf", color = r.kCyan)
+            return out
+
+        def z_binned() :
+            out = []
+            out += specify("zinv_mg_ht_50_100.job214")
+            out += specify("zinv_mg_ht_100_200.job234")
+            out += specify("zinv_mg_ht_200_400.job233")
+            out += specify("zinv_mg_ht_400_inf.job213")
+            return out
+
+        def w_inclusive() :
+            return specify(names = "wj_lv_mg_ht_incl", color = r.kOrange)
+
+        def vv() :
+            out = []
+            out += specify("ww_py.job188")
+            out += specify("wz_py.job188")
+            out += specify("zz_py.job188")
+            return out
+
+        def top() :
+            out = []
+            out += specify(names = "tt_8_mg.job188")
+            #out += specify(names = "ttz_8_mg.job269")
+
+            out += specify("t_s_powheg.job200"    )
+            out += specify("t_t_powheg.job187"    )
+            out += specify("t_tw_powheg.job187"   )
+            out += specify("tbar_t_powheg.job194" )
+            out += specify("tbar_tw_powheg.job187")
             
-            return ( specify(names = zName,  effectiveLumi = eL, color = r.kRed + 1) +
-                     #specify(names = "z_jets_mg_v12_skim", effectiveLumi = eL, color = r.kYellow-3) +
-                     specify(names = wName, effectiveLumi = eL, color = 28         ) )
+            return out
 
         def susy(eL) :
             return specify(names = "lm6", effectiveLumi = eL, color = r.kRed)
 
         smLumi = 30000 # 1/pb
         susyLumi = 60000
-        return ( #data_52X() +
-                 data_52X_2b_skim() +
-                 #specify(names = "tt_8_mg.job188") +
-                 #specify(names = "ttz_8_mg.job269", nFilesMax = 3) +
-                 []
-                 )
+        return (
+            data_52X() +
+            data_52X_2b_skim() +
+            w_binned() +
+            z_binned() +
+            top() +
+            #vv() +
+            #w_inclusive() +
+            []
+            )
 
     def mergeSamples(self, org) :
         def md(x, y) :
             x.update(y)
             return x
         
-        org.mergeSamples(targetSpec = {"name":"2012 Data", "color":r.kBlack, "markerStyle":20}, allWithPrefix = "HT")
+        #org.mergeSamples(targetSpec = {"name":"2012 Data", "color":r.kBlack, "markerStyle":20}, allWithPrefix = "HT")
+        org.mergeSamples(targetSpec = {"name":"2012 Data", "color":r.kBlack, "markerStyle":20}, allWithPrefix = "275_ge2b")
 
         mcOps = {"markerStyle":1, "lineWidth":3, "goptions":"hist"}
-        if "pythia6"  in org.tag :
-            org.mergeSamples(targetSpec = md({"name":"QCD Multijet", "color":r.kGreen+3}, mcOps), allWithPrefix = "qcd_py6")
+
+        #org.mergeSamples(targetSpec = md({"name":"QCD Multijet", "color":r.kGreen+3}, mcOps), allWithPrefix = "qcd_py6")
+        #qcdSources = ["QCD Multijet"]
+        qcdSources = []
+
         org.mergeSamples(targetSpec = md({"name":"ttz", "color": r.kBlue}, mcOps), allWithPrefix = "ttz")
         org.mergeSamples(targetSpec = md({"name":"tt", "color": r.kRed+1}, mcOps), allWithPrefix = "tt_")
-        org.mergeSamples(targetSpec = md({"name":"Z + jets", "color": r.kRed+1}, mcOps), allWithPrefix = "z")
-        org.mergeSamples(targetSpec = md({"name":"W + jets", "color": r.kOrange-3}, mcOps), allWithPrefix = "w_jets")
+        org.mergeSamples(targetSpec = md({"name":"t", "color": r.kGreen}, mcOps),
+                         sources = ["t_s_powheg.job200", "t_t_powheg.job187", "t_tw_powheg.job187", "tbar_t_powheg.job194", "tbar_tw_powheg.job187"])
+        
+        org.mergeSamples(targetSpec = md({"name":"Z + jets", "color": r.kBlue}, mcOps), allWithPrefix = "zinv_mg_ht")
+        org.mergeSamples(targetSpec = md({"name":"W + jets", "color": r.kOrange-3}, mcOps), allWithPrefix = "wj_lv_mg_ht_")
         org.mergeSamples(targetSpec = md({"name":"LM6", "color":r.kMagenta}, mcOps), allWithPrefix = "lm6")
-        ewkSources = ["tt", "Z + jets", "W + jets"]
-        qcdSources = ["QCD Multijet"]
+        ewkSources = ["tt", "t", "Z + jets", "W + jets"]
 
-        #if not self.ra1Cosmetics() :
-        #    org.mergeSamples(targetSpec = md({"name":"Standard Model ", "color":r.kAzure+6}, mcOps), sources = ewkSources + qcdSources, keepSources = True)
-        #else :
-        #    ewk = "t#bar{t}, W, Z + Jets"
-        #    org.mergeSamples(targetSpec = md({"name":ewk, "color":r.kBlue}, mcOps), sources = ewkSources)
-        #    org.mergeSamples(targetSpec = md({"name":"Standard Model ", "color":r.kAzure+6}, mcOps), sources = qcdSources + [ewk], keepSources = True)
+        org.mergeSamples(targetSpec = md({"name":"Standard Model ", "color":r.kAzure+6}, mcOps), sources = ewkSources + qcdSources, keepSources = True)
+        #ewk = "t#bar{t}, W, Z + Jets"
+        #org.mergeSamples(targetSpec = md({"name":ewk, "color":r.kBlue}, mcOps), sources = ewkSources)
+        #org.mergeSamples(targetSpec = md({"name":"Standard Model ", "color":r.kAzure+6}, mcOps), sources = qcdSources + [ewkSources], keepSources = True)
 
     def conclude(self, conf) :
         org = self.organizer(conf)
@@ -416,21 +448,21 @@ class hadronicLook(supy.analysis) :
         #utils.printSkimResults(org)            
 
         self.mergeSamples(org)
-        org.scale() if not self.parameters()["tanBeta"] else org.scale(100.0)
+        org.scale()
         
-        #self.makeStandardPlots(org)
-        self.makeIndividualPlots(org)
+        self.makeStandardPlots(org)
+        #self.makeIndividualPlots(org)
 
     def makeStandardPlots(self, org) :
         #plot
         pl = supy.plotter(org,
                           pdfFileName = self.pdfFileName(org.tag),
-                          #samplesForRatios = ("2012 Data","Standard Model "),
-                          #sampleLabelsForRatios = ("data","s.m."),
-                          samplesForRatios = ("2012 Data","tt"),
-                          sampleLabelsForRatios = ("data","tt"),
+                          samplesForRatios = ("2012 Data","Standard Model "),
+                          sampleLabelsForRatios = ("data","s.m."),
+                          #samplesForRatios = ("2012 Data","tt"),
+                          #sampleLabelsForRatios = ("data","tt"),
                           printRatios = True,
-                          showStatBox = not self.ra1Cosmetics(),
+                          showStatBox = True,
                           rowColors = [r.kBlack, r.kViolet+4],
                           #whiteList = ["lowestUnPrescaledTrigger"],
                           doLog = False,
