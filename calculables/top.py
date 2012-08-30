@@ -47,6 +47,15 @@ class SumP4(TopP4Calculable) :
 class SumPt(TopP4Calculable) :
     def update(self,_) : self.value = self.source[self.P4]['t'].pt() + self.source[self.P4]['tbar'].pt()
 ######################################
+class PtSum(TopP4Calculable) :
+    def update(self,_) : self.value = self.source["SumP4".join(self.fixes)].pt()
+######################################
+class MassSum(TopP4Calculable) :
+    def update(self,_) : self.value = self.source["SumP4".join(self.fixes)].mass()
+######################################
+class RapiditySum(TopP4Calculable) :
+    def update(self,_) : self.value = abs(self.source["SumP4".join(self.fixes)].Rapidity())
+######################################
 class AbsSumRapidities(TopP4Calculable) :
     def update(self,_) : self.value = abs( self.source[self.P4]['t'].Rapidity() +
                                            self.source[self.P4]['tbar'].Rapidity() )
@@ -85,6 +94,19 @@ class JetPtMin(wrappedChain.calculable) :
         p4 = self.source["CorrectedP4".join(self.source["TopJets"]["fixes"])]
         self.value = min([abs(p4[i].pt()) for i in iPQHL])
 ######################################
+class PartonFractions(TopP4Calculable) :
+    def update(self,_) :
+        sump4 = self.source['SumP4'.join(self.fixes)]
+        m = sump4.mass() / 7000
+        z = sump4.z() / 7000
+        self.value = sorted([m+z,m-z])
+######################################
+class PartonLo(TopP4Calculable) :
+    def update(self,_) : self.value = self.source['PartonFractions'.join(self.fixes)][0]
+######################################
+class PartonHi(TopP4Calculable) :
+    def update(self,_) : self.value = self.source['PartonFractions'.join(self.fixes)][1]
+######################################
 class PartonXplusminus(wrappedChain.calculable) :
     def __init__(self, collection = None) :
         self.fixes = collection
@@ -116,6 +138,12 @@ class PtOverSumPt(wrappedChain.calculable) :
         self.fixes = collection
         self.stash(['Pt','SumPt'])
     def update(self,_) : self.value = self.source[self.Pt] / self.source[self.SumPt]
+######################################
+class PtPlusSumPt(wrappedChain.calculable) :
+    def __init__(self, collection = None) :
+        self.fixes = collection
+        self.stash(['Pt','SumPt'])
+    def update(self,_) : self.value = self.source[self.Pt] + self.source[self.SumPt]
 ######################################
 class SumP4Eta(wrappedChain.calculable) :
     def __init__(self, collection = None) :

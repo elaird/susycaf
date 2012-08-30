@@ -337,6 +337,7 @@ class qDirExpectation(calculables.secondary) :
         orig = self.fromCache( [self.sample], [self.var], tag = self.tag)[self.sample][self.var]
         if not orig :
             print "No cache: %s; %s"%(self.sample,str(self))
+            self.value = lambda *_ : 1
             return
         values = [orig.GetBinContent(i) for i in range(orig.GetNbinsX()+2)]
         neighbors = 10
@@ -355,7 +356,7 @@ class qDirExpectation(calculables.secondary) :
         for i in range(len(p)) : self.p.SetBinContent(i+1,p[i])
         self.p.SetBinContent(len(edges[iZero:])+2, edges[-1])
 
-        widths = [high-low for low,high in zip(edges[iZero:-1],edges[iZero+1:])]
+        widths = np.array([high-low for low,high in zip(edges[iZero:-1],edges[iZero+1:])])
         q = (R+L)/(widths * (sum(R)+sum(L)))
         self.q = self.p.Clone(self.name+"_pdist")
         self.q.Reset()
