@@ -446,13 +446,14 @@ class topAsymm(supy.analysis) :
         self.orgMelded = {}
         self.sensitivityPoints = {}
         self.rowcolors = 2*[13] + 2*[45]
-        super(topAsymm,self).concludeAll()
+        #super(topAsymm,self).concludeAll()
         for tt,rw,lname in set([(pars['toptype'],pars['reweights']['abbr'],pars['lepton']['name']) for pars in self.readyConfs]) :
             self.meldScale(rw,lname,tt)
-            self.plotMeldScale(rw,lname,tt)
-            self.PEcurves(rw,lname, tt)
-            self.ensembleTest(rw,lname,tt)
-        self.sensitivity_graphs()
+            #self.plotMeldScale(rw,lname,tt)
+            #self.PEcurves(rw,lname, tt)
+            self.measureAmplitudes(rw,lname,tt)
+            #self.ensembleTest(rw,lname,tt)
+        #self.sensitivity_graphs()
         #self.grant_proposal_plots()
 
     def grant_proposal_plots(self) :
@@ -588,11 +589,10 @@ class topAsymm(supy.analysis) :
             templates = [None] * len(templateSamples)
             bases = []
             for ss,hist in zip(org.samples,distTup) :
-                contents = [hist.GetBinContent(i) for i in range(hist.GetNbinsX()+2)]
+                contents = supy.utils.binValues(hist)
                 if rebin!=1 : contents = contents[:1] + [sum(bins) for bins in zip(*[contents[1:-1][i::rebin] for i in range(rebin)])] + contents[-1:]
                 if ss['name'] == "top.Data 2011" :
                     observed = contents
-                    nEventsObserved = sum(observed)
                 elif ss['name'] in templateSamples :
                     templates[templateSamples.index(ss['name'])] = contents
                 elif ss['name'] in baseSamples :
@@ -635,8 +635,8 @@ class topAsymm(supy.analysis) :
         org.drop('bg')
 
     def PEcurves(self, rw, lname, tt) :
-        if (lname,rw) not in self.orgMelded : return
-        org = self.orgMelded[(lname,rw)]
+        if (lname,rw,tt) not in self.orgMelded : return
+        org = self.orgMelded[(lname,rw,tt)]
         c = r.TCanvas()
         fileName = "%s/pur_eff_%s_%s"%(self.globalStem,lname,rw)
         supy.utils.tCanvasPrintPdf(c, fileName, option = '[', verbose = False)
@@ -670,6 +670,47 @@ class topAsymm(supy.analysis) :
         return
 
 
+    def measureAmplitudes(self,rw,lname,tt) :
+        if (lname,rw, tt) not in self.orgMelded : print "run meldScale() before measureAmplitudes()"; return
+        melded = self.orgMelded[(lname,rw,tt)]
+        omitSamples = ["S.M.","top.Data 2011","top.t#bar{t}"]
+        print ", ".join(ss["name"] for ss in melded.samples if ss["name"] not in omitSamples)
+        canvas = r.TCanvas()
+        maFileName = "%s/%s_measuredAmplitudes"%(self.globalStem, lname )
+        supy.utils.tCanvasPrintPdf( canvas, maFileName, option = '[', verbose = False)
+        with open(maFileName+'.txt','w') as file : print >> file, ""
+
+        def BV(h, rebin=4) :
+            contents = supy.utils.binValues(h)
+            if rebin!=1 : contents = contents[:1] + [sum(bins) for bins in zip(*[contents[1:-1][i::rebin] for i in range(rebin)])] + contents[-1:]
+            return contents
+
+        SA = supy.utils.symmAnti
+        def measure(fitvar,genvar, antisamples, sumTemplates = False) :
+            step = melded.steps[ next(melded.indicesOfStep('symmAnti','%s in (anti)symm parts of %s'%(fitvar,genvar))) ]
+            templates = [ BV( SA(step[fitvar+'_anti'][melded.indexOfSampleWithName(sample)])[1]) for sample in antisamples ]
+            bases = [ BV( SA(step[fitvar+'_symm'][melded.indexOfSampleWithName(sample)])[0]) for sample in antisamples ]
+            bases += [ BV( step[fitvar][i]) for i,ss in enumerate(melded.samples) if ss['name'] not in antisamples+omitSamples ]
+            observed = BV( step[fitvar][melded.indexOfSampleWithName("top.Data 2011")] )
+
+            from supy.utils.fractions import componentSolver,drawComponentSolver
+            if sumTemplates : templates = [np.sum(templates, axis=0)]
+            cs = componentSolver(observed, templates, 1e4, base = np.sum(bases, axis=0) , normalize = False )
+            stuff = drawComponentSolver(cs, canvas, distName = fitvar, showDifference = True,
+                                        templateNames = ["antisymmetric %s-->t#bar{t}"%('(qg|q#bar{q})' if sumTemplates else "qg" if 'QG' in t else "q#bar{q}" if 'QQ' in t else '') for t in antisamples])
+            supy.utils.tCanvasPrintPdf( canvas, maFileName, verbose = False)
+            with open(maFileName+'.txt','a') as file : print >> file, "\n",fitvar+"\n", cs
+            return step,cs
+
+        samples = ['top.ttj_%s.%s.tw.%s'%(tt,w,rw) for w in ['wQQ','wQG']]
+        measure('fitTopCosPhiBoost','genTopCosPhiBoost', samples[1:]) #qg only
+        measure('fitTopDeltaBetazRel','genTopDeltaBetazRel', samples, sumTemplates=True)
+        measure('fitTopDeltaBetazRel','genTopDeltaBetazRel', samples)
+        measure('fitTopCosThetaBoostAlt','genTopCosThetaBoostAlt', samples, sumTemplates=True)
+        measure('fitTopCosThetaBoostAlt','genTopCosThetaBoostAlt', samples)
+        supy.utils.tCanvasPrintPdf( canvas, maFileName, option = ']')
+        
+
     def templates(self, iStep, qqFrac, rw, lname, sampleSizeFactor = 1.0) :
         if not (lname,rw) in self.orgMelded : print 'run meldScale() before asking for templates()'; return
         org = self.orgMelded[(lname,rw)]
@@ -696,31 +737,6 @@ class topAsymm(supy.analysis) :
         templates = [base + qqtt for qqtt in qqtts]
         observed = nparray('top.Data 2011') * sampleSizeFactor
         return zip(asymm, templates), observed
-
-    def ensembleFileName(self, iStep, qqFrac, ssF, rw, lname, suffix = '.pickleData') :
-        return "%s/ensembles/%s_%s_%d_%.3f_%0.2f%s"%(self.globalStem,lname,rw,iStep,qqFrac,ssF,suffix)
-
-    def ensembleTest(self,rw, lname, tt) :
-        if (lname,rw,tt) not in self.orgMelded : print "First run meldScale()"; return
-        org = self.orgMelded[(lname,rw, tt)]
-
-        steps = list(org.indicesOfStep("weighted"))
-        qqFracs = [0.07, 0.14, 0.21, 0.28]
-        self.sampleSizeFactor = sorted([0.5,1,2,4,8])
-
-        args = [ (iStep, qqFrac, ssF, rw, lname)
-                 for iStep in steps
-                 for qqFrac in qqFracs
-                 for ssF in self.sampleSizeFactor
-                 ]
-        supy.utils.operateOnListUsingQueue(6, supy.utils.qWorker(self.pickleEnsemble), args)
-        ensembles = dict([(arg[:-2],supy.utils.readPickle(self.ensembleFileName(*arg))) for arg in args])
-
-        points = {}
-        for (step,qqFrac),keys in itertools.groupby( sorted(ensembles), lambda key : key[:2] ) :
-            ssfs,sens = zip( *sorted([(key[2],ensembles[key].sensitivity) for key in keys ]) )
-            points[(step,qqFrac)] = sens
-        self.sensitivityPoints[(lname,rw)] = points
 
     def sensitivity_graphs(self) :
         qqFracs = {0.07:r.kBlack, 0.14:r.kRed, 0.21:r.kGreen, 0.28:r.kBlue}
@@ -753,42 +769,3 @@ class topAsymm(supy.analysis) :
             del graphs
             print "Wrote: %s"%fileName
                 
-    def pickleEnsemble(self, iStep, qqFrac, sampleSizeFactor, rw, lname) :
-        supy.utils.mkdir(self.globalStem+'/ensembles')
-        templates,observed = self.templates(iStep, qqFrac, rw, lname, sampleSizeFactor )
-        ensemble = supy.utils.templateFit.templateEnsembles(2e3, *zip(*templates) )
-        supy.utils.writePickle(self.ensembleFileName(iStep,qqFrac,sampleSizeFactor,rw,lname), ensemble)
-
-        name = self.ensembleFileName(iStep,qqFrac,sampleSizeFactor,rw,lname,'')
-        canvas = r.TCanvas()
-        canvas.Print(name+'.pdf[','pdf')
-        stuff = supy.utils.templateFit.drawTemplateEnsembles(ensemble, canvas)
-        canvas.Print(name+".pdf",'pdf')
-        import random
-        for i in range(20) :
-            par, templ = random.choice(zip(ensemble.pars,ensemble.templates)[2:-2])
-            pseudo = [np.random.poisson(mu) for mu in templ]
-            tf = supy.utils.templateFit.templateFitter(pseudo,ensemble.pars,ensemble.templates, 1e3)
-            stuff = supy.utils.templateFit.drawTemplateFitter(tf,canvas, trueVal = par)
-            canvas.Print(name+".pdf",'pdf')
-            for item in sum([i if type(i) is list else [i] for i in stuff[1:]],[]) : supy.utils.delete(item)
-
-        canvas.Print(name+'.pdf]','pdf')
-        
-    def templateFit(self, iStep, qqFrac = 0.15) :
-        print "FIXME"; return
-        if not hasattr(self,'orgMelded') : print 'run meldScale() before templateFit().'; return
-
-        outName = self.globalStem + '/templateFit_%s_%d'%(qqFrac*100)
-        #TF = templateFit.templateFitter(observed, *zip(*templates) )
-        #print supy.utils.roundString(TF.value, TF.error , noSci=True)
-        
-        #stuff = templateFit.drawTemplateFitter(TF, canvas)
-        #canvas.Print(outName+'.ps')
-        #for item in sum([i if type(i) is list else [i] for i in stuff[1:]],[]) : supy.utils.delete(item)
-        
-        #canvas.Print(outName+'.ps]')
-        #os.system('ps2pdf %s.ps %s.pdf'%(outName,outName))
-        #os.system('rm %s.ps'%outName)
-
-
