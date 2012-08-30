@@ -17,7 +17,6 @@ class TopP4Calculable(wrappedChain.calculable) :
         self.fixes = collection
         self.stash(['P4'])
 ######################################
-######################################
 class DeltaPhiLNu(TopP4Calculable) :
     def update(self,_) : self.value = abs(r.Math.VectorUtil.DeltaPhi(self.source[self.P4]['lepton'],self.source[self.P4]['sumP4']))
 ######################################
@@ -47,6 +46,15 @@ class SumP4(TopP4Calculable) :
 ######################################
 class SumPt(TopP4Calculable) :
     def update(self,_) : self.value = self.source[self.P4]['t'].pt() + self.source[self.P4]['tbar'].pt()
+######################################
+class PtSum(TopP4Calculable) :
+    def update(self,_) : self.value = self.source["SumP4".join(self.fixes)].pt()
+######################################
+class MassSum(TopP4Calculable) :
+    def update(self,_) : self.value = self.source["SumP4".join(self.fixes)].mass()
+######################################
+class RapiditySum(TopP4Calculable) :
+    def update(self,_) : self.value = abs(self.source["SumP4".join(self.fixes)].Rapidity())
 ######################################
 class AbsSumRapidities(TopP4Calculable) :
     def update(self,_) : self.value = abs( self.source[self.P4]['t'].Rapidity() +
@@ -86,6 +94,19 @@ class JetPtMin(wrappedChain.calculable) :
         p4 = self.source["CorrectedP4".join(self.source["TopJets"]["fixes"])]
         self.value = min([abs(p4[i].pt()) for i in iPQHL])
 ######################################
+class PartonFractions(TopP4Calculable) :
+    def update(self,_) :
+        sump4 = self.source['SumP4'.join(self.fixes)]
+        m = sump4.mass() / 7000
+        z = sump4.z() / 7000
+        self.value = sorted([m+z,m-z])
+######################################
+class PartonLo(TopP4Calculable) :
+    def update(self,_) : self.value = self.source['PartonFractions'.join(self.fixes)][0]
+######################################
+class PartonHi(TopP4Calculable) :
+    def update(self,_) : self.value = self.source['PartonFractions'.join(self.fixes)][1]
+######################################
 class PartonXplusminus(wrappedChain.calculable) :
     def __init__(self, collection = None) :
         self.fixes = collection
@@ -117,6 +138,12 @@ class PtOverSumPt(wrappedChain.calculable) :
         self.fixes = collection
         self.stash(['Pt','SumPt'])
     def update(self,_) : self.value = self.source[self.Pt] / self.source[self.SumPt]
+######################################
+class PtPlusSumPt(wrappedChain.calculable) :
+    def __init__(self, collection = None) :
+        self.fixes = collection
+        self.stash(['Pt','SumPt'])
+    def update(self,_) : self.value = self.source[self.Pt] + self.source[self.SumPt]
 ######################################
 class SumP4Eta(wrappedChain.calculable) :
     def __init__(self, collection = None) :
@@ -152,6 +179,11 @@ class WqqDeltaR(TopP4Calculable) :
     def update(self,_) :
         self.value = r.Math.VectorUtil.DeltaR(self.source[self.P4]['p'],self.source[self.P4]['q'])
 ######################################
+class DeltaBetazRel(TopP4Calculable) :
+    def update(self,_) :
+        betazTop,betazTbar = [abs(self.source[self.P4][item].BoostToCM().z()) for item in ['t','tbar']]
+        self.value = (betazTop - betazTbar) / (1-betazTop*betazTbar)
+######################################
 class DeltaAbsYttbar(TopP4Calculable) :
     def update(self,_) :
         self.value = abs(self.source[self.P4]['t'].Rapidity()) - abs(self.source[self.P4]['tbar'].Rapidity())
@@ -160,12 +192,67 @@ class DeltaYttbar(TopP4Calculable) :
     def update(self,_) :
         self.value = self.source[self.P4]['t'].Rapidity() - self.source[self.P4]['tbar'].Rapidity()
 ######################################
+class CosEqualThetaZ(TopP4Calculable) :
+    def update(self,_) :
+        boost = self.source["BoostZAlt".join(self.fixes)]
+        t = self.source[self.P4]['t']
+        self.value = math.cos(boost(t).theta()) * (1 if boost.BetaVector().z()<0 else -1)
+######################################
+class CosEqualThetaZBar(TopP4Calculable) :
+    def update(self,_) :
+        boost = self.source["BoostZAlt".join(self.fixes)]
+        t = self.source[self.P4]['tbar']
+        self.value = math.cos(boost(t).theta()) * (1 if boost.BetaVector().z()<0 else -1)
+######################################
+class CosPhiBoost(TopP4Calculable) :
+    def update(self,_) :
+        p4 = self.source[self.P4]
+        t = p4['t']
+        ttbar = t + p4['tbar']
+        beta = ttbar.BoostToCM()
+        betaXYZM = beta.x(), beta.y(), beta.z(), 0
+        boost = r.Math.Boost(*betaXYZM[:-1])
+
+        self.value = math.cos(boost(p4['t']).phi() - beta.phi())
+######################################
+class CosThetaBoost(TopP4Calculable) :
+    def update(self,_) :
+        p4 = self.source[self.P4]
+        t = p4['t']
+        beta = (t+p4['tbar']).BoostToCM()
+        betaXYZM = beta.x(),beta.y(),beta.z(),0
+        boost = r.Math.Boost(*betaXYZM[:-1])
+        bv = utils.LorentzV(); bv.SetPxPyPzE(*betaXYZM)
+
+        self.value = -r.Math.VectorUtil.CosTheta(boost(t),bv)
+######################################
+class CosThetaBoostAlt(TopP4Calculable) :
+    def update(self,_) :
+        p4 = self.source[self.P4]
+        t = p4['t']
+        beta = (t+p4['tbar']).BoostToCM()
+        betaXYZM = beta.x(),beta.y(),beta.z(),0
+        boost = r.Math.Boost(*betaXYZM[:-1])
+        bv = utils.LorentzV(); bv.SetPxPyPzE(-betaXYZM[0],
+                                             -betaXYZM[1],
+                                             +betaXYZM[2],
+                                             +betaXYZM[3])
+
+        self.value = -r.Math.VectorUtil.CosTheta(boost(t),bv)
+######################################
 class DirectedDeltaYttbar(wrappedChain.calculable) :
     def __init__(self, collection = None) :
         self.fixes = collection
         self.stash(['DeltaYttbar','SignQuarkZ'])
     def update(self,_) :
         self.value = self.source[self.SignQuarkZ] * self.source[self.DeltaYttbar]
+######################################
+class genttDDeltaY(wrappedChain.calculable) :
+    def update(self,_) :
+        iTTbar = self.source['genTopTTbar']
+        if not iTTbar : self.value = None; return
+        p4 = self.source['genP4']
+        self.value = self.source['qDir']* ( p4[iTTbar[0]].Rapidity() - p4[iTTbar[1]].Rapidity())
 ######################################
 class DeltaYLHadt(wrappedChain.calculable) :
     def __init__(self, collection = None) :
@@ -229,22 +316,21 @@ class SignQuarkZ(wrappedChain.calculable) :
     def update(self,_) :
         self.value = 1 if self.source[self.P4]['quark'].z() > 0 else -1
 #####################################
-class Alpha(wrappedChain.calculable) :
-    def __init__(self, collection = None) :
-        self.fixes = collection
-        self.stash(['SumP4'])
-        self.FourMtop2 = 4 * 172**2
+class genttOm(wrappedChain.calculable) :
     def update(self,_) :
-        x = self.FourMtop2 / self.source[self.SumP4].M2()
-        self.value =  max(0,(1-x)/(1+x))
-######################################
-class Beta(wrappedChain.calculable) :
-    def __init__(self, collection = None) :
-        self.fixes = collection
-        self.stash(['Alpha','CosThetaStarAvg'])
-    def update(self, _) :
-        self.value = self.source[self.CosThetaStarAvg] * math.sqrt(self.source[self.Alpha])
-######################################
+        id = self.source['genPdgId']
+        p4 = self.source['genP4']
+        iHard = self.source['genIndicesHardPartons']
+        iTTbar = self.source['genTopTTbar']
+        beta = (p4[iTTbar[0]]+p4[iTTbar[1]]).BoostToCM()
+        boost = r.Math.Boost(beta.x(),beta.y(),beta.z())
+        iQs = [i for i in iHard if id[i]!=21]
+        iQ = max(iQs,key=lambda i:id[i]) if iQs else iHard[0]
+        iO = next(i for i in iHard if i!=iQ)
+        iT = iTTbar[0]
+        self.value = (r.Math.VectorUtil.CosTheta(boost(p4[iT]), boost(p4[iQ])) -
+                      r.Math.VectorUtil.CosTheta(boost(p4[iT]), boost(p4[iO]))) * (1 if id[iQ] > 0 else -1)
+
 class __genCosThetaStar__(wrappedChain.calculable) :
     def update(self,_) :
         '''Cosine angle between colliding and resulting particle in center of mass frame, three cases:
@@ -256,20 +342,32 @@ class __genCosThetaStar__(wrappedChain.calculable) :
         id = self.source['genPdgId']
         p4 = self.source['genP4']
         iHard = self.source['genIndicesHardPartons']
-        beta = (p4[iHard[0]]+p4[iHard[1]]).BoostToCM()
+        iTTbar = self.source['genTopTTbar']
+        iCOM = self.iCOM()
+        beta = (p4[iCOM[0]]+p4[iCOM[1]]).BoostToCM()
         boost = r.Math.Boost(beta.x(),beta.y(),beta.z())
 
         iQs = [i for i in iHard if id[i]!=21]
         iQ = max(iQs,key=lambda i:id[i]) if iQs else iHard[0]
-        iT = self.topOrBar(*self.source['genTopTTbar'])
+        iT = self.topOrBar(*iTTbar)
 
-        self.value = r.Math.VectorUtil.CosTheta( boost(p4[iT]), boost(p4[iQ]) )
+        self.value = r.Math.VectorUtil.CosTheta( boost(p4[iT]), boost(p4[iQ]) ) * (1 if id[iQ]>0 else -1)
 class genCosThetaStar(__genCosThetaStar__) :
     @staticmethod
     def topOrBar(iTop,iTbar) : return iTop
+    def iCOM(self) : return self.source['genIndicesHardPartons']
 class genCosThetaStarBar(__genCosThetaStar__) :
     @staticmethod
     def topOrBar(iTop,iTbar) : return iTbar
+    def iCOM(self) : return self.source['genIndicesHardPartons']
+class genttCosThetaStar(__genCosThetaStar__) :
+    @staticmethod
+    def topOrBar(iTop,iTbar) : return iTop
+    def iCOM(self) : return self.source['genTopTTbar']
+class genttCosThetaStarBar(__genCosThetaStar__) :
+    @staticmethod
+    def topOrBar(iTop,iTbar) : return iTbar
+    def iCOM(self) : return self.source['genTopTTbar']
 ######################################
 class __CosThetaStar__(wrappedChain.calculable) :
     def __init__(self, collection = None, topKey = 't', boostz = "BoostZ") :
@@ -364,9 +462,10 @@ class genTopP4(wrappedChain.calculable) :
         indices = self.source['genTTbarIndices']
         p4 = self.source['genP4']
         qqbar = self.source['genQQbar']
+        qg = self.source['genQG']
         self.value = { 't':p4[indices['t']],
                        'tbar':p4[indices['tbar']],
-                       'quark':p4[qqbar[0] if qqbar else self.source['genIndexStrongerParton']],
+                       'quark':p4[qqbar[0] if qqbar else qg[0] if qg else self.source['genIndicesHardPartons'][0]],
                        'lepton': p4[indices['lplus']] if indices['lplus'] else p4[indices['lminus']] if indices['lminus'] else None,
                        'neutrino': None,
                        'p' : p4[indices['q'][0]] if indices['q'] else None,
@@ -417,9 +516,8 @@ class fitTopLeptonCharge(wrappedChain.calculable) :
 
 class genTopTTbar(wrappedChain.calculable) :
     def update(self,_) :
-        self.value = tuple(list(self.source['genPdgId']).index(i) for i in [6,-6]) if \
-                     (not self.source['isRealData']) and \
-                     all([id in self.source['genPdgId'] for id in [-6,6]]) else ()
+        ids = [] if self.source['isRealData'] else list(self.source['genPdgId'])
+        self.value = tuple(ids.index(i) for i in [6,-6]) if all([id in ids for id in [-6,6]]) else ()
 class genTopIndicesX(wrappedChain.calculable) :
     def update(self,_) :
         moms = self.source['genMotherIndex']
@@ -744,33 +842,49 @@ class IndicesGenTopExtra(wrappedChain.calculable) :
         indices = self.source[self.Indices]
         jet = self.source[self.CorrectedP4]
         self.value = [j for j in indices if any( self.rMax > r.Math.VectorUtil.DeltaR(jet[j],gen) for gen in extraP4 ) ]
-######################################
-class wTopAsym(wrappedChain.calculable) :
-    def __init__(self, R, R_sm = 0, intrinsicC = 1) :
-        self.fixes = ("", "%+03d"%(100*R))
-        for item in ['R','R_sm','intrinsicC'] : setattr(self,item,eval(item))
-        for a100 in range(101) :
-            a =  0.01*a100 * self.intrinsicC
-            ar = a*self.intrinsicC
-            g = self.g(a)
-            assert g*(6+2*ar)*self.R <  (6*math.sqrt(ar) if ar > 1 else 3*(1+ar))
-        
-    def g(self, a) : return math.sqrt(a)
 
-    def weight(self,a,x) :
-        base = (1+x*x*a*self.intrinsicC) * 3. / (6+2*a*self.intrinsicC)
-        g = self.g(a)
-        return ( base + x*g*self.R ) / ( base + x*g*self.R_sm )
-    
+######################################
+class __HardAsym__(wrappedChain.calculable) :
     def update(self,_) :
-        x = self.source['genCosThetaStar']
-        self.value = None if x==None else self.weight( self.source['genTopAlpha'], x )
-######################################
-class wTopAsymConst(wTopAsym) :
-    def f(self, a) : return math.sqrt(a)
-######################################
-class wTopAsymLine(wTopAsym) :
-    def f(self, a) : a
+        self.value = None
+        boxes,Is = zip(*[(self.source[item],i) for item,i in self.indices])
+        if not all(boxes) : return
+        indices = [box[i] for box,i in zip(boxes,Is)]
+        p4s = self.source['genP4']
+        self.hard.setMomenta([p4s.at(i) for i in indices], check=False)
+        self.value = self.hard
+class __wHardAsym__(wrappedChain.calculable) :
+    def __init__(self,target,nominal) :
+        self.fixes = ("","%+.2fon%+.2f"%(target,nominal))
+        self.target = target
+        self.nominal = nominal
+    def update(self,_) :
+        h = self.source[self.hardname()]
+        self.value = 1 if not h else h.weight(self.target,self.nominal)
+class QQbarHardAsym(__HardAsym__) :
+    def __init__(self) :
+        self.hard = utils.asymmWeighting.Asymm_qqbar_hard()
+        self.indices = [('genQQbar',0),('genQQbar',1),('genTopTTbar',0),('genTopTTbar',1),('genGlu',0)]
+class GqHardAsym(__HardAsym__) :
+    def __init__(self) :
+        self.hard = utils.asymmWeighting.Asymm_gq_hard()
+        self.indices = [('genQG',1),('genQG',0),('genTopTTbar',0),('genTopTTbar',1),('genQuark',0)]
+class GqbarHardAsym(__HardAsym__) :
+    def __init__(self) :
+        self.hard = utils.asymmWeighting.Asymm_gqbar_hard()
+        self.indices = [('genQG',1),('genQG',0),('genTopTTbar',0),('genTopTTbar',1),('genQuark',0)]
+class wQQbarHardAsym(__wHardAsym__) :
+    def hardname(self) : return 'QQbarHardAsym'
+class wQgHardAsym(__wHardAsym__) :
+    def hardname(self) :
+        return 'GqHardAsym' if self.source['genQG'][0]>0 else 'GqbarHardAsym'
+class hardSymmAnti(wrappedChain.calculable) :
+    def update(self,_) :
+        qq = self.source['genQQbar']
+        qg = self.source['genQG']
+        if not (qq or qg) : self.value = () ; return
+        h = self.source['QQbarHardAsym' if qq else 'GqHardAsym' if qg[0]>0 else 'GqbarHardAsym']
+        self.value = () if not h else (h.symm,h.anti)
 ######################################
 class TopComboQQBBLikelihood(wrappedChain.calculable) :
     def __init__(self, tag = None) :

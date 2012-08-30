@@ -1,32 +1,70 @@
 from supy import wrappedChain,utils,calculables
 import ROOT as r
 ##############################
-class genSumP4(wrappedChain.calculable) :
+class wGG(wrappedChain.calculable) :
     def update(self,_) :
-        genP4 = self.source['genP4']
-        self.value = genP4.at(4) + genP4.at(5)
+        self.value = None if self.source['genQQbar'] or self.source['genQG'] else 1
 ##############################
-class wNonQQbar(wrappedChain.calculable) :
-    def update(self,_) :
-        self.value = None if self.source['genQQbar'] else 1
-##############################
-class wQQbar(wrappedChain.calculable) :
+class wQQ(wrappedChain.calculable) :
     def update(self,_) :
         self.value = 1 if self.source['genQQbar'] else None
 ##############################
-class genQQbar(wrappedChain.calculable) :
+class wQG(wrappedChain.calculable) :
     def update(self,_) :
-        if self.source['isRealData'] :
-            self.value = ()
-            return
+        self.value = 1 if self.source['genQG'] else None
+##############################
+class genIndicesHardPartons(wrappedChain.calculable) :
+    def __init__(self,indices = (4,5)) : self.value = indices
+    def update(self,_) : pass
+##############################
+class genQQbar(wrappedChain.calculable) :
+    '''Index of quark and of antiquark with hard collision'''
+    def update(self,_) :
+        if self.source['isRealData'] : self.value = (); return
         ids = list(self.source['genPdgId'])
         iHard = self.source['genIndicesHardPartons']
         self.value = tuple(sorted(iHard,key = ids.__getitem__,reverse = True)) \
                      if not sum([ids[i] for i in iHard]) else tuple()
 ##############################
-class genIndicesHardPartons(wrappedChain.calculable) :
-    def __init__(self,indices = (4,5)) : self.value = indices
-    def update(self,_) : pass
+class genQG(wrappedChain.calculable) :
+    '''Index of (anti)quark and of gluon with hard collision.'''
+    def update(self,_) :
+        if self.source['isRealData'] : self.value = (); return
+        ids = self.source['genPdgId']
+        iHard = self.source['genIndicesHardPartons']
+        iQg = (next((i for i in iHard if abs(ids[i]) in range(1,7)), None),
+               next((i for i in iHard if ids[i]==21), None))
+        self.value = iQg if None not in iQg else ()
+##############################
+class genQuark(wrappedChain.calculable) :
+    '''Indices of non-top quarks resulting from hard interaction.'''
+    def update(self,_) :
+        iHard = self.source["genIndicesHardPartons"]
+        moms = self.source['genMotherIndex']
+        iHardMax = max(iHard)
+        self.value = sorted([i for i,(id,imom) in enumerate(zip(self.source['genPdgId'],
+                                                                self.source['genMotherIndex']))
+                             if iHardMax<i and imom in iHard and abs(id) in range(1,6)])
+##############################
+class genGlu(wrappedChain.calculable) :
+    '''Indices of gluons resulting from hard interaction.'''
+    def update(self,_) :
+        iHardMax = max(self.source["genIndicesHardPartons"])
+        self.value = sorted([i for i,(id,s) in enumerate(zip(self.source['genPdgId'],
+                                                             self.source['genStatus'])) if id==21 and s==3 and iHardMax<i],
+                            reverse=True,
+                            key = lambda i: self.source['genP4'].at(i).Pt() )
+##############################
+class qDir(wrappedChain.calculable) :
+    def update(self,_) :
+        iQ = next(iter(max(self.source['genQQbar'],self.source['genQG'])),None)
+        self.value = (1 if self.source['genP4'][iQ].pz() > 0 else -1) if iQ!=None else None
+##############################
+class genSumP4(wrappedChain.calculable) :
+    def update(self,_) :
+        genP4 = self.source['genP4']
+        iHard = self.source['genIndicesHardPartons']
+        self.value = genP4.at(iHard[0]) + genP4.at(iHard[1])
 ##############################
 class genStatus1P4(wrappedChain.calculable) :
     def update(self,_) :
@@ -299,6 +337,7 @@ class qDirExpectation(calculables.secondary) :
         orig = self.fromCache( [self.sample], [self.var], tag = self.tag)[self.sample][self.var]
         if not orig :
             print "No cache: %s; %s"%(self.sample,str(self))
+            self.value = lambda *_ : 1
             return
         values = [orig.GetBinContent(i) for i in range(orig.GetNbinsX()+2)]
         neighbors = 10
@@ -317,7 +356,7 @@ class qDirExpectation(calculables.secondary) :
         for i in range(len(p)) : self.p.SetBinContent(i+1,p[i])
         self.p.SetBinContent(len(edges[iZero:])+2, edges[-1])
 
-        widths = [high-low for low,high in zip(edges[iZero:-1],edges[iZero+1:])]
+        widths = np.array([high-low for low,high in zip(edges[iZero:-1],edges[iZero+1:])])
         q = (R+L)/(widths * (sum(R)+sum(L)))
         self.q = self.p.Clone(self.name+"_pdist")
         self.q.Reset()
@@ -357,12 +396,10 @@ class qDirExpectation(calculables.secondary) :
 
     def uponAcceptance(self,ev) :
         if ev['isRealData'] : return
-        qqbar = ev['genQQbar']
-        if not qqbar : return
+        qdir = ev['qDir']
         iTT = ev['genTopTTbar']
-        if not iTT : return
+        if not iTT or qdir==None : return
         p4 = ev['genP4']
-        qdir = 1 if p4[qqbar[0]].pz()>0 else -1
         var = self.varFunction(p4[iTT[0]],p4[iTT[1]])
         self.book.fill(qdir*var, self.var, 1000, -self.limit, self.limit, title = ";qdir * %s;events / bin"%self.var )
 

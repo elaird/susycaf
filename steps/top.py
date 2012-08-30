@@ -286,10 +286,9 @@ class kinematics(analysisStep) :
     def uponAcceptance(self,ev) :
         index = ev["%sRecoIndex"%self.moreName]
         if index < 0 : return
-        #topReco = ev["TopReconstruction"][index]
-
         mass = ev["%sTtxMass"%self.moreName]
-        self.book.fill(mass , "TTX.mass", 70,300,1000, title = ";ttx invariant mass;events / bin")
+        self.book.fill(ev[self.moreName+"TtxMass"], "TTX.mass", 50,300,1300, title = ";ttx invariant mass;events / bin")
+        self.book.fill(ev[self.moreName+"PtSum"],   "TT.pt",   100,  0, 200, title = ";ttbar.pt;events / bin")
 #####################################
 class resolutions(analysisStep) :
     def __init__(self,indexName) : self.moreName = indexName
@@ -307,15 +306,7 @@ class resolutions(analysisStep) :
             for s in ['lep','nu','bLep','bHad','q'] :
                 self.book.fill(ev['%sDeltaRTopRecoGen'%s][index], s+'DeltaRTopRecoGen', 50,0,2, title = ';%s DeltaR reco gen;events / bin'%s)
         
-
-        iX = ev['genTopIndicesX']
-
-        self.book.fill(len(iX), "multiplicity_iX", 5, -0.5, 4.5, title = ";n extra hard;events / bin")
-        self.book.fill((len(iX),0 if topReco[index]['iX']==None else 1), "multiplicity_iX_v_reco", (5,2), (-0.5,-0.5), (4.5,1.5), title = ";n extra hard;n chosen xhard;events / bin")
-
         gsP4 = ev['genSumP4']
-
-        self.book.fill( topReco[index]['ttx'].pz() - gsP4.pz(), "resolution_pz", 100, -500, 500, title = ";%s #Delta_{reco-gen} ttx.pz;events / bin"%self.moreName )
         self.book.fill( topReco[index]['ttx'].pt() - gsP4.pt(), "resolution_pt", 100, -100, 100, title = ";%s #Delta_{reco-gen} ttx.pt;events / bin"%self.moreName )
         self.book.fill( topReco[index]['ttx'].mass() - gsP4.mass(), "resolution_m", 100, -100, 100, title = ";%s #Delta_{reco-gen} ttx.m;events / bin"%self.moreName )
 
@@ -324,10 +315,7 @@ class resolutions(analysisStep) :
         reco = (topReco[index]['top'],topReco[index]['tbar'])
         unfit = (topReco[index]['lepTraw'], topReco[index]['hadTraw'])[::topReco[index]["lepCharge"]]
 
-        self.book.fill( (min(1.99,r.Math.VectorUtil.DeltaR(reco[iLep],gen[iLep])),
-                         min(1.99,r.Math.VectorUtil.DeltaR(reco[not iLep],gen[not iLep]))), "deltaR_lepvhad", (50,50), (0,0), (2,2), title = ";lep top #Delta R_{reco gen};had top #Delta R_{reco gen}; events / bin"  ) 
-
-        for func in ['Rapidity','eta'] :
+        for func in ['Rapidity'] :
             genFunc = (getattr(gen[0],func)(), getattr(gen[1],func)())
             recoFunc = (getattr(reco[0],func)(),getattr(reco[1],func)())
             unfitFunc = (getattr(unfit[0],func)(), getattr(unfit[1],func)())
@@ -648,3 +636,24 @@ class mcQuestions(analysisStep) :
             self.book.fill(cmGlu.P(), 'cmgluP', 200,0,200, title = ';q#bar{q}cm gluP')
             self.book.fill(cmzGlu.pt(), 'cmzgluPt', 200,0,200, title = ';q#bar{q}cm_{z} gluP_{T}')
             self.book.fill(abs(cmzGlu.eta()), 'cmzgluAbsEta', 100,0,5.5, title = ';|cmz glu #eta|')
+
+class mcQuestions2(analysisStep) :
+    def __init__(self,pred=None) :
+        self.pred = pred
+        self.maxes = {'genttCosThetaStar':1,
+                      #'genTopCosEqualThetaZ':1,
+                      #'genTopCosThetaBoost':1,
+                      'genTopCosThetaBoostAlt':1,
+                      #'genTopDeltaAbsYttbar':3,
+                      #'genTopBetaProjection':1,
+                      'genTopDeltaBetazRel':1,
+                      'genTopCosPhiBoost':1}
+
+    def uponAcceptance(self,ev) :
+        if self.pred and not ev[self.pred] : return
+        for var,m in self.maxes.items() :
+            self.book.fill(ev[var], var          , 100, -m,m, title = ';%s;events / bin'%var)
+            self.book.fill(ev[var], var+"_lowres",   2, -m,m, title = ';%s;events / bin'%var)
+
+        for ((v1,m1),(v2,m2)) in itertools.combinations(self.maxes.items(),2) :
+            self.book.fill(ev[v1]*ev[v2], "product_%s_%s"%(v1,v2), 2, -m1*m2, m1*m2, title = ";%s . %s;events / bin"%(v1,v2))
