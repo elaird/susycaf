@@ -250,6 +250,7 @@ class displayer(supy.steps.displayer) :
         p4Vector         = eventVars['%sCorrectedP4%s'%jets]
         corrVector       = eventVars['%sCorrFactor%s'%jets2]
         csv              = eventVars['%sCombinedSecondaryVertexBJetTags%s'%jets2]
+        bIndices         = eventVars['%sIndicesBtagged2%s'%jets] if '%sIndicesBtagged2%s'%jets in eventVars else []
         
         if not isPf :
             jetEmfVector  = eventVars['%sEmEnergyFraction%s'%jets2]
@@ -274,8 +275,8 @@ class displayer(supy.steps.displayer) :
             tight = eventVars["%sPFJetIDtight%s"%jets2]
             
         self.printText(self.renamedDesc(jets[0]+jets[1]))
-        self.printText("ID   pT  eta  phi%s"%("   EMF  fHPD  fRBX N90 corr     csv" if not isPf else "   CHF  NHF  CEF  NEF CM corr     csv"))
-        self.printText("-----------------%s"%("-----------------------------------" if not isPf else "-------------------------------------"))
+        self.printText("ID    pT  eta  phi%s"%("   EMF  fHPD  fRBX N90 corr     csv" if not isPf else "   CHF  NHF  CEF  NEF CM corr     csv"))
+        self.printText("------------------%s"%("-----------------------------------" if not isPf else "-------------------------------------"))
 
         nJets = p4Vector.size()
         for iJet in range(nJets) :
@@ -284,7 +285,7 @@ class displayer(supy.steps.displayer) :
                 break
             jet=p4Vector[iJet]
 
-            outString = "%1s%1s"% ("L" if loose[iJet] else " ", "T" if tight[iJet] else " ")
+            outString = "%1s%1s%1s"% ("L" if loose[iJet] else " ", "T" if tight[iJet] else " ", "b" if iJet in bIndices else " ")
             outString+="%5.0f %4.1f %4.1f"%(jet.pt(), jet.eta(), jet.phi())
 
             if not isPf :
