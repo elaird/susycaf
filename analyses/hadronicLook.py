@@ -74,8 +74,9 @@ class hadronicLook(supy.analysis) :
                 calculables.jet.IndicesBtagged2(jet, tag = "CombinedSecondaryVertexBJetTags", threshold = 0.679),
                 
                 calculables.jet.SumP4(jet),
-                calculables.jet.SumP4(jet, extraName = lowPtName),
-                calculables.jet.SumP4(jet, extraName = highPtName),
+                calculables.jet.SumP4(jet, extraName = ("", lowPtName )),
+                calculables.jet.SumP4(jet, extraName = ("", highPtName)),
+                calculables.jet.SumP4(jet, extraName = ("Btagged2", "")),
                 calculables.jet.DeltaPhiStar(jet, extraName = lowPtName),
                 calculables.jet.DeltaPhiStar(jet),
                 calculables.jet.MaxEmEnergyFraction(jet),
@@ -140,15 +141,16 @@ class hadronicLook(supy.analysis) :
                 #supy.steps.histos.histogrammer("genPartonHT",200,0,1000,title=";parton H_{T} (GeV);events / bin").onlySim(),
                 ]
 
-    def stepsRecoFailures(self) :
-        return [supy.steps.histos.histogrammer("logErrorTooManySeeds",    2, 0.0, 1.0, title = ";logErrorTooManySeeds;events / bin"),
-                supy.steps.histos.histogrammer("logErrorTooManyClusters", 2, 0.0, 1.0, title = ";logErrorTooManyClusters;events / bin"),
-                ]
-
     def stepsEvent(self) :
         return [steps.filters.monster(),
                 steps.filters.hbheNoise().onlyData(),
-                supy.steps.histos.multiplicity("vertexIndices"),
+                #supy.steps.filters.value("beamHaloCSCTightHaloId").invert().onlyData(),
+                #supy.steps.filters.value("trackingFailureFilterFlag").onlyData(),
+                #supy.steps.filters.value("hcalLaserEventFilterFlag").onlyData(),
+                #supy.steps.filters.value("ecalDeadCellTPFilterFlag").onlyData(),
+                #supy.steps.histos.histogrammer("logErrorTooManySeeds",    2, 0.0, 1.0, title = ";logErrorTooManySeeds;events / bin"),
+                #supy.steps.histos.histogrammer("logErrorTooManyClusters", 2, 0.0, 1.0, title = ";logErrorTooManyClusters;events / bin"),
+                supy.steps.histos.multiplicity("vertexIndices", max = 30),
                 supy.steps.filters.multiplicity("vertexIndices", min = 1),
                 ]
 
@@ -296,9 +298,10 @@ class hadronicLook(supy.analysis) :
             #steps.printer.eventPrinter(),
             #steps.printer.jetPrinter(_jet),
             #steps.gen.particlePrinter(),
-            supy.steps.filters.multiplicity("%sIndicesBtagged2%s"%_jet, min = 2),
+            supy.steps.filters.multiplicity("%sIndicesBtagged2%s"%_jet, min = 2, max = 2),
             supy.steps.histos.multiplicity("%sIndicesBtagged2%s"%_jet),
-            steps.jet.mbbHistogrammer(_jet, drMatch = 0.2, bZDaughters = "genIndicesStatus3bZDaughters"),
+            supy.steps.histos.mass("%sSumP4Btagged2%s"%_jet, 24, 0.0, 1200.0, xtitle = "sum P4 {b jets}"),
+            #steps.jet.mbbHistogrammer(_jet, drMatch = 0.2, bZDaughters = "genIndicesStatus3bZDaughters"),
             ]
 
     def listOfSteps(self, params) :
@@ -399,12 +402,12 @@ class hadronicLook(supy.analysis) :
         return (
             #data_52X() +
             data_52X_2b_skim() +
-            w_binned() +
-            z_binned() +
-            top() +
-            qcd_py6(30.0e3) +
-            #vv() +
-            #w_inclusive() +
+            #w_binned() +
+            #z_binned() +
+            #top() +
+            #qcd_py6(30.0e3) +
+            ##vv() +
+            ##w_inclusive() +
             []
             )
 
