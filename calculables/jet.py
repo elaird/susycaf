@@ -362,8 +362,8 @@ class SumEt(wrappedChain.calculable) :
         self.value = reduce( lambda x,i: x+p4s.at(i).Et(), self.source[self.Indices] , 0)
 ##############################
 class SumP4(wrappedChain.calculable) :
-    def __init__(self, collection = None, extraName = "") :
-        self.fixes = (collection[0],collection[1]+extraName)
+    def __init__(self, collection = None, extraName = ("", "")) :
+        self.fixes = (collection[0],extraName[0]+collection[1]+extraName[1])
         self.stash(["Indices"])
         self.stash(['CorrectedP4'],collection)
     def update(self,ignored) :
