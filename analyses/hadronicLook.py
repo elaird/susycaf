@@ -131,21 +131,25 @@ class hadronicLook(supy.analysis) :
         return [
             #steps.trigger.lowestUnPrescaledTriggerFilter().onlyData(),
             #steps.trigger.hltPrescaleHistogrammer(params["triggerList"]).onlyData(),
-            ]+([] if params["thresholds"][1]!=325.0 else [steps.trigger.lowestUnPrescaledTriggerFilter().onlyData()])+[ #apply trigger in lowest HT bin
-            ]+([] if params["thresholds"][1]!=None else [steps.trigger.hltPrescaleHistogrammer(params["triggerList"]).onlyData()])+[ #compat. w/earlier run
             steps.trigger.l1Filter("L1Tech_BPTX_plus_AND_minus.v0").onlyData(),
             steps.trigger.physicsDeclaredFilter().onlyData(),
-            ]
+            ]+([] if params["thresholds"][1]!=325.0 else [steps.trigger.lowestUnPrescaledTriggerFilter().onlyData()]) #apply trigger in lowest HT bin
+
+    def stepsGenValidation(self) :
+        return [supy.steps.histos.histogrammer("genpthat",200,0,2000,title=";#hat{p_{T}} (GeV);events / bin").onlySim(),
+                #supy.steps.histos.histogrammer("genPartonHT",200,0,1000,title=";parton H_{T} (GeV);events / bin").onlySim(),
+                ]
+
+    def stepsRecoFailures(self) :
+        return [supy.steps.histos.histogrammer("logErrorTooManySeeds",    2, 0.0, 1.0, title = ";logErrorTooManySeeds;events / bin"),
+                supy.steps.histos.histogrammer("logErrorTooManyClusters", 2, 0.0, 1.0, title = ";logErrorTooManyClusters;events / bin"),
+                ]
 
     def stepsEvent(self) :
         return [steps.filters.monster(),
                 steps.filters.hbheNoise().onlyData(),
                 supy.steps.histos.multiplicity("vertexIndices"),
                 supy.steps.filters.multiplicity("vertexIndices", min = 1),
-                #supy.steps.histos.histogrammer("genpthat",200,0,1000,title=";#hat{p_{T}} (GeV);events / bin").onlySim(),
-                #supy.steps.histos.histogrammer("genpartonHT",200,0,1000,title=";parton H_{T} (GeV);events / bin").onlySim(),
-                #supy.steps.histos.histogrammer("logErrorTooManySeeds",    2, 0.0, 1.0, title = ";logErrorTooManySeeds;events / bin"),
-                #supy.steps.histos.histogrammer("logErrorTooManyClusters", 2, 0.0, 1.0, title = ";logErrorTooManyClusters;events / bin"),
                 ]
 
     def stepsHtLeadingJets(self, params) :
@@ -252,39 +256,37 @@ class hadronicLook(supy.analysis) :
         return [supy.steps.filters.value("%sSumEt%s"%_jet, min = bin) for bin in [475, 575, 675, 775, 875]]
 
     def stepsOptional(self, params) :
-        jet = params["objects"]["jet"]
         return [
             #supy.steps.other.skimmer(),
             #steps.other.duplicateEventCheck(),
+            #steps.other.pickEventSpecMaker(),
             #steps.other.cutBitHistogrammer(self.togglePfJet(_jet), self.togglePfMet(_met)),
-            #steps.Print.eventPrinter(),
             #steps.Print.jetPrinter(_jet),
-
             #steps.Print.particleP4Printer(_muon),
             #steps.Print.particleP4Printer(_photon),
-            #steps.Print.recHitPrinter("clusterPF","Ecal"),
-            #steps.Print.htMhtPrinter(_jet),
-            #steps.Print.alphaTPrinter(_jet,_etRatherThanPt),
             #steps.Gen.genParticlePrinter(minPt = 10.0, minStatus = 3),
-                   
-            #steps.other.pickEventSpecMaker(),
-            #steps.displayer.displayer(jets      = jet,
-            #                          muons     = params["objects"]["muon"],
-            #                          met       = params["objects"]["met"],
-            #                          electrons = params["objects"]["electron"],
-            #                          photons   = params["objects"]["photon"],
-            #                          recHits   = params["objects"]["rechit"], recHitPtThreshold = 1.0,#GeV
-            #                          scale = 400.0,#GeV
-            #                          etRatherThanPt = params["etRatherThanPt"],
-            #                          deltaPhiStarExtraName = params["lowPtName"],
-            #                          deltaPhiStarCut = 0.5,
-            #                          deltaPhiStarDR = 0.3,
-            #                          j2Factor = params["thresholds"][2]/params["thresholds"][0],
-            #                          mhtOverMetName = "%sMht%sOver%s"%(jet[0],jet[1]+params["highPtName"],params["objects"]["met"]),
-            #                          metOtherAlgo  = params["objects"]["compMet"],
-            #                          jetsOtherAlgo = params["objects"]["compJet"],
-            #                          #doGenJets = True,
-            #                          ),
+            ]
+
+    def stepsDisplayer(self, params) :
+        jet = params["objects"]["jet"]
+        return [
+            steps.displayer.displayer(jets      = jet,
+                                      muons     = params["objects"]["muon"],
+                                      met       = params["objects"]["met"],
+                                      electrons = params["objects"]["electron"],
+                                      photons   = params["objects"]["photon"],
+                                      recHits   = params["objects"]["rechit"], recHitPtThreshold = 1.0,#GeV
+                                      scale = 400.0,#GeV
+                                      etRatherThanPt = params["etRatherThanPt"],
+                                      deltaPhiStarExtraName = params["lowPtName"],
+                                      deltaPhiStarCut = 0.5,
+                                      deltaPhiStarDR = 0.3,
+                                      j2Factor = params["thresholds"][2]/params["thresholds"][0],
+                                      mhtOverMetName = "%sMht%sOver%s"%(jet[0],jet[1]+params["highPtName"],params["objects"]["met"]),
+                                      metOtherAlgo  = params["objects"]["compMet"],
+                                      jetsOtherAlgo = params["objects"]["compJet"],
+                                      #doGenJets = True,
+                                      ),
             ]
 
     def stepsMbb(self, params) :
@@ -306,14 +308,16 @@ class hadronicLook(supy.analysis) :
         _et = "Et" if _etRatherThanPt else "Pt"
 
         return ([supy.steps.printer.progressPrinter()] +
-                self.stepsTrigger(params) +
+                #self.stepsGenValidation() +
                 self.stepsEvent() +
+                self.stepsTrigger(params) +
                 self.stepsHtLeadingJets(params) +
                 self.stepsXclean(params) +
                 #self.stepsPlotsOne(params) +
                 self.stepsQcdRejection(params) +
                 self.stepsPlotsTwo(params) +
                 self.stepsMbb(params) +
+                #self.stepsDisplayer(params) +
                 #self.stepsOptional(params) +
                 #self.stepsHtBins(params) +
                 [])
@@ -321,7 +325,7 @@ class hadronicLook(supy.analysis) :
     def listOfSampleDictionaries(self) :
         sh = supy.samples.SampleHolder()
         sh.add("275_ge2b", '["/uscms/home/elaird/08_mbb/02_skim/2012_5fb_275_ge2b.root"]', lumi = 5.0e3)
-        return [samples.ht17, samples.top17, samples.ewk17, sh]
+        return [samples.ht17, samples.top17, samples.ewk17, samples.qcd17, sh]
     
     def listOfSamples(self,params) :
         from supy.samples import specify
@@ -339,19 +343,11 @@ class hadronicLook(supy.analysis) :
             return specify(names = "275_ge2b")
 
         def qcd_py6(eL) :
-            q6 = [0,5,15,30,50,80,120,170,300,470,600,800,1000,1400,1800]
-            iCut = q6.index(80)
-            return specify( effectiveLumi = eL, color = r.kBlue,
-                            names = [("qcd_py6_pt_%d_%d"%t)[:None if t[1] else -2] for t in zip(q6,q6[1:]+[0])[iCut:]] )
-
-        def g_jets_py6(eL) :
-            return specify( effectiveLumi = eL, color = r.kGreen,
-                            names = ["v12_g_jets_py6_pt%d"%t for t in [30,80,170]] )
-
-        def qcd_mg(eL) :
-            qM = ["%d"%t for t in [50,100,250,500,1000]]
-            return specify( effectiveLumi = eL, color = r.kBlue,
-                            names = ["qcd_mg_ht_%s_%s"%t for t in zip(qM,qM[1:]+["inf"])])
+            low = map(lambda x:x[0],samples.__qcd17__.binsXs)[:-1]
+            out = []
+            for pt in low[low.index(80):] :
+                out += specify("qcd_py6_pt_%d"%pt, effectiveLumi = eL)
+            return out
 
         def g_jets_mg(eL) :
             gM = [40,100,200]
@@ -390,7 +386,7 @@ class hadronicLook(supy.analysis) :
             #out += specify(names = "ttz_8_mg.job269")
 
             out += specify("t_s_powheg.job200"    )
-            out += specify("t_t_powheg.job187"    )
+            #out += specify("t_t_powheg.job187"    ) #low MC stats
             out += specify("t_tw_powheg.job187"   )
             out += specify("tbar_t_powheg.job194" )
             out += specify("tbar_tw_powheg.job187")
@@ -400,14 +396,13 @@ class hadronicLook(supy.analysis) :
         def susy(eL) :
             return specify(names = "lm6", effectiveLumi = eL, color = r.kRed)
 
-        smLumi = 30000 # 1/pb
-        susyLumi = 60000
         return (
-            data_52X() +
+            #data_52X() +
             data_52X_2b_skim() +
             w_binned() +
             z_binned() +
             top() +
+            qcd_py6(30.0e3) +
             #vv() +
             #w_inclusive() +
             []
@@ -423,9 +418,9 @@ class hadronicLook(supy.analysis) :
 
         mcOps = {"markerStyle":1, "lineWidth":3, "goptions":"hist"}
 
-        #org.mergeSamples(targetSpec = md({"name":"QCD Multijet", "color":r.kGreen+3}, mcOps), allWithPrefix = "qcd_py6")
-        #qcdSources = ["QCD Multijet"]
         qcdSources = []
+        org.mergeSamples(targetSpec = md({"name":"QCD Multijet", "color":r.kGreen+3}, mcOps), allWithPrefix = "qcd_py6")
+        qcdSources = ["QCD Multijet"]
 
         org.mergeSamples(targetSpec = md({"name":"ttz", "color": r.kBlue}, mcOps), allWithPrefix = "ttz")
         org.mergeSamples(targetSpec = md({"name":"tt", "color": r.kRed+1}, mcOps), allWithPrefix = "tt_")
@@ -465,12 +460,12 @@ class hadronicLook(supy.analysis) :
                           showStatBox = True,
                           rowColors = [r.kBlack, r.kViolet+4],
                           #whiteList = ["lowestUnPrescaledTrigger"],
-                          doLog = False,
+                          #doLog = False,
                           #compactOutput = True,
                           #noSci = True,
                           #latexYieldTable = True,
                           linYAfter = ("variableGreaterFilter", "xcak5JetAlphaTEtPat>=0.550 "),
-                          pegMinimum = 0.1,
+                          #pegMinimum = 0.1,
                           blackList = ["lumiHisto","xsHisto","nJobsHisto"],
                           )
         pl.plotAll()
