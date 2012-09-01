@@ -381,6 +381,7 @@ class hadronicLook(supy.analysis) :
             out += specify("ww_py.job188")
             out += specify("wz_py.job188")
             out += specify("zz_py.job188")
+            out += specify("zinv_hbb_125_powheg.job342")
             return out
 
         def top() :
