@@ -325,7 +325,7 @@ class alphaHistogrammer(analysisStep) :
         self.letter = "E" if etRatherThanPt else "P"
         self.fixes = (cs[0], self.letter+"t"+cs[1])
         for var in ["Sum","DeltaPseudoJet","AlphaT"] : setattr(self,var,("%s"+var+"%s")%self.fixes)
-        self.DeltaPhiStar = "%sDeltaPhiStar%s%s"% (self.cs[0], cs[1], deltaPhiStarExtraName)
+        self.DeltaPhiStar = "%sDeltaPhiStar%s%s"% (self.cs[0], deltaPhiStarExtraName, cs[1])
         self.SumP4 = "%sSumP4%s" % cs
         self.moreName = "%s%s" % cs
         

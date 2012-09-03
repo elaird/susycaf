@@ -74,17 +74,17 @@ class hadronicLook(supy.analysis) :
                 calculables.jet.IndicesBtagged2(jet, tag = "CombinedSecondaryVertexBJetTags", threshold = 0.679),
                 
                 calculables.jet.SumP4(jet),
-                calculables.jet.SumP4(jet, extraName = ("", lowPtName )),
-                calculables.jet.SumP4(jet, extraName = ("", highPtName)),
-                calculables.jet.SumP4(jet, extraName = ("Btagged2", "")),
+                calculables.jet.SumP4(jet, extraName = lowPtName ),
+                calculables.jet.SumP4(jet, extraName = highPtName),
+                calculables.jet.SumP4(jet, extraName = "Btagged2"),
                 calculables.jet.DeltaPhiStar(jet, extraName = lowPtName),
                 calculables.jet.DeltaPhiStar(jet),
                 calculables.jet.MaxEmEnergyFraction(jet),
                 calculables.jet.DeltaPseudoJet(jet, etRatherThanPt),
                 calculables.jet.AlphaT(jet, etRatherThanPt),
                 calculables.jet.AlphaTMet(jet, etRatherThanPt, met),
-                calculables.jet.MhtOverMet((jet[0], jet[1]+highPtName), met),
-                calculables.jet.deadEcalDR(jet, extraName = lowPtName, minNXtals = 10),
+                calculables.jet.MhtOverMet((jet[0], highPtName+jet[1]), met),
+                calculables.jet.DeadEcalDR(jet, extraName = lowPtName, minNXtals = 10),
                 supy.calculables.other.fixedValue("%sFixedHtBin%s"%jet, htThreshold),
                 ]
             return outList+supy.calculables.fromCollections(calculables.jet, [jet])
@@ -207,7 +207,7 @@ class hadronicLook(supy.analysis) :
             #steps.jet.singleJetHistogrammer(_jet),
             supy.steps.filters.label("jetSumPlots1"), 
             steps.jet.cleanJetHtMhtHistogrammer(_jet,params["etRatherThanPt"]),
-            supy.steps.histos.histogrammer("%sDeltaPhiStar%s%s"%(_jet[0], _jet[1], params["lowPtName"]), 20, 0.0, r.TMath.Pi(), title = ";#Delta#phi*;events / bin", funcString = 'lambda x:x[0][0]'),
+            supy.steps.histos.histogrammer("%sDeltaPhiStar%s%s"%(_jet[0], params["lowPtName"], _jet[1]), 20, 0.0, r.TMath.Pi(), title = ";#Delta#phi*;events / bin", funcString = 'lambda x:x[0][0]'),
             supy.steps.histos.histogrammer("%sDeltaPhiStar%s"%(_jet[0], _jet[1]), 20, 0.0, r.TMath.Pi(), title = ";#Delta#phi*;events / bin", funcString = 'lambda x:x[0][0]'),
             supy.steps.histos.histogrammer("%sMaxEmEnergyFraction%s"%(_jet[0], _jet[1]), 20, 0.0, 1.0, title = ";MaxEmEnergyFraction;events / bin"),
             supy.steps.histos.histogrammer(_met,100,0.0,500.0,title=";"+_met+" (GeV);events / bin", funcString = "lambda x: x.pt()"),
@@ -222,9 +222,9 @@ class hadronicLook(supy.analysis) :
         _et = "Et" if params["etRatherThanPt"] else "Pt"
 
         return [
-            supy.steps.histos.histogrammer("%sMht%sOver%s"%(_jet[0],_jet[1]+params["highPtName"],_met), 100, 0.0, 3.0,
-                                     title = ";MHT %s%s / %s;events / bin"%(_jet[0],_jet[1]+params["highPtName"],_met)),
-            supy.steps.filters.value("%sMht%sOver%s"%(_jet[0],_jet[1]+params["highPtName"],_met), max = 1.25),
+            supy.steps.histos.histogrammer("%sMht%sOver%s"%(_jet[0],params["highPtName"]+_jet[1],_met), 100, 0.0, 3.0,
+                                     title = ";MHT %s%s / %s;events / bin"%(_jet[0],params["highPtName"]+_jet[1],_met)),
+            supy.steps.filters.value("%sMht%sOver%s"%(_jet[0],params["highPtName"]+_jet[1],_met), max = 1.25),
             steps.other.deadEcalFilter(jets = _jet, extraName = params["lowPtName"], dR = 0.3, dPhiStarCut = 0.5),
             
             steps.jet.cleanJetHtMhtHistogrammer(_jet, params["etRatherThanPt"]),
@@ -247,10 +247,10 @@ class hadronicLook(supy.analysis) :
             supy.steps.histos.histogrammer("vertexIndices", 20, -0.5, 19.5, title=";N vertices;events / bin", funcString="lambda x:len(x)"),
             supy.steps.histos.histogrammer("%sIndices%s"%_jet, 20, -0.5, 19.5, title=";number of %s%s passing ID#semicolon p_{T}#semicolon #eta cuts;events / bin"%_jet, funcString="lambda x:len(x)"),
             steps.jet.cleanJetHtMhtHistogrammer(_jet,params["etRatherThanPt"]),
-            supy.steps.histos.histogrammer("%sDeltaPhiStar%s%s"%(_jet[0], _jet[1], params["lowPtName"]), 20, 0.0, r.TMath.Pi(), title = ";#Delta#phi*;events / bin", funcString = 'lambda x:x[0][0]'),
+            supy.steps.histos.histogrammer("%sDeltaPhiStar%s%s"%(_jet[0], params["lowPtName"], _jet[1]), 20, 0.0, r.TMath.Pi(), title = ";#Delta#phi*;events / bin", funcString = 'lambda x:x[0][0]'),
             supy.steps.histos.histogrammer("%sDeltaPhiStar%s"%(_jet[0], _jet[1]), 20, 0.0, r.TMath.Pi(), title = ";#Delta#phi*;events / bin", funcString = 'lambda x:x[0][0]'),
-            supy.steps.histos.histogrammer("%sMht%sOver%s"%(_jet[0],_jet[1]+params["highPtName"],_met), 100, 0.0, 3.0,
-                                     title = ";MHT %s%s / %s;events / bin"%(_jet[0],_jet[1]+params["highPtName"],_met)),
+            supy.steps.histos.histogrammer("%sMht%sOver%s"%(_jet[0],params["highPtName"]+_jet[1],_met), 100, 0.0, 3.0,
+                                     title = ";MHT %s%s / %s;events / bin"%(_jet[0],params["highPtName"]+_jet[1],_met)),
             ]
 
     def stepsHtBins(self, params) :
@@ -284,7 +284,7 @@ class hadronicLook(supy.analysis) :
                                       deltaPhiStarCut = 0.5,
                                       deltaPhiStarDR = 0.3,
                                       j2Factor = params["thresholds"][2]/params["thresholds"][0],
-                                      mhtOverMetName = "%sMht%sOver%s"%(jet[0],jet[1]+params["highPtName"],params["objects"]["met"]),
+                                      mhtOverMetName = "%sMht%sOver%s"%(jet[0],params["highPtName"]+jet[1],params["objects"]["met"]),
                                       metOtherAlgo  = params["objects"]["compMet"],
                                       jetsOtherAlgo = params["objects"]["compJet"],
                                       #doGenJets = True,
@@ -406,8 +406,8 @@ class hadronicLook(supy.analysis) :
             #w_binned() +
             #z_binned() +
             #top() +
+            #vv() +
             #qcd_py6(30.0e3) +
-            ##vv() +
             ##w_inclusive() +
             []
             )
@@ -433,10 +433,12 @@ class hadronicLook(supy.analysis) :
         
         org.mergeSamples(targetSpec = md({"name":"Z + jets", "color": r.kBlue}, mcOps), allWithPrefix = "zinv_mg_ht")
         org.mergeSamples(targetSpec = md({"name":"W + jets", "color": r.kOrange-3}, mcOps), allWithPrefix = "wj_lv_mg_ht_")
+        org.mergeSamples(targetSpec = md({"name":"VV", "color": r.kCyan}, mcOps), sources = ["ww_py.job188", "wz_py.job188", "zz_py.job188"])
+        org.mergeSamples(targetSpec = md({"name":"ZH", "color":r.kMagenta}, mcOps), sources = ["zinv_hbb_125_powheg.job342"])
         org.mergeSamples(targetSpec = md({"name":"LM6", "color":r.kMagenta}, mcOps), allWithPrefix = "lm6")
-        ewkSources = ["tt", "t", "Z + jets", "W + jets"]
+        ewkSources = ["tt", "t", "Z + jets", "W + jets", "VV"]
 
-        org.mergeSamples(targetSpec = md({"name":"Standard Model ", "color":r.kAzure+6}, mcOps), sources = ewkSources + qcdSources, keepSources = True)
+        #org.mergeSamples(targetSpec = md({"name":"Standard Model ", "color":r.kAzure+6}, mcOps), sources = ewkSources + qcdSources, keepSources = True)
         #ewk = "t#bar{t}, W, Z + Jets"
         #org.mergeSamples(targetSpec = md({"name":ewk, "color":r.kBlue}, mcOps), sources = ewkSources)
         #org.mergeSamples(targetSpec = md({"name":"Standard Model ", "color":r.kAzure+6}, mcOps), sources = qcdSources + [ewkSources], keepSources = True)
