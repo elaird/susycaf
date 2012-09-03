@@ -21,4 +21,5 @@ ewk17.add("ww_py.job188", '%s/WW_TuneZ2star_8TeV_pythia6_tauola.Summer12-PU_S7_S
 ewk17.add("wz_py.job188", '%s/WZ_TuneZ2star_8TeV_pythia6_tauola.Summer12-PU_S7_START52_V9-v1.AODSIM/")'%vv, xs = {"NNLO":32.3161, "LO":12.63}["NNLO"])
 ewk17.add("zz_py.job188", '%s/ZZ_TuneZ2star_8TeV_pythia6_tauola.Summer12-PU_S7_START52_V9-v1.AODSIM/")'%vv, xs = {"NNLO":8.25561, "LO":5.196}["NNLO"])
 
-ewk17.add("zinv_hbb_125_powheg.job342", '%s/yeshaq//ICF/automated/2012_08_31_15_26_30/")'%pnfs, xs = 0.1) #dummy xs
+#https://twiki.cern.ch/twiki/bin/view/CMS/HiggsMCProductionSummer12#VBF_H_bb_POWHEG
+ewk17.add("zinv_hbb_125_powheg.job342", '%s/yeshaq//ICF/automated/2012_08_31_15_26_30/")'%pnfs, xs = 0.0361)
