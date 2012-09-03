@@ -192,7 +192,7 @@ class MbbList(wrappedChain.calculable) :
     def update(self,_) :
         self.value = []
         p4 = self.source[self.CorrectedP4]
-        for l,r in utils.pairs(self.source[self.IndicesBtagged2]) :
+        for l,r in itertools.combinations(self.source[self.IndicesBtagged2], 2) :
             self.value.append( (p4.at(l)+p4.at(r)).mass() )
 ###################################
 class IndicesGenB(wrappedChain.calculable) :
