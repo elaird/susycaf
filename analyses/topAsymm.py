@@ -446,11 +446,11 @@ class topAsymm(supy.analysis) :
         self.orgMelded = {}
         self.sensitivityPoints = {}
         self.rowcolors = 2*[13] + 2*[45]
-        #super(topAsymm,self).concludeAll()
+        super(topAsymm,self).concludeAll()
         for tt,rw,lname in set([(pars['toptype'],pars['reweights']['abbr'],pars['lepton']['name']) for pars in self.readyConfs]) :
             self.meldScale(rw,lname,tt)
-            #self.plotMeldScale(rw,lname,tt)
-            #self.PEcurves(rw,lname, tt)
+            self.plotMeldScale(rw,lname,tt)
+            self.PEcurves(rw,lname, tt)
             self.measureAmplitudes(rw,lname,tt)
             #self.ensembleTest(rw,lname,tt)
         #self.sensitivity_graphs()
@@ -611,9 +611,18 @@ class topAsymm(supy.analysis) :
 
         distTup,cs = map(mf2,["KarlsruheDiscriminant","TridiscriminantWTopQCD"])[-1]
 
-        fractions = dict(zip(templateSamples,cs.fractions))        
+        iTT = next(i for i,ss in enumerate(org.samples) if ss['name']=='top.t#bar{t}')
+        nTT = distTup[iTT].Integral(0,distTup[iTT].GetNbinsX()+1)
+        fractions = dict(zip(templateSamples,cs.fractions))
         for iSample,ss in enumerate(org.samples) :
-            if ss['name'] in fractions : org.scaleOneRaw(iSample, fractions[ss['name']] * sum(cs.observed) / distTup[iSample].Integral(0,distTup[iSample].GetNbinsX()+1))
+            if ss['name'] in fractions :
+                f = fractions[ss['name']]
+                n = distTup[iSample].Integral(0,distTup[iSample].GetNbinsX()+1)
+            elif ss['name'] in ['top.ttj_%s.%s.tw.%s'%(tt,s,rw) for s in ['wQQ','wQG','wGG']] :
+                f = fractions['top.t#bar{t}']
+                n = nTT
+            else : continue
+            org.scaleOneRaw(iSample, f * sum(cs.observed) / n )
 
         org.mergeSamples(targetSpec = {"name":"bg", "color":r.kBlack,"fillColor":r.kGray, "markerStyle":1, "goptions":"hist"}, sources = set(baseSamples + templateSamples) - set(['top.t#bar{t}']), keepSources = True, force = True)
         templateSamples = ['top.ttj_%s.%s.tw.%s'%(tt,s,rw) for s in ['wQQ','wQG','wGG']]
