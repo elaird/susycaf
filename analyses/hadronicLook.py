@@ -300,7 +300,12 @@ class hadronicLook(supy.analysis) :
             #steps.gen.particlePrinter(),
             supy.steps.filters.multiplicity("%sIndicesBtagged2%s"%_jet, min = 2, max = 2),
             supy.steps.histos.multiplicity("%sIndicesBtagged2%s"%_jet),
+            supy.steps.histos.eta("%sCorrectedP4%s"%_jet, 24, -3.0, 3.0, indices = "%sIndicesBtagged2%s"%_jet, index = 0, xtitle = "b jet 0"),
+            supy.steps.histos.eta("%sCorrectedP4%s"%_jet, 24, -3.0, 3.0, indices = "%sIndicesBtagged2%s"%_jet, index = 1, xtitle = "b jet 1"),
             supy.steps.histos.mass("%sSumP4Btagged2%s"%_jet, 24, 0.0, 1200.0, xtitle = "sum P4 {b jets}"),
+            supy.steps.histos.pt("%sSumP4Btagged2%s"%_jet, 24, 0.0, 1200.0, xtitle = "sum P4 {b jets}"),
+            supy.steps.filters.mass("%sSumP4Btagged2%s"%_jet, min = 450.0),
+            supy.steps.histos.pt("%sSumP4Btagged2%s"%_jet, 24, 0.0, 1200.0, xtitle = "sum P4 {b jets}"),
             #steps.jet.mbbHistogrammer(_jet, drMatch = 0.2, bZDaughters = "genIndicesStatus3bZDaughters"),
             ]
 
@@ -352,6 +357,12 @@ class hadronicLook(supy.analysis) :
                 out += specify("qcd_py6_pt_%d"%pt, effectiveLumi = eL)
             return out
 
+        def qcd_b_py6(eL) :
+            out = []
+            out += specify("qcd_b_py6_pt_50", effectiveLumi = eL)
+            out += specify("qcd_b_py6_pt_150", effectiveLumi = eL)
+            return out
+
         def g_jets_mg(eL) :
             gM = [40,100,200]
             return specify( effectiveLumi = eL, color = r.kGreen,
@@ -387,7 +398,7 @@ class hadronicLook(supy.analysis) :
         def top() :
             out = []
             out += specify(names = "tt_8_mg.job188")
-            #out += specify(names = "ttz_8_mg.job269")
+            out += specify(names = "ttz_8_mg.job269", nFilesMax = 1)
 
             out += specify("t_s_powheg.job200"    )
             #out += specify("t_t_powheg.job187"    ) #low MC stats
@@ -408,6 +419,7 @@ class hadronicLook(supy.analysis) :
             #top() +
             #vv() +
             #qcd_py6(30.0e3) +
+            #qcd_b_py6(30.0e3) +
             ##w_inclusive() +
             []
             )
@@ -417,31 +429,35 @@ class hadronicLook(supy.analysis) :
             x.update(y)
             return x
         
-        #org.mergeSamples(targetSpec = {"name":"2012 Data", "color":r.kBlack, "markerStyle":20}, allWithPrefix = "HT")
-        org.mergeSamples(targetSpec = {"name":"2012 Data", "color":r.kBlack, "markerStyle":20}, allWithPrefix = "275_ge2b")
+        org.mergeSamples(targetSpec = {"name":"2012 Data", "color":r.kBlack, "markerStyle":20}, allWithPrefix = "HT")
+        #org.mergeSamples(targetSpec = {"name":"2012 Data", "color":r.kBlack, "markerStyle":20}, allWithPrefix = "275_ge2b")
 
         mcOps = {"markerStyle":1, "lineWidth":3, "goptions":"hist"}
 
         qcdSources = []
+
         org.mergeSamples(targetSpec = md({"name":"QCD Multijet", "color":r.kGreen+3}, mcOps), allWithPrefix = "qcd_py6")
         qcdSources = ["QCD Multijet"]
 
-        org.mergeSamples(targetSpec = md({"name":"ttz", "color": r.kBlue}, mcOps), allWithPrefix = "ttz")
-        org.mergeSamples(targetSpec = md({"name":"tt", "color": r.kRed+1}, mcOps), allWithPrefix = "tt_")
-        org.mergeSamples(targetSpec = md({"name":"t", "color": r.kGreen}, mcOps),
-                         sources = ["t_s_powheg.job200", "t_t_powheg.job187", "t_tw_powheg.job187", "tbar_t_powheg.job194", "tbar_tw_powheg.job187"])
+        #org.mergeSamples(targetSpec = md({"name":"QCD Multijet (b-en.)", "color":r.kGreen+3}, mcOps), allWithPrefix = "qcd_b_py6")
+        #qcdSources = ["QCD Multijet (b-en.)"]
+
+        #org.mergeSamples(targetSpec = md({"name":"ttz", "color": r.kYellow}, mcOps), allWithPrefix = "ttz")
+        #org.mergeSamples(targetSpec = md({"name":"tt", "color": r.kRed+1}, mcOps), allWithPrefix = "tt_")
+        #org.mergeSamples(targetSpec = md({"name":"t", "color": r.kGreen}, mcOps),
+        #                 sources = ["t_s_powheg.job200", "t_t_powheg.job187", "t_tw_powheg.job187", "tbar_t_powheg.job194", "tbar_tw_powheg.job187"])
         
+        org.mergeSamples(targetSpec = md({"name":"tt/t/ttz", "color":r.kRed+1}, mcOps), sources = [
+            "tt_8_mg.job188", "ttz_8_mg.job269",
+            "t_s_powheg.job200", "t_t_powheg.job187", "t_tw_powheg.job187", "tbar_t_powheg.job194", "tbar_tw_powheg.job187"])
         org.mergeSamples(targetSpec = md({"name":"Z + jets", "color": r.kBlue}, mcOps), allWithPrefix = "zinv_mg_ht")
         org.mergeSamples(targetSpec = md({"name":"W + jets", "color": r.kOrange-3}, mcOps), allWithPrefix = "wj_lv_mg_ht_")
-        org.mergeSamples(targetSpec = md({"name":"VV", "color": r.kCyan}, mcOps), sources = ["ww_py.job188", "wz_py.job188", "zz_py.job188"])
+        org.mergeSamples(targetSpec = md({"name":"VV", "color": r.kOrange+3}, mcOps), sources = ["ww_py.job188", "wz_py.job188", "zz_py.job188"])
         org.mergeSamples(targetSpec = md({"name":"ZH", "color":r.kMagenta}, mcOps), sources = ["zinv_hbb_125_powheg.job342"])
         org.mergeSamples(targetSpec = md({"name":"LM6", "color":r.kMagenta}, mcOps), allWithPrefix = "lm6")
-        ewkSources = ["tt", "t", "Z + jets", "W + jets", "VV"]
+        ewkSources = ["tt/t/ttz", "Z + jets", "W + jets", "VV"]
 
-        #org.mergeSamples(targetSpec = md({"name":"Standard Model ", "color":r.kAzure+6}, mcOps), sources = ewkSources + qcdSources, keepSources = True)
-        #ewk = "t#bar{t}, W, Z + Jets"
-        #org.mergeSamples(targetSpec = md({"name":ewk, "color":r.kBlue}, mcOps), sources = ewkSources)
-        #org.mergeSamples(targetSpec = md({"name":"Standard Model ", "color":r.kAzure+6}, mcOps), sources = qcdSources + [ewkSources], keepSources = True)
+        org.mergeSamples(targetSpec = md({"name":"Standard Model ", "color":r.kAzure+6}, mcOps), sources = ewkSources + qcdSources, keepSources = True)
 
     def conclude(self, conf) :
         org = self.organizer(conf)
@@ -467,11 +483,8 @@ class hadronicLook(supy.analysis) :
                           rowColors = [r.kBlack, r.kViolet+4],
                           #whiteList = ["lowestUnPrescaledTrigger"],
                           #doLog = False,
-                          #compactOutput = True,
-                          #noSci = True,
-                          #latexYieldTable = True,
+                          pegMinimum = 0.1,
                           linYAfter = ("variableGreaterFilter", "xcak5JetAlphaTEtPat>=0.550 "),
-                          #pegMinimum = 0.1,
                           blackList = ["lumiHisto","xsHisto","nJobsHisto"],
                           )
         pl.plotAll()
