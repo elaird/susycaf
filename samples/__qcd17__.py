@@ -25,3 +25,11 @@ for i,(low,xs) in enumerate(binsXs[:-1]) :
     hi = binsXs[i+1][0]
     dir = "QCD_Pt-%d%s_TuneZ2star_8TeV_pythia6.Summer12-PU_S7_START52_V9-v1.AODSIM"%(low, "to%d"%hi if hi else "")
     qcd17.add("qcd_py6_pt_%d"%low, '%s/clucas//ICF/automated/2012_07_03_11_15_20/%s")'%(pnfs, dir), xs = xs)
+
+bEn = '%s/yeshaq//ICF/automated/2012_09_03_15_56_26/'%pnfs
+qcd17.add("qcd_b_mg_ht_250", '%s/BJets_HT-250To500_8TeV-madgraph.Summer12_DR53X-PU_S10_START53_V7A-v1.AODSIM")'%bEn, xs = 5828.0)
+qcd17.add("qcd_b_mg_ht_500", '%s/BJets_HT-500To1000_8TeV-madgraph.Summer12_DR53X-PU_S10_START53_V7A-v1.AODSIM")'%bEn, xs = 217.6)
+
+qcd17.add("qcd_b_py6_pt_30", '%s/QCD_Pt-30To50_bEnriched_TuneZ2star_8TeV-pythia6-evtgen.Summer12_DR53X-PU_S10_START53_V7A-v1.AODSIM")'%bEn, xs = 6.677E7)
+qcd17.add("qcd_b_py6_pt_50", '%s/QCD_Pt-50To150_bEnriched_TuneZ2star_8TeV-pythia6-evtgen.Summer12_DR53X-PU_S10_START53_V7A-v1.AODSIM")'%bEn, xs = 9355000.0)
+qcd17.add("qcd_b_py6_pt_150", '%s/QCD_Pt-150_bEnriched_TuneZ2star_8TeV-pythia6-evtgen.Summer12_DR53X-PU_S10_START53_V7A-v1.AODSIM")'%bEn, xs = 67340.0)
