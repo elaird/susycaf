@@ -397,7 +397,8 @@ class hadronicLook(supy.analysis) :
 
         def top() :
             out = []
-            out += specify(names = "tt_8_mg.job188")
+            #out += specify(names = "tt_8_mg.job188")
+            out += specify(names = "tt_8_mg.job315")
             out += specify(names = "ttz_8_mg.job269", nFilesMax = 1)
 
             out += specify("t_s_powheg.job200"    )
@@ -413,11 +414,11 @@ class hadronicLook(supy.analysis) :
 
         return (
             #data_52X() +
-            data_52X_2b_skim() +
-            #w_binned() +
-            #z_binned() +
-            #top() +
-            #vv() +
+            #data_52X_2b_skim() +
+            w_binned() +
+            z_binned() +
+            top() +
+            vv() +
             #qcd_py6(30.0e3) +
             #qcd_b_py6(30.0e3) +
             ##w_inclusive() +
