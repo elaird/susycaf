@@ -337,7 +337,7 @@ class displayer(supy.steps.displayer) :
         self.prepareText(params, coords)
         
         def go(j) :
-            dps = eventVars["%s%s%s%s"%(j[0], "DeltaPhiStar", j[1], self.deltaPhiStarExtraName)]
+            dps = eventVars["%s%s%s%s"%(j[0], "DeltaPhiStar", self.deltaPhiStarExtraName, j[1])]
             l = [eventVars["%sHtBin%s"%j],
                  eventVars["%s%s%s"  %(j[0], "SumEt",        j[1])],
                  eventVars["%s%s%s"  %(j[0], "SumP4",        j[1])].pt() if eventVars["%s%s%s"%(j[0], "SumP4",  j[1])] else 0,
@@ -366,7 +366,7 @@ class displayer(supy.steps.displayer) :
             HT = eventVars["%sSumEt%s"%j]
             aT = eventVars["%sAlphaTEt%s"%j]
             MM = eventVars[self.mhtOverMetName]
-            dedr = eventVars["%sDeadEcalDR%s%s"%(j[0], j[1], self.deltaPhiStarExtraName)]
+            dedr = eventVars["%sDeadEcalDR%s%s"%(j[0], self.deltaPhiStarExtraName, j[1])]
             DE = (not dedr) or dedr[0]>self.deltaPhiStarDR
 
             htBin = None
@@ -666,7 +666,7 @@ class displayer(supy.steps.displayer) :
             etaPhiPlot.SetTitle("")
             if self.ra1Mode :
                 suspiciousJetIndices = []
-                for dPhiStar,iJet in eventVars["%sDeltaPhiStar%s%s"%(self.jets[0],self.jets[1],self.deltaPhiStarExtraName)] :
+                for dPhiStar,iJet in eventVars["%sDeltaPhiStar%s%s"%(self.jets[0],self.deltaPhiStarExtraName,self.jets[1])] :
                     if dPhiStar < self.deltaPhiStarCut : suspiciousJetIndices.append(iJet)
 
             suspiciousJetLegendEntry = False
