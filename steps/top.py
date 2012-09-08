@@ -17,6 +17,16 @@ class channelClassification(analysisStep) :
             self.book.fill( iBin, 'ttDecayMode', self.nbins, 0, self.nbins, xAxisLabels = self.labels )
 
 #####################################
+class leptonSigned(analysisStep) :
+    def __init__(self, var, binning = (100,0,1)):
+        self.moreName = "+/- lepton of %s"%var
+        self.var = var
+        self.binning = binning
+
+    def uponAcceptance(self,ev) :
+        q = 'Pos' if ev['fitTopLeptonCharge']>0 else 'Neg'
+        self.book.fill(ev[self.var], self.var+q, *self.binning, title = ';%s (%s lepton);events / bin'%(self.var,q))
+#####################################
 class jetPrinter(analysisStep) :
     def uponAcceptance(self,ev) :
         jets = ev['TopJets']['fixes']
@@ -289,6 +299,8 @@ class kinematics(analysisStep) :
         mass = ev["%sTtxMass"%self.moreName]
         self.book.fill(ev[self.moreName+"TtxMass"], "TTX.mass", 50,300,1300, title = ";ttx invariant mass;events / bin")
         self.book.fill(ev[self.moreName+"PtSum"],   "TT.pt",   100,  0, 200, title = ";ttbar.pt;events / bin")
+        self.book.fill( topReco[index]['hadTraw'].mass(), "rawHadTopMass", 100, 100,300, title = ";%s raw hadronic top mass;events / bin"%self.moreName)
+        self.book.fill( topReco[index]['hadWraw'].mass(), "rawHadWMass", 100, 0,200, title = ";%s raw hadronic W mass;events / bin"%self.moreName)
 #####################################
 class resolutions(analysisStep) :
     def __init__(self,indexName) : self.moreName = indexName
@@ -324,7 +336,6 @@ class resolutions(analysisStep) :
                 self.book.fill( fit[not iLep] - genFunc[not iLep],   "d%sHadTop_%s"%(func,f), 100,-1,1, title=";had top #Delta %s_{%s reco gen};events / bin"%(func,f))
                 self.book.fill( fit[0]-fit[1] - (genFunc[0]-genFunc[1]), "dd%sTTbar_%s"%(func,f), 100,-1,1, title = ";#Delta %s_{t#bar{t} %s reco}-#Delta %s_{t#bar{t} gen};events / bin"%(func,f,func))
 
-        
         #iHad = max(0,topReco[index]["lepCharge"])
         #genLepY = ev['genP4'][max(ev['genTTbarIndices'][item] for item in ['lplus','lminus'])].Rapidity()
         #self.book.fill( recoY[iHad] - topReco[index]['lep'].Rapidity() - (genY[iHad]-genLepY), "ddRapidityLHadTop", 100,-1,1, title = ";#Delta y_{l-htop reco}-#Delta y_{l-htop gen};events / bin")
