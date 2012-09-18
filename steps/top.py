@@ -296,7 +296,7 @@ class kinematics(analysisStep) :
     def uponAcceptance(self,ev) :
         index = ev["%sRecoIndex"%self.moreName]
         if index < 0 : return
-        mass = ev["%sTtxMass"%self.moreName]
+        topReco = ev["TopReconstruction"]
         self.book.fill(ev[self.moreName+"TtxMass"], "TTX.mass", 50,300,1300, title = ";ttx invariant mass;events / bin")
         self.book.fill(ev[self.moreName+"PtSum"],   "TT.pt",   100,  0, 200, title = ";ttbar.pt;events / bin")
         self.book.fill( topReco[index]['hadTraw'].mass(), "rawHadTopMass", 100, 100,300, title = ";%s raw hadronic top mass;events / bin"%self.moreName)
