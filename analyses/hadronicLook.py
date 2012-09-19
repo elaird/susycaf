@@ -414,7 +414,7 @@ class hadronicLook(supy.analysis) :
 
         return (
             #data_52X() +
-            #data_52X_2b_skim() +
+            data_52X_2b_skim() +
             w_binned() +
             z_binned() +
             top() +
@@ -430,8 +430,8 @@ class hadronicLook(supy.analysis) :
             x.update(y)
             return x
         
-        org.mergeSamples(targetSpec = {"name":"2012 Data", "color":r.kBlack, "markerStyle":20}, allWithPrefix = "HT")
-        #org.mergeSamples(targetSpec = {"name":"2012 Data", "color":r.kBlack, "markerStyle":20}, allWithPrefix = "275_ge2b")
+        #org.mergeSamples(targetSpec = {"name":"2012 Data", "color":r.kBlack, "markerStyle":20}, allWithPrefix = "HT")
+        org.mergeSamples(targetSpec = {"name":"2012 Data", "color":r.kBlack, "markerStyle":20}, allWithPrefix = "275_ge2b")
 
         mcOps = {"markerStyle":1, "lineWidth":3, "goptions":"hist"}
 
@@ -449,7 +449,7 @@ class hadronicLook(supy.analysis) :
         #                 sources = ["t_s_powheg.job200", "t_t_powheg.job187", "t_tw_powheg.job187", "tbar_t_powheg.job194", "tbar_tw_powheg.job187"])
         
         org.mergeSamples(targetSpec = md({"name":"tt/t/ttz", "color":r.kRed+1}, mcOps), sources = [
-            "tt_8_mg.job188", "ttz_8_mg.job269",
+            "tt_8_mg.job315", "ttz_8_mg.job269",
             "t_s_powheg.job200", "t_t_powheg.job187", "t_tw_powheg.job187", "tbar_t_powheg.job194", "tbar_tw_powheg.job187"])
         org.mergeSamples(targetSpec = md({"name":"Z + jets", "color": r.kBlue}, mcOps), allWithPrefix = "zinv_mg_ht")
         org.mergeSamples(targetSpec = md({"name":"W + jets", "color": r.kOrange-3}, mcOps), allWithPrefix = "wj_lv_mg_ht_")
@@ -483,8 +483,8 @@ class hadronicLook(supy.analysis) :
                           showStatBox = True,
                           rowColors = [r.kBlack, r.kViolet+4],
                           #whiteList = ["lowestUnPrescaledTrigger"],
-                          #doLog = False,
-                          pegMinimum = 0.1,
+                          doLog = False,
+                          #pegMinimum = 0.1,
                           linYAfter = ("variableGreaterFilter", "xcak5JetAlphaTEtPat>=0.550 "),
                           blackList = ["lumiHisto","xsHisto","nJobsHisto"],
                           )
