@@ -50,8 +50,8 @@ class ra1Displays(supy.analysis) :
                 calculables.jet.DeltaPseudoJet(jet, etRatherThanPt),
                 calculables.jet.AlphaT(jet, etRatherThanPt),
                 calculables.jet.AlphaTMet(jet, etRatherThanPt, met),
-                calculables.jet.MhtOverMet((jet[0], jet[1]+highPtName), met),
-                calculables.jet.deadEcalDR(jet, extraName = lowPtName, minNXtals = 10),
+                calculables.jet.MhtOverMet((jet[0], highPtName+jet[1]), met),
+                calculables.jet.DeadEcalDR(jet, extraName = lowPtName, minNXtals = 10),
                 supy.calculables.other.fixedValue("%sFixedHtBin%s"%jet, htThreshold),
                 ]
             return outList+supy.calculables.fromCollections(calculables.jet, [jet])
@@ -66,7 +66,7 @@ class ra1Displays(supy.analysis) :
             calculables.xclean.IndicesUnmatched(collection = obj["photon"], xcjets = obj["jet"], DR = 0.5),
             calculables.xclean.IndicesUnmatched(collection = obj["electron"], xcjets = obj["jet"], DR = 0.5),
 
-            calculables.muon.Indices( obj["muon"], ptMin = 10, ID = "IdPog2012Tight", usePfIso = True, pfRelIsoMax = 0.20),
+            calculables.muon.Indices( obj["muon"], ptMin = 10, isoMax = 0.20, ISO = "PfIsolationR04DeltaBCorrected", ID = "IdPog2012Tight"),
             calculables.electron.Indices( obj["electron"], ptMin = 10, flag2012 = "Veto"),
             calculables.photon.Indices(obj["photon"], ptMin = 25, flagName = "photonIDRA3Pat"),
             calculables.photon.CombinedIsoDR03RhoCorrected(obj["photon"]),
@@ -106,10 +106,10 @@ class ra1Displays(supy.analysis) :
                                       deltaPhiStarCut = 0.5,
                                       deltaPhiStarDR = 0.3,
                                       j2Factor = params["thresholds"][2]/params["thresholds"][0],
-                                      mhtOverMetName = "%sMht%sOver%s"%(params["objects"]["jet"][0], params["objects"]["jet"][1]+params["highPtName"], params["objects"]["met"]),
+                                      mhtOverMetName = "%sMht%sOver%s"%(params["objects"]["jet"][0], params["highPtName"]+params["objects"]["jet"][1], params["objects"]["met"]),
                                       #metOtherAlgo  = params["objects"]["compMet"],
                                       #jetsOtherAlgo = params["objects"]["compJet"],
-                                      doGenJets = True,
+                                      #doGenJets = True,
                                       prettyMode = True,
                                       ),
             ]
@@ -135,4 +135,4 @@ class ra1Displays(supy.analysis) :
         return [sampleDict]
     
     def listOfSamples(self,params) :
-        return supy.samples.specify(names = ["MC_4bJets4"])
+        return supy.samples.specify(names = ["Data_4bJets1"])
