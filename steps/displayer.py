@@ -21,7 +21,10 @@ class displayer(supy.steps.displayer) :
                  flagsToPrint = ["logErrorTooManyClusters","logErrorTooManySeeds",
                                  #"beamHaloCSCLooseHaloId","beamHaloCSCTightHaloId","beamHaloEcalLooseHaloId","beamHaloEcalTightHaloId",
                                  #"beamHaloGlobalLooseHaloId","beamHaloGlobalTightHaloId","beamHaloHcalLooseHaloId","beamHaloHcalTightHaloId"
-                                 ]
+                                 ],
+                 bThresholds = {"JetProbabilityBJetTags":         {"L":0.275, "M":0.545, "T":0.790},
+                                "CombinedSecondaryVertexBJetTags":{"L":0.244, "M":0.679, "T":0.898},
+                                },#https://twiki.cern.ch/twiki/bin/viewauth/CMS/BTagPerformanceOP
                  ) :
 
         self.moreName = "(see below)"
@@ -29,7 +32,7 @@ class displayer(supy.steps.displayer) :
         for item in ["scale","jets","met","muons","electrons","photons","taus","recHits","recHitPtThreshold","doGenParticles", "doGenJets",
                      "doEtaPhiPlot","deltaPhiStarExtraName", "deltaPhiStarCut", "deltaPhiStarDR", "mhtOverMetName", "showAlphaTMet",
                      "jetsOtherAlgo", "metOtherAlgo", "printExtraText", "j2Factor", "ra1Mode", "ra1CutBits", "prettyMode","tipToTail",
-                     "triggersToPrint", "flagsToPrint"] :
+                     "triggersToPrint", "flagsToPrint", "bThresholds"] :
             setattr(self,item,eval(item))
 
         if len(self.flagsToPrint)>3 : print "WARNING: More than three flags specified in the displayer.  The list will run off the page."
@@ -243,6 +246,14 @@ class displayer(supy.steps.displayer) :
             self.printText(outString)
         
     def printJets(self, eventVars, params, coords, jets, nMax) :
+        def bCategory(key = "", value = None) :
+            if key not in self.bThresholds :
+                return " "
+            dct = self.bThresholds[key]
+            for cat in ["T","M","L"] :
+                if value>dct[cat] : return cat
+            return " "
+
         self.prepareText(params, coords)
         jets2 = (jets[0].replace("xc",""),jets[1])
         isPf = "PF" in jets[0]
@@ -250,6 +261,7 @@ class displayer(supy.steps.displayer) :
         p4Vector         = eventVars['%sCorrectedP4%s'%jets]
         corrVector       = eventVars['%sCorrFactor%s'%jets2]
         csv              = eventVars['%sCombinedSecondaryVertexBJetTags%s'%jets2]
+        jp               = eventVars['%sJetProbabilityBJetTags%s'%jets2]
         bIndices         = eventVars['%sIndicesBtagged2%s'%jets] if '%sIndicesBtagged2%s'%jets in eventVars else []
         
         if not isPf :
@@ -275,8 +287,12 @@ class displayer(supy.steps.displayer) :
             tight = eventVars["%sPFJetIDtight%s"%jets2]
             
         self.printText(self.renamedDesc(jets[0]+jets[1]))
-        self.printText("ID    pT  eta  phi%s"%("   EMF  fHPD  fRBX N90 corr     csv" if not isPf else "   CHF  NHF  CEF  NEF CM corr     csv"))
-        self.printText("------------------%s"%("-----------------------------------" if not isPf else "-------------------------------------"))
+        left = "ID    pT  eta  phi"
+        center = "   EMF  fHPD  fRBX N90" if not isPf else "   CHF  NHF  CEF  NEF CM"
+        #right = " corr   CSV"
+        right = "   CSV     JP"
+        self.printText(left+center+right)
+        self.printText("-"*(len(left)+len(center)+len(right)))
 
         nJets = p4Vector.size()
         for iJet in range(nJets) :
@@ -289,9 +305,22 @@ class displayer(supy.steps.displayer) :
             outString+="%5.0f %4.1f %4.1f"%(jet.pt(), jet.eta(), jet.phi())
 
             if not isPf :
-                outString+=" %5.2f %5.2f %5.2f %3d %4.2f %7.3f"%(jetEmfVector.at(iJet), jetFHpdVector.at(iJet), jetFRbxVector.at(iJet), jetN90Vector.at(iJet), corrVector.at(iJet), csv.at(iJet))
+                outString+=" %5.2f %5.2f %5.2f %3d"%(jetEmfVector.at(iJet), jetFHpdVector.at(iJet), jetFRbxVector.at(iJet), jetN90Vector.at(iJet))
             else :
-                outString+=" %5.3f %4.2f %4.2f %4.2f%3d %4.2f %7.3f"%(chf.at(iJet), nhf.at(iJet), cef.at(iJet), nef.at(iJet), cm.at(iJet), corrVector.at(iJet), csv.at(iJet))
+                outString+=" %5.3f %4.2f %4.2f %4.2f%3d"%(chf.at(iJet), nhf.at(iJet), cef.at(iJet), nef.at(iJet), cm.at(iJet))
+
+            csvValue = csv.at(iJet)
+            #outString += " %4.2f %7.3f"%(corrVector.at(iJet), csv.at(iJet))
+
+            if csvValue==-10. :
+                outString += " %4.0f"%csvValue
+            else :
+                outString += " %4.2f"%csvValue
+            outString += bCategory("CombinedSecondaryVertexBJetTags", csvValue)
+
+            jpValue = jp.at(iJet)
+            outString += " %5.2f"%jpValue
+            outString += bCategory("JetProbabilityBJetTags", jpValue)
             self.printText(outString)
 
     def printGenJets(self, eventVars, params, coords, nMax) :
