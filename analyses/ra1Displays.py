@@ -31,7 +31,6 @@ class ra1Displays(supy.analysis) :
         def calcList(jet, met, photon, muon, electron, muonsInJets, jetIdFlag) :
             outList = [
                 calculables.xclean.xcJet(jet,
-                                         applyResidualCorrectionsToData = False,
                                          gamma = photon,
                                          gammaDR = 0.5,
                                          muon = muon,
@@ -108,9 +107,9 @@ class ra1Displays(supy.analysis) :
                                       j2Factor = params["thresholds"][2]/params["thresholds"][0],
                                       mhtOverMetName = "%sMht%sOver%s"%(params["objects"]["jet"][0], params["highPtName"]+params["objects"]["jet"][1], params["objects"]["met"]),
                                       #metOtherAlgo  = params["objects"]["compMet"],
-                                      #jetsOtherAlgo = params["objects"]["compJet"],
+                                      jetsOtherAlgo = params["objects"]["compJet"],
                                       #doGenJets = True,
-                                      prettyMode = True,
+                                      #prettyMode = True,
                                       ),
             ]
     
@@ -127,6 +126,7 @@ class ra1Displays(supy.analysis) :
         sampleDict.add("Data_4bJets1", '["/uscms/home/yeshaq/work/susycaf/4bjets/SusyCAF_Tree_1.root"]', lumi = 1.1e3)
         sampleDict.add("Data_4bJets2", '["/uscms/home/yeshaq/work/susycaf/4bjets/SusyCAF_Tree_2.root"]', lumi = 1.1e3)
         sampleDict.add("Data_4bJets3", '["/uscms/home/yeshaq/work/susycaf/4bjets/SusyCAF_Tree_3.root"]', lumi = 1.1e3)
+        sampleDict.add("Data_4bJets", '["/uscms/home/yeshaq/work/susycaf/4bjets/SusyCAF_Tree_1.root","/uscms/home/yeshaq/work/susycaf/4bjets/SusyCAF_Tree_2.root","/uscms/home/yeshaq/work/susycaf/4bjets/SusyCAF_Tree_3.root"]', lumi = 1.1e3)
         sampleDict.add("MC_4bJets1", '["/uscms/home/yeshaq/work/susycaf/4bjets/MC/TTJets/SusyCAF_Tree_1.root"]', lumi = 1.1e3)
         sampleDict.add("MC_4bJets2", '["/uscms/home/yeshaq/work/susycaf/4bjets/MC/TTJets/SusyCAF_Tree_2.root"]', lumi = 1.1e3)
         sampleDict.add("MC_4bJets3", '["/uscms/home/yeshaq/work/susycaf/4bjets/MC/TTJets/SusyCAF_Tree_3.root"]', lumi = 1.1e3)
@@ -135,4 +135,4 @@ class ra1Displays(supy.analysis) :
         return [sampleDict]
     
     def listOfSamples(self,params) :
-        return supy.samples.specify(names = ["Data_4bJets1"])
+        return supy.samples.specify(names = ["Data_4bJets"])
