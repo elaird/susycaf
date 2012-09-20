@@ -1,30 +1,11 @@
 import collections, ROOT as r
 from supy import utils,analysisStep
 #####################################
-pdgLookupExists=False
 try:
     import pdgLookup
-    pdgLookupExists=True
+    pdgLookupExists = True
 except ImportError:
-    pass
-#####################################
-class susyScanPointPrinter(analysisStep) :
-
-    def __init__(self) :
-        self.leavesToPrint=["susyScanA0",
-                            "susyScanCrossSection",
-                            "susyScanM0",
-                            "susyScanM12",
-                            "susyScanMu",
-                            "susyScanRun",
-                            "susyScantanbeta"
-                            ]
-        
-    def uponAcceptance (self,eventVars) :
-        outString=""
-        for leafName in self.leavesToPrint :
-            outString+=leafName.replace("susyScan","")+" = "+str(eventVars[leafName])+"\t"
-        print outString
+    pdgLookupExists = False
 #####################################
 class genJetPrinter(analysisStep) :
 
@@ -38,7 +19,7 @@ class genJetPrinter(analysisStep) :
         self.moreName+=")"
 
     def uponAcceptance (self,eventVars) :
-        p4Vector        =eventVars[self.jetCollection+'GenJetP4'     +self.jetSuffix]
+        p4Vector        =eventVars[self.jetCollection+'GenJetsP4'     +self.jetSuffix]
         #emEnergy        =eventVars[self.jetCollection+'EmEnergy'        +self.jetSuffix]
         #hadEnergy       =eventVars[self.jetCollection+'HadEnergy'       +self.jetSuffix]
         #invisibleEnergy =eventVars[self.jetCollection+'InvisibleEnergy' +self.jetSuffix]
@@ -75,26 +56,26 @@ class ParticleCountFilter(analysisStep) :
         return True
 #####################################
 class scanHistogrammer(analysisStep) :
-    def __init__(self, tanBeta, htVar = "") :
+    def __init__(self, htVar = "", befOrAf = "") :
         self.tanBetaThreshold = 0.1
-        for item in ["tanBeta", "htVar"] :
+        for item in ["htVar"] :
             setattr(self, item, eval(item))
-        self.moreName = "tanBeta=%g;%s"%(self.tanBeta, self.htVar)
+        self.moreName = self.htVar
 
-        self.m0Nbins = 150
-        self.m0Lo =    0.0
-        self.m0Hi = 1500.0
+        self.m0Nbins =  44
+        self.m0Lo =    100
+        self.m0Hi = 1200.0
 
-        self.m12Nbins = 100
-        self.m12Lo =    0.0
-        self.m12Hi = 1000.0
+        self.m12Nbins =  44
+        self.m12Lo =     50
+        self.m12Hi = 1150.0
 
         self.bins = (self.m0Nbins, self.m12Nbins)
         self.lo = (self.m0Lo, self.m12Lo)
         self.hi = (self.m0Hi, self.m12Hi)
 
-        self.htBins = self.pairs([250, 300, 350, 450]) + self.pairs([275, 325] + [375+100*i for i in range(6)])
-        self.htStrings = self.strings(self.htBins)
+        self.htBins = self.pairs([275, 325] + [375+100*i for i in range(6)]) + self.pairs([375])
+        self.htStrings = self.strings(self.htBins, befOrAf)
         
     def pairs(self, l) :
         out = []
@@ -102,10 +83,10 @@ class scanHistogrammer(analysisStep) :
             out.append( (lower, upper) )
         return out
 
-    def strings(self, pairs) :
+    def strings(self, pairs, befOrAf) :
         out = []
         for lower,upper in pairs :
-            out.append("ht_%d%s"%(lower, "_%d"%upper if upper else ""))
+            out.append("ht_%d%s%s"%(lower, "_%d"%upper if upper else "", "_%s"%befOrAf))
         return out
 
     def htIn(self, ht, lower, upper) :
@@ -114,18 +95,17 @@ class scanHistogrammer(analysisStep) :
         return True
 
     def uponAcceptance (self, eventVars) :
-        if abs(eventVars["susyScantanbeta"]-self.tanBeta)>self.tanBetaThreshold : return
+        #if abs(eventVars["susyScantanbeta"]-self.tanBeta)>self.tanBetaThreshold : return
 
-        xs = eventVars["susyScanCrossSection"]
-        m0 = eventVars["susyScanM0"]
-        m12 = eventVars["susyScanM12"]
+        #xs = eventVars["susyScanCrossSection"]
+        m0 = eventVars["susyScanmGL"]
+        m12 = eventVars["susyScanmLSP"]
 
-        title = ";m_{0} (GeV);m_{1/2} (GeV)"
+        #title = ";m_{0} (GeV);m_{1/2} (GeV)"
+        title = ";m_{gluino} (GeV);m_{LSP} (GeV)"
 
-        if not self.htVar :
-            self.book.fill( (m0, m12), "nEvents", self.bins, self.lo, self.hi,         title = "%s;%s"%(title,"nEvents"))
-            self.book.fill( (m0, m12), "XS",      self.bins, self.lo, self.hi, w = xs, title = "%s;%s"%(title,"XS"))
-        else :
+        self.book.fill( (m0, m12), "nEvents", self.bins, self.lo, self.hi,         title = "%s;%s"%(title,"nEvents"))
+        if self.htVar :
             ht = eventVars[self.htVar]
             for name,pair in zip(self.htStrings, self.htBins) :
                 if not self.htIn(ht, *pair) : continue
@@ -192,7 +172,7 @@ class genParticleCountHistogrammer(analysisStep) :
         self.book.fill( (m0, m12), self.histoBaseName+"XS", self.bins, self.lo, self.hi,
                                    w = xs, title = self.histoBaseName+"XS;m_{0} (GeV);m_{1/2} (GeV)")
 #####################################
-class genParticlePrinter(analysisStep) :
+class particlePrinter(analysisStep) :
 
     def __init__(self,minPt=-1.0,minStatus=-1):
         self.oneP4=utils.LorentzV()
@@ -208,9 +188,9 @@ class genParticlePrinter(analysisStep) :
         mothers=set(eventVars["genMotherIndex"])
         print "pthat: ",eventVars["genpthat"]
         print "mothers: ",mothers
-        print "---------------------------------------------------------------------------"
-        print " i  st    mo         id            name        E        pt       eta    phi"
-        print "---------------------------------------------------------------------------"
+        print "-----------------------------------------------------------------------------------"
+        print " i  st    mo         id            name        E        pt       eta    phi    mass"
+        print "-----------------------------------------------------------------------------------"
 
         size=len(eventVars["genP4"])
         for iGen in range(size) :
@@ -235,6 +215,7 @@ class genParticlePrinter(analysisStep) :
             outString+="  %#8.1f"%p4.pt()
             outString+="  %#8.1f"%p4.eta()
             outString+="  %#5.1f"%p4.phi()
+            outString+="  %#6.1f"%p4.mass()
             #outString+="  %#5.1f"%p4.mass()
         
             if not (iGen in mothers) :
@@ -292,41 +273,6 @@ class topPrinter(analysisStep) :
         print
         print
         if abs(tt.E() - (p4s[4]+p4s[5]).E())>0.5 : print (50*' '), "2 -> 3+"
-#####################################
-class genMassHistogrammer(analysisStep) :
-
-    def __init__(self,pdgId = 23):
-        self.pdgId = pdgId
-        self.histoName = "mass_pdgId==%d"%self.pdgId
-        
-    def uponAcceptance (self,eventVars) :
-        size=len(eventVars["genP4"])
-        for iGen in range(size) :
-            p4=eventVars["genP4"].at(iGen)
-            if eventVars["genPdgId"].at(iGen)!=self.pdgId : continue
-            self.book.fill(p4.mass(), self.histoName, 100, 0.0, 300.0, title = ";mass (GeV);events / bin")
-#####################################
-class genSHatHistogrammer(analysisStep) :
-
-    def uponAcceptance (self,eventVars) :
-        p4 = eventVars["genP4"]
-        size=p4.size()
-        counts = [0,0]
-        indices = [-1,-1]
-        for iGen in range(size) :
-            if not eventVars["genMotherStored"].at(iGen) : continue
-            motherIndex = eventVars["genMother"].at(iGen)
-            if motherIndex!=0 and motherIndex!=1 : continue
-            counts[motherIndex] += 1
-            indices[motherIndex] = iGen
-
-        if counts[0]!=1 or counts[1]!=1 :
-            print "bad counts",counts
-            return
-        
-        rootSHat = ( p4.at(indices[0])+p4.at(indices[1]) ).mass()
-        print indices,rootSHat
-        self.book.fill(rootSHat, "rootSHat", 100, 0.0, 300.0, title = ";#sqrt{#hat{s}} (GeV);events / bin")
 #####################################
 class photonEfficiencyPlots(analysisStep) :
 

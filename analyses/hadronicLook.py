@@ -1,4 +1,4 @@
-import supy, steps,calculables,samples,os, ROOT as r
+import supy,steps,calculables,samples,os, ROOT as r
 
 def triggerTuple(l = [], keys = []) :
     out = []
@@ -37,7 +37,8 @@ triggers_mht_2011 = triggerTuple(l = [{"HT":250, "MHT":  60, "v":[1,2,3,4,5,6,7]
 
                                       {"HT":400, "MHT":  80, "v":[1]},
                                       ], keys = ("HT", "MHT"))
-                                      
+
+
 triggers_alphaT_2011 = triggerTuple(l  = [#{"HT":250, "AlphaT": 0.53, "v":range(1,7)},
                                           #{"HT":250, "AlphaT": 0.54, "v":range(2,5)},
                                           #{"HT":250, "AlphaT": 0.55, "v":range(1,3)},
@@ -58,6 +59,24 @@ triggers_alphaT_2011 = triggerTuple(l  = [#{"HT":250, "AlphaT": 0.53, "v":range(
                                           {"HT":450, "AlphaT": 0.52, "v":range(1,3)},
                                           ], keys = ("HT", "AlphaT"))
 
+triggers_alphaT_2012 = triggerTuple(l  = [{"HT":200, "AlphaT": 0.57, "v":range(1,5)},
+                                          
+                                          {"HT":250, "AlphaT": 0.55, "v":range(1,4)},
+                                          {"HT":250, "AlphaT": 0.57, "v":range(1,4)},
+                                          
+                                          {"HT":300, "AlphaT": 0.53, "v":range(1,4)},
+                                          {"HT":300, "AlphaT": 0.54, "v":range(1,10)},
+                                          
+                                          {"HT":350, "AlphaT": 0.52, "v":range(1,4)},
+                                          {"HT":350, "AlphaT": 0.53, "v":range(1,15)},
+                                          
+                                          {"HT":400, "AlphaT": 0.51, "v":range(1,15)},
+                                          {"HT":400, "AlphaT": 0.52, "v":range(1,10)},
+                                          
+                                          {"HT":450, "AlphaT": 0.51, "v":range(1,10)},
+                                          ], keys = ("HT", "AlphaT"))
+
+
 class hadronicLook(supy.analysis) :
     def parameters(self) :
         objects = self.vary()
@@ -65,7 +84,7 @@ class hadronicLook(supy.analysis) :
                                                                     "compJet",                "compJetId", "compMuonsInJets",        "compMet",
                                                                     "muon",                    "electron",          "photon",         "rechit"]
 
-        objects["caloAK5JetMet_recoLepPhot"]   = dict(zip(fields, [("xcak5Jet","Pat"),       "JetIDloose",             False, "metP4AK5TypeII",
+        objects["caloAK5JetMet_recoLepPhot"]   = dict(zip(fields, [("xcak5Jet","Pat"),       "JetIDloose",             False,   "metP4TypeIPF",
                                                                    ("xcak5JetPF","Pat"),     "JetIDtight",              True,        "metP4PF",
                                                                    ("muon","Pat"),     ("electron","Pat"),  ("photon","Pat"),           "Calo",
                                                                    ]))
@@ -94,8 +113,10 @@ class hadronicLook(supy.analysis) :
                                                 ("375",        (375.0, None,  100.0, 50.0)),#2
                                                 ("325_scaled", (325.0, 375.0,  86.7, 43.3)),#3
                                                 ("275_scaled", (275.0, 325.0,  73.3, 36.7)),#4
+                                                ("675",        (675.0, None,  100.0, 50.0)),#5
                                                 ][2:3] )),
-                 "triggerList": triggers_ht_eps,
+                 "triggerList": triggers_alphaT_2012, 
+
                  }
 
     def ra1Cosmetics(self) : return False
@@ -121,6 +142,7 @@ class hadronicLook(supy.analysis) :
                 calculables.jet.SumP4(jet, extraName = highPtName),
                 calculables.jet.DeltaPhiStar(jet, extraName = lowPtName),
                 calculables.jet.DeltaPhiStar(jet),
+                calculables.jet.MaxEmEnergyFraction(jet),
                 calculables.jet.DeltaPseudoJet(jet, etRatherThanPt),
                 calculables.jet.AlphaT(jet, etRatherThanPt),
                 calculables.jet.AlphaTMet(jet, etRatherThanPt, met),
@@ -140,17 +162,17 @@ class hadronicLook(supy.analysis) :
             calculables.xclean.IndicesUnmatched(collection = obj["photon"], xcjets = obj["jet"], DR = 0.5),
             calculables.xclean.IndicesUnmatched(collection = obj["electron"], xcjets = obj["jet"], DR = 0.5),
 
-            calculables.muon.Indices( obj["muon"], ptMin = 10, combinedRelIsoMax = 0.15),
-            calculables.electron.Indices( obj["electron"], ptMin = 10, simpleEleID = "95", useCombinedIso = True),
-            calculables.photon.Indices(obj["photon"],  ptMin = 25, flagName = "photonIDLooseFromTwikiPat"),
-            #calculables.photon.Indices(obj["photon"],  ptMin = 25, flagName = "photonIDTightFromTwikiPat"),
+            calculables.muon.Indices( obj["muon"], ptMin = 10, ID = "IdPog2012Tight", usePfIso = True, pfRelIsoMax = 0.20),
+            calculables.electron.Indices( obj["electron"], ptMin = 10, flag2012 = "Veto"),
+            calculables.photon.Indices(obj["photon"], ptMin = 25, flagName = "photonIDRA3Pat"),
+            calculables.photon.CombinedIsoDR03RhoCorrected(obj["photon"]),
 
             calculables.other.RecHitSumPt(obj["rechit"]),
             calculables.other.RecHitSumP4(obj["rechit"]),
             
             calculables.vertex.ID(),
             calculables.vertex.Indices(),
-            calculables.other.lowestUnPrescaledTrigger(triggers),
+            calculables.trigger.lowestUnPrescaledTrigger(triggers),
             ]
     
     def listOfCalculables(self, params) :
@@ -202,7 +224,7 @@ class hadronicLook(supy.analysis) :
             steps.jet.jetPtSelector(_jet, params["thresholds"][2], 0),
             steps.jet.jetPtSelector(_jet, params["thresholds"][2], 1),
             steps.jet.jetEtaSelector(_jet,2.5,0),
-            
+
             #steps.other.iterHistogrammer("ecalDeadTowerTrigPrimP4", 256, 0.0, 128.0, title=";E_{T} of ECAL TP in each dead region (GeV);TPs / bin", funcString="lambda x:x.Et()"),
             supy.steps.histos.multiplicity("vertexIndices"),
             supy.steps.filters.multiplicity("vertexIndices",                  min = 1),
@@ -217,6 +239,8 @@ class hadronicLook(supy.analysis) :
             steps.jet.uniquelyMatchedNonisoMuons(_jet), 
             
             supy.steps.histos.histogrammer("%sSum%s%s"%(_jet[0], _et, _jet[1]), 50, 0, 2500, title = ";H_{T} (GeV) from %s%s %ss;events / bin"%(_jet[0], _jet[1], _et)),
+            supy.steps.histos.histogrammer("%sSum%s%s"%(_jet[0], _et, _jet[1]), 60, 675, 1275, title = ";H_{T} (GeV) from %s%s %ss;events / bin"%(_jet[0], _jet[1], _et)),
+            supy.steps.histos.histogrammer("%sSum%s%s"%(_jet[0], _et, _jet[1]), 120, 675, 1275, title = ";H_{T} (GeV) from %s%s %ss;events / bin"%(_jet[0], _jet[1], _et)),
             supy.steps.filters.value("%sSum%s%s"%(_jet[0], _et, _jet[1]), min = params["thresholds"][0]),
             ] + htUpper + [
             supy.steps.histos.histogrammer("%sMht%sOver%s"%(_jet[0],_jet[1]+params["highPtName"],_met), 100, 0.0, 3.0,
@@ -232,12 +256,14 @@ class hadronicLook(supy.analysis) :
             
             #many plots
             steps.trigger.lowestUnPrescaledTriggerHistogrammer().onlyData(),
+
             supy.steps.filters.label("singleJetPlots1"),
             steps.jet.singleJetHistogrammer(_jet),
             supy.steps.filters.label("jetSumPlots1"), 
             steps.jet.cleanJetHtMhtHistogrammer(_jet,_etRatherThanPt),
             supy.steps.histos.histogrammer("%sDeltaPhiStar%s%s"%(_jet[0], _jet[1], params["lowPtName"]), 20, 0.0, r.TMath.Pi(), title = ";#Delta#phi*;events / bin", funcString = 'lambda x:x[0][0]'),
             supy.steps.histos.histogrammer("%sDeltaPhiStar%s"%(_jet[0], _jet[1]), 20, 0.0, r.TMath.Pi(), title = ";#Delta#phi*;events / bin", funcString = 'lambda x:x[0][0]'),
+            supy.steps.histos.histogrammer("%sMaxEmEnergyFraction%s"%(_jet[0], _jet[1]), 20, 0.0, 1.0, title = ";MaxEmEnergyFraction;events / bin"),
             supy.steps.histos.histogrammer(_met,100,0.0,500.0,title=";"+_met+" (GeV);events / bin", funcString = "lambda x: x.pt()"),
             supy.steps.filters.label("kinematicPlots1"),
 
@@ -253,6 +279,9 @@ class hadronicLook(supy.analysis) :
             supy.steps.filters.value("%sAlphaT%s%s"%(_jet[0],"Et" if _etRatherThanPt else "Pt",_jet[1]), min = 0.55),
             supy.steps.histos.histogrammer("%sRecHitSumPt"%params["objects"]["rechit"], 30, 0, 300, title = ";Sum of HBHE (sev.#geq10), EB,EE (sev.#geq2) RecHit p_{T} (GeV);events / bin"),
             supy.steps.filters.value("%sRecHitSumPt"%params["objects"]["rechit"], max = 120.0),
+
+            supy.steps.histos.histogrammer("%sMaxEmEnergyFraction%s"%(_jet[0], _jet[1]), 20, 0.0, 1.0, title = ";MaxEmEnergyFraction;events / bin"),
+            #supy.steps.filters.value("%sMaxEmEnergyFraction%s"%(_jet[0],_jet[1]), max = .1),
 
             #]), #end cutSorter
 
@@ -311,12 +340,22 @@ class hadronicLook(supy.analysis) :
             ] + scanAfter + [supy.steps.filters.value("%sSumEt%s"%_jet, min = bin) for bin in [475, 575, 675, 775, 875]]
     
     def listOfSampleDictionaries(self) :
-        return [samples.ht, samples.jetmet, samples.mc, samples.top]
-
+        #sampleDict = supy.samples.SampleHolder() #added to run over skim
+        return [samples.ht17]
+        #sampleDict.add("Data_High_HT", '["~/nobackup/supy-output/hadronicLook/675_ge2_caloAK5JetMet_recoLepPhot_pythia6/High_HT_skim.root"]', lumi = 1.1e3)
+        #return [sampleDict]
+    
     def listOfSamples(self,params) :
         from supy.samples import specify
 
-        def data() :
+        def High_HT_skim():
+            out = []
+
+            out += specify(names = ["Data_High_HT"])
+
+            return out
+        
+        def data2011() :
             out = []
 
             #2011
@@ -324,13 +363,13 @@ class hadronicLook(supy.analysis) :
             jwMay = calculables.other.jsonWeight("cert/Cert_160404-163869_7TeV_May10ReReco_Collisions11_JSON_v3.txt")
             jwAug = calculables.other.jsonWeight("cert/Cert_170249-172619_7TeV_ReReco5Aug_Collisions11_JSON_v3.txt")
             
-            out += specify(names = "HT.Run2011A-May10ReReco-v1.AOD.job536", weights = jwMay   , overrideLumi = 204.4)
-            out += specify(names = "HT.Run2011A-05Aug2011-v1.AOD.job528",   weights = jwAug   , overrideLumi = 355.4)
-            out += specify(names = "HT.Run2011A-PromptReco-v4.AOD.job535",  weights = jwPrompt, overrideLumi = 730.6)
-            out += specify(names = "HT.Run2011A-PromptReco-v6.AOD.job527",  weights = jwPrompt, overrideLumi = 640.2)
-            out += specify(names = "HT.Run2011B-PromptReco-v1.AOD.job515",  weights = jwPrompt, overrideLumi = 200.7)
-            out += specify(names = "HT.Run2011B-PromptReco-v1.AOD.job519",  weights = jwPrompt, overrideLumi = 257.3)
-            out += specify(names = "HT.Run2011B-PromptReco-v1.AOD.job531",  weights = jwPrompt, overrideLumi = 248.7)
+            #out += specify(names = "HT.Run2011A-May10ReReco-v1.AOD.job536", weights = jwMay   , overrideLumi = 204.4)
+            #out += specify(names = "HT.Run2011A-05Aug2011-v1.AOD.job528",   weights = jwAug   , overrideLumi = 355.4)
+            #out += specify(names = "HT.Run2011A-PromptReco-v4.AOD.job535",  weights = jwPrompt, overrideLumi = 730.6)
+            #out += specify(names = "HT.Run2011A-PromptReco-v6.AOD.job527",  weights = jwPrompt, overrideLumi = 640.2)
+            #out += specify(names = "HT.Run2011B-PromptReco-v1.AOD.job515",  weights = jwPrompt, overrideLumi = 200.7)
+            #out += specify(names = "HT.Run2011B-PromptReco-v1.AOD.job519",  weights = jwPrompt, overrideLumi = 257.3)
+            #out += specify(names = "HT.Run2011B-PromptReco-v1.AOD.job531",  weights = jwPrompt, overrideLumi = 248.7)
             #out += specify(names = "HT.Run2011B-PromptReco-v1.AOD.job533",  weights = jwPrompt, overrideLumi =  99.0) #need to investigate triggers
             #out += specify(names = "HT.Run2011B-PromptReco-v1.AOD.job564",  weights = jwPrompt, overrideLumi = 362.6)
             ##out += specify(names = "HT.Run2011B-PromptReco-v1.AOD.job592",  weights = jwPrompt, overrideLumi =   0.0)
@@ -338,21 +377,35 @@ class hadronicLook(supy.analysis) :
             #out = specify(names = "calo_375")
             return out
 
+        def data2012() :
+            out = []
+
+            #2012
+            jw2012 = calculables.other.jsonWeight("cert/Cert_190456-196531_8TeV_PromptReco_Collisions12_JSON.txt")
+
+            #out += specify(names = "HT.Run2012A-PromptReco-v1.AOD.job229", nFilesMax = 1, nEventsMax = 1000)
+            out += specify(names = "HT.Run2012A-PromptReco-v1.AOD.job229", weights = jw2012, overrideLumi = 707.3810)
+            out += specify(names = "HTMHT.Run2012B-PromptReco-v1.AOD.job228", weights = jw2012, overrideLumi = 3354.0000)
+            out += specify(names = "HTMHT.Run2012B-PromptReco-v1.AOD.job238",  weights = jw2012, overrideLumi = 923.7680)
+            #out += specify(names = "JetHT.Run2012B-PromptReco-v1.AOD.job228", weights = jw2012, overrideLumi = 3388.0000)
+            #out += specify(names = "JetHT.Run2012B-PromptReco-v1.AOD.job238", weights = jw2012, overrideLumi = 923.7680)
+            return out
+       
         def dataEps() :
             out = []
 
             jw = calculables.other.jsonWeight("cert/Cert_160404-167913_7TeV_PromptReco_Collisions11_JSON.txt") #1078/pb            
 
-            out += specify(names = "HT.Run2011A-May10ReReco-v1.AOD.Bryn",   weights = jw, overrideLumi = 183.0)
-            out += specify(names = "HT.Run2011A-PromptReco-v4.AOD.Bryn1",   weights = jw, overrideLumi =  70.2)
-            out += specify(names = "HT.Run2011A-PromptReco-v4.AOD.Bryn2",   weights = jw, overrideLumi = 101.3)
-            out += specify(names = "HT.Run2011A-PromptReco-v4.AOD.Bryn3",   weights = jw, overrideLumi =  74.8)
-            out += specify(names = "HT.Run2011A-PromptReco-v4.AOD.Darren1", weights = jw, overrideLumi = 181.2)
-            out += specify(names = "HT.Run2011A-PromptReco-v4.AOD.Darren2", weights = jw, overrideLumi = 122.8)
-            out += specify(names = "HT.Run2011A-PromptReco-v4.AOD.Darren3", weights = jw, overrideLumi =  36.4)
-            out += specify(names = "HT.Run2011A-PromptReco-v4.AOD.Darren4", weights = jw, overrideLumi =  50.5)
-            out += specify(names = "HT.Run2011A-PromptReco-v4.AOD.Darren5", weights = jw, overrideLumi = 130.6)
-            out += specify(names = "HT.Run2011A-PromptReco-v4.AOD.Darren6", weights = jw, overrideLumi = 116.0)
+            #out += specify(names = "HT.Run2011A-May10ReReco-v1.AOD.Bryn",   weights = jw, overrideLumi = 183.0)
+            #out += specify(names = "HT.Run2011A-PromptReco-v4.AOD.Bryn1",   weights = jw, overrideLumi =  70.2)
+            #out += specify(names = "HT.Run2011A-PromptReco-v4.AOD.Bryn2",   weights = jw, overrideLumi = 101.3)
+            #out += specify(names = "HT.Run2011A-PromptReco-v4.AOD.Bryn3",   weights = jw, overrideLumi =  74.8)
+            #out += specify(names = "HT.Run2011A-PromptReco-v4.AOD.Darren1", weights = jw, overrideLumi = 181.2)
+            #out += specify(names = "HT.Run2011A-PromptReco-v4.AOD.Darren2", weights = jw, overrideLumi = 122.8)
+            #out += specify(names = "HT.Run2011A-PromptReco-v4.AOD.Darren3", weights = jw, overrideLumi =  36.4)
+            #out += specify(names = "HT.Run2011A-PromptReco-v4.AOD.Darren4", weights = jw, overrideLumi =  50.5)
+            #out += specify(names = "HT.Run2011A-PromptReco-v4.AOD.Darren5", weights = jw, overrideLumi = 130.6)
+            #out += specify(names = "HT.Run2011A-PromptReco-v4.AOD.Darren6", weights = jw, overrideLumi = 116.0)
 
             #out += specify(names = "HT_skim")
             #out += specify(names = "MT2_events")
@@ -432,17 +485,13 @@ class hadronicLook(supy.analysis) :
         #era = "summer11"
         smLumi = 30000 # 1/pb
         susyLumi = 60000
-        #return data()
-        #return dataEpsSkim()
-        return ( []
-                 + susy(susyLumi)
-                 + qcd_func(smLumi) #+ g_jets_func(eL)
-                 + single_top_ph(smLumi, era = era)
-                 + ttbar_mg(smLumi, era = era)
-                 + ewk(smLumi, era = era)
-                 + dy(smLumi, era = era)
-                 + dataEps()
-                 ) if params["tanBeta"]==None else scan(params["tanBeta"])
+        return data2012()
+#        return ( data() +
+#                 qcd_func(smLumi) + #g_jets_func(eL) +
+#                 ttbar_mg(smLumi, era = era) + ewk(smLumi, era = era) +
+#                 susy(susyLumi)
+#                 ) if params["tanBeta"]==None else scan(params["tanBeta"])
+#
 
     def singleTopList(self, era = "spring11") :
         if era=="summer11" :
@@ -459,7 +508,7 @@ class hadronicLook(supy.analysis) :
             x.update(y)
             return x
         
-        org.mergeSamples(targetSpec = {"name":"Data", "color":r.kBlack, "markerStyle":20, "goptions":"ex0", "legendOpt":"pe"}, allWithPrefix = "HT.Run2011")
+        org.mergeSamples(targetSpec = {"name":"2012 Data", "color":r.kBlack, "markerStyle":20}, allWithPrefix = "HT")
 
         mcOps = {"markerStyle":1, "lineWidth":3, "goptions":"hist"}
         if "pythia6"  in org.tag :
@@ -493,6 +542,7 @@ class hadronicLook(supy.analysis) :
         #utils.printSkimResults(org)            
 
         self.mergeSamples(org)
+
         org.scale() if not self.parameters()["tanBeta"] else org.scale(100.0)
 
         #self.makeStandardPlots(org)

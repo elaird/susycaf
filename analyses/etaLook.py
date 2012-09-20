@@ -10,7 +10,7 @@ class etaLook(analysis.analysis) :
     def listOfSteps(self,params) :
         jets = ("ic5Jet","Pat")
         outList=[
-            steps.progressPrinter(),
+            supy.steps.printer.progressPrinter(),
             steps.histogrammer("genpthat", 50, 0.0, 250.0,title=";#hat{p_{T}} (GeV);events / bin"),            
             steps.leadingUnCorrJetFilter(jets, 10.0, 10.0, extraHistos = True),
             steps.leadingUnCorrJetFilter(jets, 30.0, 10.0),

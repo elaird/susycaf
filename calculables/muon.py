@@ -1,4 +1,5 @@
 from supy import wrappedChain,utils,calculables
+import ROOT as r
 ##############################
 class NumberOfMatches(wrappedChain.calculable) :
     def __init__(self, collection = None) :
@@ -19,6 +20,51 @@ class NumberOfValidPixelHits(wrappedChain.calculable) :
         return True
     def update(self,ignored) :
         self.value = [1]*self.source[self.IsTrackerMuon].size()
+##############################
+class ID_TOPPAG(wrappedChain.calculable) :
+    '''https://twiki.cern.ch/twiki/bin/viewauth/CMS/TWikiTopRefEventSel#Muon_Selection'''
+    def __init__(self, collection = None ) :
+        self.fixes = collection
+        self.stash(["IsGlobalMuon",
+                    "IsTrackerMuon",
+                    # pt > 20
+                    # |eta|<2.1
+                    "GlobalTracknormalizedChi2",
+                    "GlobalTracknumberOfValidTrackerHits",
+                    "GlobalTracknumberOfValidHits",
+                    "GlobalTrackDxy",
+                    # reliso
+                    # dr mu jet
+                    "Vertex",
+                    "NumberOfPixelLayersWithMeasurement",
+                    "NumberOfMatches"
+                    ])
+        self.moreName = "TOP PAG l+jets recommendation sans pt,eta,reliso,dr_(mu,jet)"
+
+    def id(self, isGlobal, isTracker, nChi2, hitsTracker, hitsTotal, dxy, vertex, pixelLayers, nStationsMatch ) :
+        return ( isGlobal and
+                 isTracker and
+                 nChi2 < 10 and
+                 hitsTracker > 10 and
+                 hitsTotal > hitsTracker and
+                 dxy < 0.02 and
+                 abs(vertex.z() - self.pvz) < 1 and
+                 pixelLayers >= 1 and
+                 nStationsMatch > 1 )
+    
+    def update(self,_) :
+        vIndices = self.source["vertexIndices"]
+        self.pvz = self.source["vertexPosition"][vIndices[0]].z() if len(vIndices) else 0
+        self.value = utils.hackMap( self.id,
+                                    self.source[self.IsGlobalMuon],
+                                    self.source[self.IsTrackerMuon],
+                                    self.source[self.GlobalTracknormalizedChi2],
+                                    self.source[self.GlobalTracknumberOfValidTrackerHits],
+                                    self.source[self.GlobalTracknumberOfValidHits],
+                                    self.source[self.GlobalTrackDxy],
+                                    self.source[self.Vertex],
+                                    self.source[self.NumberOfPixelLayersWithMeasurement],
+                                    self.source[self.NumberOfMatches] )
 ##############################
 class IDtight(wrappedChain.calculable) :
     def __init__(self, collection = None) :
@@ -43,6 +89,34 @@ class IDtight(wrappedChain.calculable) :
                          self.source[self.InnerTrackNumberOfValidHits],
                          self.source[self.NumberOfValidPixelHits],
                          self.source[self.GlobalTrackDxy])    
+##############################
+class IdPog2012Tight(wrappedChain.calculable) :
+    def __init__(self, collection = None) :
+        self.fixes = collection
+        self.stash(["IsGlobalMuon","IsPFMuon","GlobalTracknormalizedChi2", "GlobalTracknumberOfValidMuonHits",
+                    "NumberOfMatchedStations", "InnerTrackDxy", "InnerTrackDz",
+                    "NumberOfValidPixelHits", "NumberOfTrackerLayersWithMeasurement"
+                    ])
+        self.moreName = "https://twiki.cern.ch/twiki/bin/view/CMSPublic/SWGuideMuonId#Tight_Muon"
+
+    def update(self,ignored) :
+        self.value = []
+
+        gm = self.source[self.IsGlobalMuon]
+        pf = self.source[self.IsPFMuon]
+        chi2 = self.source[self.GlobalTracknormalizedChi2]
+        mHits = self.source[self.GlobalTracknumberOfValidMuonHits]
+        mStations = self.source[self.NumberOfMatchedStations]
+        dxy = self.source[self.InnerTrackDxy]
+        dz = self.source[self.InnerTrackDz]
+        pHits = self.source[self.NumberOfValidPixelHits]
+        tLayers = self.source[self.NumberOfTrackerLayersWithMeasurement]
+
+        for i in range(gm.size()) :
+            reqs = [gm.at(i), pf.at(i), chi2.at(i)<10.0, mHits.at(i)>0,
+                    mStations.at(i)>1, dxy.at(i)<0.2, dz.at(i)<0.5,
+                    pHits.at(i)>0, tLayers.at(i)>5]
+            self.value.append(all(reqs))
 ##############################
 class CombinedRelativeIso(wrappedChain.calculable) :
     def __init__(self, collection = None) :
@@ -88,27 +162,32 @@ class IndicesNonIso(calculables.IndicesOther) :
         self.moreName = "pass ptMin & id; fail iso"
 ##############################
 class Indices(wrappedChain.calculable) :
-    def __init__(self, collection = None, ptMin = None, combinedRelIsoMax = None, requireIsGlobal = True ) :
+    def __init__(self, collection = None, ptMin = None, isoMax = None, requireIsGlobal = True , ID = "IDtight", ISO = "CombinedRelativeIso", absEtaMax = 1000) :
         self.fixes = collection
         self.requireIsGlobal = requireIsGlobal
-        self.stash(["IndicesNonIso","IndicesOther","P4","IDtight","CombinedRelativeIso","IsGlobalMuon"])
+        self.stash(["IndicesNonIso","IndicesOther","P4","IsGlobalMuon"])
+        self.ID = ID.join(collection)
+        self.ISO = ISO.join(collection)
         self.ptMin = ptMin
-        self.relIsoMax = combinedRelIsoMax
-        self.moreName = "tight; pt>%.1f GeV; cmbRelIso<%.2f"%( ptMin, combinedRelIsoMax )
+        self.absEtaMax = absEtaMax
+        self.isoMax = isoMax
+        self.moreName = "%s; pt>%.1f GeV; %s<%.2f"%( ID, ptMin, ISO, isoMax )
 
     def update(self,ignored) :
         self.value = []
         nonIso = self.source[self.IndicesNonIso]
         other  = self.source[self.IndicesOther]
         p4s    = self.source[self.P4]
-        tight  = self.source[self.IDtight]
-        relIso = self.source[self.CombinedRelativeIso]
+        id  = self.source[self.ID]
+        iso = self.source[self.ISO]
         isGlobal = self.source[self.IsGlobalMuon]
         for i in range(p4s.size()) :
-            if p4s.at(i).pt() < self.ptMin : continue
+            p4 = p4s.at(i)
+            if p4.pt() < self.ptMin : continue
             if self.requireIsGlobal and not isGlobal.at(i) : continue
-            if tight[i] :
-                if relIso[i] < self.relIsoMax :
+            if self.absEtaMax < abs(p4.eta()) : continue
+            if id[i] :
+                if iso[i] < self.isoMax :
                     self.value.append(i)
                 else: nonIso.append(i)
             else: other.append(i)
@@ -226,3 +305,40 @@ class Pt(wrappedChain.calculable) :
     def update(self,_) :
         p4 = self.source[self.P4]
         self.value = [p4[i].pt() for i in range(len(p4))]
+#####################################
+class MinJetDR(wrappedChain.calculable) :
+    def __init__(self, collection = None, jets = None, jetPtMin = 0) :
+        self.fixes = collection
+        self.ptMin = jetPtMin
+        self.stash(["P4"])
+        self.stash(["CorrectedP4","Indices"], jets)
+        self.moreName = "min DR of mu with any jet; %s%s pt>%d"%(jets+(jetPtMin,))
+        
+    def update(self,_) :
+        self.value = []
+        mu = self.source[self.P4]
+        jet = self.source[self.CorrectedP4]
+        for iMu in range(len(mu)) :
+            self.value.append( min([r.Math.VectorUtil.DeltaR(mu[iMu],jet[iJet]) for iJet in self.source[self.Indices] if self.ptMin < jet[iJet].pt() ]+[5]) )
+##############################
+class IndicesIsoLoose(wrappedChain.calculable) :
+    def __init__(self,collection = None, ptMin = None, absEtaMax = None , iso = "PFIsoRel", isoMax = None) :
+        self.fixes = collection
+        self.stash(["IsGlobalMuon","P4"])
+        self.ptMin = ptMin
+        self.absEtaMax = absEtaMax
+        self.iso = iso.join(collection)
+        self.isoMax = isoMax
+    
+    def update(self,_) :
+        self.value = []
+        p4s = self.source[self.P4]
+        isos = self.source[self.iso]
+        isGlobal = self.source[self.IsGlobalMuon]
+        for i in range(len(p4s)) :
+            p4 = p4s[i]
+            if p4.pt() < self.ptMin : break
+            if ( abs(p4.eta()) < self.absEtaMax and
+                 isos[i] < self.isoMax and
+                 isGlobal[i]
+                 ) : self.value.append(i)

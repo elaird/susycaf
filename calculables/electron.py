@@ -1,18 +1,24 @@
-from supy import wrappedChain,utils,configuration
+from supy import wrappedChain,utils
+import configuration
 from muon import IndicesOther,IndicesNonIso,IndicesAnyIso,IndicesAnyIsoIsoOrder,LeadingPt
 ##############################
 barrelEtaMax = configuration.detectorSpecs()["cms"]["barrelEtaMax"]
 endcapEtaMin = configuration.detectorSpecs()["cms"]["endcapEtaMin"]
 ##############################
 class Indices(wrappedChain.calculable) :
-    def __init__(self, collection = None, ptMin = None, simpleEleID = None, useCombinedIso = True) :
+    def __init__(self, collection = None, ptMin = None, simpleEleID = None, useCombinedIso = True, flag2012 = "") :
         self.fixes = collection
         self.stash(["IndicesOther","IndicesNonIso","P4"])
-        isotype = "c" if useCombinedIso else "rel"
-        self.eID = ("%sID"+simpleEleID+"%s")% self.fixes
-        self.eIso = ("%s"+isotype+"Iso"+simpleEleID+"%s") % self.fixes
         self.ptMin = ptMin
-        self.moreName = "pt>%.1f; simple%s; %sIso" % (ptMin, simpleEleID, isotype)
+        self.flag2012 = flag2012
+        if self.flag2012 :
+            self.eID = ("%sId"+self.flag2012+"%s")% self.fixes
+            self.moreName = "pt>%.1f; (2012 %s)" % (self.ptMin, self.flag2012)
+        else :
+            isotype = "c" if useCombinedIso else "rel"
+            self.eID = ("%sID"+simpleEleID+"%s")% self.fixes
+            self.eIso = ("%s"+isotype+"Iso"+simpleEleID+"%s") % self.fixes
+            self.moreName = "pt>%.1f; simple%s; %sIso" % (ptMin, simpleEleID, isotype)
 
     def update(self,ignored) :
         self.value = []
@@ -20,7 +26,7 @@ class Indices(wrappedChain.calculable) :
         nonIso = self.source[self.IndicesNonIso]
         p4s   = self.source[self.P4]
         eID   = self.source[self.eID]
-        eIso  = self.source[self.eIso]
+        eIso  = self.source[self.eIso] if not self.flag2012 else [True]*p4s.size()
         for i in range(p4s.size()) :
             if p4s.at(i).pt() < self.ptMin : break
             elif eID[i]:
@@ -29,13 +35,13 @@ class Indices(wrappedChain.calculable) :
             else: other.append(i)
 ##############################
 class ID(wrappedChain.calculable) :
-    def id(self, hoe, dphi, deta, sieie, missingHits, dist, DcotTh, p4) :
-        absEta = abs(p4.eta())
+    def id(self, hoe, dphi, deta, sieie, missingHits, dist, DcotTh, scEta) :
+        absEta = abs(scEta)
         notConv = missingHits <= self.missingHits and (self.dist==None or dist < self.dist) and (self.DcotTh==None or DcotTh < self.DcotTh)
         notConv|= not self.rejectConversions
         return notConv and hoe < self.Bhoe and dphi < self.Bdphi and deta < self.Bdeta and sieie < self.Bsieie if absEta < barrelEtaMax else \
                notConv and hoe < self.Ehoe and dphi < self.Edphi and deta < self.Edeta and sieie < self.Esieie if absEta > endcapEtaMin else \
-               None
+               False
 
     def update(self,ignored) :
         self.value = utils.hackMap(self.id, 
@@ -46,13 +52,13 @@ class ID(wrappedChain.calculable) :
                          self.source[self.ConversionMissingHits],
                          self.source[self.ConversionDist],
                          self.source[self.ConversionDCot],
-                         self.source[self.P4])
+                         self.source[self.ESuperClusterEta])
 
     # https://twiki.cern.ch/twiki/bin/viewauth/CMS/SimpleCutBasedEleID
     def __init__(self, collection, eff, rejectConversions = True) :
         self.fixes = collection
         self.stash(["HcalOverEcal","DeltaPhiSuperClusterTrackAtVtx","DeltaEtaSuperClusterTrackAtVtx","SigmaIetaIeta",
-                    "ConversionDist", "ConversionDCot", "ConversionMissingHits","P4"])
+                    "ConversionDist", "ConversionDCot", "ConversionMissingHits","ESuperClusterEta"])
         i = ["95","90","85","80","70","60"].index(eff)
         self.rejectConversions = rejectConversions
         
@@ -87,7 +93,7 @@ class ID60(ID) :
 class Iso(wrappedChain.calculable) :
     def __init__(self, collection, eff, combined) :
         self.fixes = collection
-        self.stash(["IsoCombined","P4","TrackIsoRel","EcalIsoRel","HcalIsoRel"])
+        self.stash(["IsoCombined","P4","TrackIsoRel","EcalIsoRel","HcalIsoRel","ESuperClusterEta"])
         self.combined = combined
         self.isoName = collection[0]+("c" if combined else "rel")+"Iso"+eff+collection[1]
         i = ["95","90","85","80","70","60"].index(eff)
@@ -100,14 +106,14 @@ class Iso(wrappedChain.calculable) :
         self.Eecal = [0.06,   0.06,   0.05,   0.05,   0.025,  0.02 ][i]
         self.Ehcal = [0.05,   0.03,   0.025,  0.025,  0.02,   0.02 ][i]
         
-    def cIso(self, iso, p4) :
-        absEta = abs(p4.eta())
+    def cIso(self, iso, scEta) :
+        absEta = abs(scEta)
         if absEta < barrelEtaMax: return iso < self.Bc
         if absEta > endcapEtaMin: return iso < self.Ec
         return None
 
-    def relIso(self, trk, ecal, hcal, p4) :
-        absEta = abs(p4.eta())
+    def relIso(self, trk, ecal, hcal, scEta) :
+        absEta = abs(scEta)
         if absEta < barrelEtaMax : return trk < self.Btrk and ecal < self.Becal and hcal < self.Bhcal
         if absEta > endcapEtaMin : return trk < self.Etrk and ecal < self.Eecal and hcal < self.Ehcal
         return None
@@ -115,12 +121,12 @@ class Iso(wrappedChain.calculable) :
     def update(self,ignored) :
         self.value = utils.hackMap(self.cIso,
                          self.source[self.IsoCombined],
-                         self.source[self.P4]) if self.combined else \
+                         self.source[self.ESuperClusterEta]) if self.combined else \
                      utils.hackMap(self.relIso,
                          self.source[self.TrackIsoRel],
                          self.source[self.EcalIsoRel],
                          self.source[self.HcalIsoRel],
-                         self.source[self.P4])
+                         self.source[self.ESuperClusterEta])
 class cIso95NoConversionRejection(Iso) :
     def __init__(self,collection) : super(cIso95NoConversionRejection,self).__init__(collection,"95", True)
 class cIso95(Iso) :
@@ -151,20 +157,40 @@ class relIso60(Iso) :
 class IsoCombined(wrappedChain.calculable) :
     def __init__(self,collection = None) :
         self.fixes = collection
-        self.stash(["Dr03TkSumPt","Dr03EcalRecHitSumEt","Dr03HcalTowerSumEt","P4"])
+        self.stash(["Dr03TkSumPt","Dr03EcalRecHitSumEt","Dr03HcalTowerSumEt","P4","ESuperClusterEta"])
 
     def update(self,ignored) :
         self.value = utils.hackMap(self.combinedIso,
-                         self.source[self.Dr03TkSumPt],
-                         self.source[self.Dr03EcalRecHitSumEt],
-                         self.source[self.Dr03HcalTowerSumEt],
-                         self.source[self.P4])
+                                   self.source[self.Dr03TkSumPt],
+                                   self.source[self.Dr03EcalRecHitSumEt],
+                                   self.source[self.Dr03HcalTowerSumEt],
+                                   self.source[self.P4],
+                                   self.source[self.ESuperClusterEta])
 
-    def combinedIso(self,trk,ecal,hcal,p4) :
-        absEta = abs(p4.eta())
+    def combinedIso(self,trk,ecal,hcal,p4,scEta) :
+        absEta = abs(scEta)
         return (trk + max(0.,ecal-1) + hcal) / p4.pt() if absEta < barrelEtaMax else \
                (trk + ecal + hcal) / p4.pt() if absEta > endcapEtaMin else \
                None
+##############################
+class IsoCombinedAdjusted(wrappedChain.calculable) :
+    '''IsoCombined, scaled only for endcap by constant M, such that barrelCIso == M * endcapCIso.
+
+    Default values of {barrelCIso:1,endcapCIso:1} provide
+    IsoCombinedAdjusted values identical to those of IsoCombined.
+    '''
+
+    def __init__(self,collection = None, barrelCIso = 1, endcapCIso = 1) :
+        self.fixes = collection
+        self.stash(['IsoCombined','ESuperClusterEta'])
+        self.endcapScaling = barrelCIso / endcapCIso
+
+    def update(self,_) :
+        isos = self.source[self.IsoCombined]
+        scetas = self.source[self.ESuperClusterEta]
+        self.value = [ iso if abs(scetas.at(i)) < barrelEtaMax else
+                       iso * self.endcapScaling if iso!=None else None
+                       for i,iso in enumerate(isos)]
 ##############################
 class IsoRel(wrappedChain.calculable) :
     def __init__(self, collection, isoSource) :
@@ -190,4 +216,51 @@ class ConversionMissingHits(wrappedChain.calculable) :
         return True
     def update(self, ignored) :
         self.value = [0]*len(self.source[self.HcalOverEcal])
+##############################
+class Indices_TopPAG(wrappedChain.calculable) :
+    @property
+    def name(self) : return "Indices".join(self.fixes)
+
+    def __init__(self, collection = None, ptMin = None, absEtaMax = None, id = "ID70") :
+        self.fixes = collection
+        self.ptMin = ptMin
+        self.absEtaMax = absEtaMax
+        self.id = id.join(collection)
+        self.stash(["P4","GsfTrackDxyBS","GsfTrackVertexz",])
+        
+    def update(self,_) :
+        p4 = self.source[self.P4]
+        vz = self.source[self.GsfTrackVertexz]
+        dxyBS = self.source[self.GsfTrackDxyBS]
+
+        vIndices = self.source["vertexIndices"]
+        pvz = self.source["vertexPosition"][vIndices[0]].z() if len(vIndices) else 0
+        
+        self.value = [i for i,id in enumerate(self.source[self.id])
+                      if ( id and
+                           self.ptMin < p4.at(i).pt() and
+                           abs(p4.at(i).eta()) < self.absEtaMax and
+                           abs(vz.at(i) - pvz) < 1.0 and
+                           abs(dxyBS.at(i)) < 0.02 )]
+##############################
+class IndicesIsoLoose(wrappedChain.calculable) :
+    def __init__(self, collection = None, ptMin = None, absEtaMax = None, iso = "PFIsoRel", isoMax = None) :
+        self.fixes = collection
+        self.stash(["P4"])
+        self.ptMin = ptMin
+        self.absEtaMax = absEtaMax
+        self.iso = iso.join(collection)
+        self.isoMax = isoMax
+
+    def update(self,_) :
+        self.value = []
+        p4s = self.source[self.P4]
+        isos = self.source[self.iso]
+        for i in range(len(p4s)) :
+            p4 = p4s.at(i)
+            if p4.pt() < self.ptMin : break
+            if ( isos[i] != None and
+                 abs(p4.eta()) < self.absEtaMax and
+                 isos[i] < self.isoMax
+                 ) : self.value.append(i)                 
 ##############################

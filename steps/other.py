@@ -31,9 +31,11 @@ class handleChecker(analysisStep) :
 #####################################
 class jsonMaker(analysisStep) :
 
-    def __init__(self, calculateLumi = True) :
+    def __init__(self, calculateLumi = True, pixelLumi = True, debug = False) :
         self.lumisByRun = collections.defaultdict(list)
         self.calculateLumi = calculateLumi
+        self.pixelLumi = pixelLumi
+        self.debug = debug
         self.moreName="see below"
 
     def uponAcceptance(self,eventVars) :
@@ -42,7 +44,26 @@ class jsonMaker(analysisStep) :
     def varsToPickle(self) : return ["lumisByRun"]
 
     def outputSuffix(self) : return ".json"
-    
+
+    def lumi(self, json) :
+        if not self.calculateLumi : return -1.0
+        if self.pixelLumi :
+            return utils.luminosity.recordedInvMicrobarns(json)/1e6
+        else :
+            dct = utils.getCommandOutput("lumiCalc2.py overview -i %s"%self.outputFileName)
+            assert not dct["returncode"],dct["returncode"]
+            assert not dct["stderr"],dct["stderr"]
+            s = dct["stdout"]
+            if self.debug : print s[s.find("Total"):]
+            m = "Recorded(/"
+            i = s.rindex(m) + len(m)
+            units = s[i-1:i+2]
+            factor = {"/fb":1.0e3, "/pb":1.0, "/nb":1.0e-3, "/ub":1.0e-6}
+            assert units in factor,units
+            i2 = dct["stdout"].rindex("|")
+            i1 = dct["stdout"][:i2].rindex("|")
+            return float(dct["stdout"][1+i1:i2])*factor[units]
+
     def mergeFunc(self, products) :
         d = collections.defaultdict(list)
         for lumisByRun in products["lumisByRun"] :
@@ -57,9 +78,9 @@ class jsonMaker(analysisStep) :
                     print "Run %d ls %d appears %d times in the lumiTree."%(run,ls,lumis.count(ls))
 
         json = utils.jsonFromRunDict(d2)
-        lumi = utils.luminosity.recordedInvMicrobarns(json)/1e6 if self.calculateLumi else -1.0
         with open(self.outputFileName,"w") as file: print >> file, str(json).replace("'",'"')
-        print "Wrote %.4f/pb json to : %s"%(lumi,self.outputFileName)
+
+        print "Wrote %.4f/pb json to : %s"%(self.lumi(json),self.outputFileName)
         print utils.hyphens
 #####################################
 class duplicateEventCheck(analysisStep) :
@@ -284,21 +305,21 @@ class smsMedianHistogrammer(analysisStep) :
         self.zHi = 1000.0
 
     def nEvents(self, eventVars) :
-        self.book.fill((eventVars["susyScanM0"], eventVars["susyScanM12"]), "nEvents",
+        self.book.fill((eventVars["SimpModelScanmGL"], eventVars["SimpModelScanmLSP"]), "nEvents",
                        (self.nBinsX, self.nBinsY), (self.xLo, self.yLo), (self.xHi, self.yHi),
                        title = ";m_{mother} (GeV);m_{LSP} (GeV);N events")
 
     def ht(self, eventVars) :
         var = "%sSumEt%s"%self.cs
         value = eventVars[var] if eventVars[var] else 0.0
-        self.book.fill((eventVars["susyScanM0"], eventVars["susyScanM12"], value), var,
+        self.book.fill((eventVars["SimpModelScanmGL"], eventVars["SimpModelScanmLSP"], value), var,
                        (self.nBinsX, self.nBinsY, self.nBinsZ), (self.xLo, self.yLo, self.zLo), (self.xHi, self.yHi, self.zHi),
                        title = ";m_{mother} (GeV);m_{LSP} (GeV);%s"%var)
 
     def mht(self, eventVars) :
         var = "%sSumP4%s"%self.cs
         value = eventVars[var].pt() if eventVars[var] else 0.0
-        self.book.fill((eventVars["susyScanM0"], eventVars["susyScanM12"], value), var,
+        self.book.fill((eventVars["SimpModelScanmGL"], eventVars["SimpModelScanmLSP"], value), var,
                        (self.nBinsX, self.nBinsY, self.nBinsZ), (self.xLo, self.yLo, self.zLo), (self.xHi, self.yHi, self.zHi),
                        title = ";m_{mother} (GeV);m_{LSP} (GeV);%s"%var)
         
@@ -309,7 +330,7 @@ class smsMedianHistogrammer(analysisStep) :
             var = "%sJet%dPt%s"%(self.cs[0], i, self.cs[1])
             if len(jets)<i+1 : value = 0.0
             else :             value = jets.at(i).pt()
-            self.book.fill((eventVars["susyScanM0"], eventVars["susyScanM12"], value), var,
+            self.book.fill((eventVars["SimpModelScanmGL"], eventVars["SimpModelScanmLSP"], value), var,
                            (self.nBinsX, self.nBinsY, self.nBinsZ), (self.xLo, self.yLo, self.zLo), (self.xHi, self.yHi, self.zHi),
                            title = ";m_{mother} (GeV);m_{LSP} (GeV);%s"%var)
 
@@ -318,7 +339,7 @@ class smsMedianHistogrammer(analysisStep) :
         forwardJets = filter(lambda x:abs(x.eta())>3.0, jets)
         value = max([jet.pt() for jet in forwardJets]) if forwardJets else 0.0
         var = "%sMaxForwardJetPt%s"%self.cs
-        self.book.fill((eventVars["susyScanM0"], eventVars["susyScanM12"], value), var,
+        self.book.fill((eventVars["SimpModelScanmGL"], eventVars["SimpModelScanmLSP"], value), var,
                        (self.nBinsX, self.nBinsY, self.nBinsZ), (self.xLo, self.yLo, self.zLo), (self.xHi, self.yHi, self.zHi),
                        title = ";m_{mother} (GeV);m_{LSP} (GeV);%s"%var)
 
@@ -368,3 +389,44 @@ class smsMedianHistogrammer(analysisStep) :
         for i in range(2) :
             self.oneHisto("%sJet%dPt%s"%(self.cs[0], i, self.cs[1]), "Median pT of jet %d (GeV)"%(i+1))
 #####################################
+
+class muIsoStudy(analysisStep) :
+    def __init__(self, jets, mus ) :
+        self.jet = jets
+        self.mu = mus
+
+    def uponAcceptance(self,ev) :
+        iso = ev["%sCombinedRelativeIso%s"%self.mu]
+        mu = ev["%sP4%s"%self.mu]
+        jet = ev["%sCorrectedP4%s"%self.jet]
+        muIndices = ev["%sIndicesAnyIso%s"%self.mu]
+        jetIndices = ev["%sIndices%s"%self.jet]
+
+        for iJet in jetIndices :
+            p4 = jet.at(iJet)
+            iMuMatch = [iMu for iMu in muIndices if r.Math.VectorUtil.DeltaR(p4,mu[iMu])<0.5 ]
+            p4_ = sum( [-mu[iMu] for iMu in iMuMatch] , p4 )
+        
+            self.book.fill(len(iMuMatch), '0nMu', 5,-0.5,4.5, title = ';nMuons;jets / bin')
+
+            if len(iMuMatch) < 1 : continue
+        
+            self.book.fill( (len(iMuMatch),min(49,p4_.pt())), '1nMu_v_pt', (5,50), (-0.5,0), (4.5,50), title = ";nMuon;pT_{jet}-pT_{mu};jets / bin")
+
+            if len(iMuMatch) > 1 : continue
+
+            iMu = iMuMatch[0]
+            self.book.fill( iso[iMu], '2iso', 100, 0, 1, title = ";iso_{mu};jets / bin")
+            self.book.fill( p4_.pt(), '3pt', 50, 0, 49, title = ";pt_{jet}-pt_{mu};jets / bin")
+            self.book.fill( (min(0.9,iso[iMu]),min(49,p4_.pt())), '4iso_v_pt', (100,50), (0,0), (1,50), title = ";iso_{mu};pT_{jet}-pT_{mu};jets / bin")
+
+            label = ("iso" if iso[iMu]<0.15 else "non")
+
+            self.book.fill( (min(99,mu[iMu].pt()),min(99,p4_.pt())), "5mu_v_jet-"+label, (100,100), (0,0), (100,100), title = ";pT_{mu} (%s);pT_{jet-mu};jets / bin"%label)
+            
+
+            if p4_.pt() < 20 : continue
+            self.book.fill( (min(0.9,iso[iMu]), min(3.9,mu[iMu].pt() / p4_.pt())), "6iso_v_ptr", (100,50), (0,0), (1,4), title = ";iso_{mu}; pT_{mu} / (pT_{jet}-pT_{mu});jets / bin"  )
+            self.book.fill(  min(3.9,mu[iMu].pt() / p4_.pt()), "7ptr-"+label, 50, 0, 4, title = ";(%s) pT_{mu} / (pT_{jet}-pT_{mu});jets / bin"%label  )
+
+            

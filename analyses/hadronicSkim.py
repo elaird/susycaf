@@ -13,6 +13,12 @@ class hadronicSkim(supy.analysis) :
     def listOfSteps(self, params) :
         stepList = [
             supy.steps.printer.progressPrinter(2,300),
+            supy.steps.filters.multiplicity("genIndicesStatus1MuPlus", min = 1),
+            supy.steps.filters.multiplicity("genIndicesStatus1MuMinus", min = 1),
+            supy.steps.filters.multiplicity("genIndicesStatus3Z", min = 1, max = 1),
+            supy.steps.histos.mass("genP4", 100, 0, 200, index = 0, indices = "genIndicesStatus3Z", xtitle="Z_{m} (GeV)"),
+            supy.steps.filters.mass("genP4", index = 0, indices = "genIndicesStatus3Z", min = 65, max = 110),
+            supy.steps.histos.value("xcak5JetSumEtPat",100,0,500,xtitle="H_{T} (GeV)"),
             steps.jet.htSelector(nameList(params["recoAlgos"], "jet"), 250.0),
             supy.steps.other.skimmer(),
             ]
@@ -42,25 +48,27 @@ class hadronicSkim(supy.analysis) :
         for obj in dict(params["recoAlgos"]).values() :
             outList += self.calcListJet(obj)
 
+        outList += [calculables.gen.genIndices( pdgs = [13], label = "Status1MuPlus", status = [1]),
+                    calculables.gen.genIndices( pdgs = [-13], label = "Status1MuMinus", status = [1]),
+                    calculables.gen.genIndices( pdgs = [23], label = "Status3Z", status = [3]),
+                    ]
         return outList
     
     def listOfSamples(self, params) :
         from supy.samples import specify
         out = []
-
-        out += specify(names = "dyll_jets_mg_summer11_mumuSkim")
-        out += specify(names = "tt_jets_mg_tauola_summer11_mumuSkim")
-
-        out += specify(names = "DoubleMu.Run2011A-05Aug2011-v1.AOD.job663_skim"  )
-        out += specify(names = "DoubleMu.Run2011A-May10ReReco-v1.AOD.job662_skim")
-        out += specify(names = "DoubleMu.Run2011A-PromptReco-v4.AOD.job664_skim" )
-        out += specify(names = "DoubleMu.Run2011A-PromptReco-v6.AOD.job665_skim" )
-        out += specify(names = "DoubleMu.Run2011B-PromptReco-v1.AOD.job666_skim" )
-        
+        out += specify("DYJetsToLL_M-50.job173", markerStyle = 20)
         return out
 
     def listOfSampleDictionaries(self) :
-        return [samples.mc, samples.mumu]
+        return [samples.photon17]
 
     def conclude(self, config) :
-        supy.utils.io.printSkimResults(self.organizer(config))
+        org = self.organizer(config)
+        supy.utils.io.printSkimResults(org)
+
+        supy.plotter(org,
+                     pdfFileName = self.pdfFileName(org.tag),
+                     blackList = ["lumiHisto","xsHisto","nJobsHisto",],
+                     ).plotAll()
+

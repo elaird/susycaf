@@ -73,7 +73,7 @@ class tpLook(analysis.analysis) :
         _etRatherThanPt = params["etRatherThanPt"]
 
         outList=[
-            steps.progressPrinter(),
+            supy.steps.printer.progressPrinter(),
             
             steps.preIdJetPtSelector(_jet,100.0,0),
             steps.preIdJetPtSelector(_jet,100.0,1),

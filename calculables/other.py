@@ -1,4 +1,5 @@
-from supy import wrappedChain,utils,configuration
+from supy import wrappedChain,utils
+import configuration
 import math,ROOT as r
 try:
     import numpy as np
@@ -11,22 +12,6 @@ class ecalDeadTowerIsBarrel(wrappedChain.calculable) :
     def update(self,ignored) : self.value = map( self.isBarrel, self.source["ecalDeadTowerTrigPrimP4"] )
     def isBarrel(self, p4) : return abs(p4.eta()) < self.etaBE
 #####################################
-class lowestUnPrescaledTrigger(wrappedChain.calculable) :
-    def __init__(self, sortedListOfPaths = []) :
-        self.sortedListOfPaths = sortedListOfPaths
-        self.cached = dict()
-        self.moreName = "lowest unprescaled of "+','.join(self.sortedListOfPaths).replace("HLT_","")
-        
-    def update(self, ignored) :
-        key = (self.source["run"],self.source["lumiSection"])
-        if key not in self.cached :
-            self.cached[key] = None
-            for path in self.sortedListOfPaths :
-                if self.source["prescaled"][path]==1 :
-                    self.cached[key] = path
-                    break
-        self.value = self.cached[key]
-##############################
 class pthatLess(wrappedChain.calculable) :
     def __init__(self, maxPtHat = None) :
         self.fixes = ("","%d"%maxPtHat)

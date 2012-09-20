@@ -1,12 +1,42 @@
 from supy import wrappedChain,utils
 import bisect,math, ROOT as r
 ##############################
+class xcJet_SingleLepton(wrappedChain.calculable) :
+
+    @property
+    def name(self) : return self.name_
+
+    def __init__(self, xcjets = None, leptons = None, indices = None, jesAbs = 1, jesRel = 0) :
+        self.name_ = "CorrectedP4".join(xcjets)
+        self.p4jet = self.name_[2:]
+        self.p4lep = "P4".join(leptons)
+        self.indices = indices.join(leptons)
+        self.moreName = self.p4jet +" without " + self.p4lep + self.indices.join(['[','[0]]'])
+        self.jesAbs,self.jesRel = jesAbs,jesRel
+        if jesAbs!=1 or jesRel!=0 :
+            self.moreName2 += "jes corr: %.2f*(1+%.2f|eta|) data only"%(jesAbs,jesRel)
+
+
+    def jes(self, p4) :
+        return  ( p4 if not (self.source['isRealData'] and (self.jesAbs!=1 or self.jesRel!=0)) else
+                  p4 * self.jesAbs*(1+self.jesRel*abs(p4.eta())) )
+
+    def update(self,_) :
+        jets = self.source[self.p4jet]
+        iLep = next(iter(self.source[self.indices]), None )
+        lep =  self.source[self.p4lep][iLep] if iLep>None else None
+        self.value = utils.vector()
+        for iJet in range(len(jets)) :
+            jet = jets[iJet]
+            self.value.push_back( self.jes( next( j if j.M()>0 else utils.LorentzV(1,jet.eta(),jet.phi(),0) for j in [jet - lep])
+                                            if lep and 0.5>r.Math.VectorUtil.DeltaR(jet,lep) else
+                                            jet ) )
+##############################
 class xcJet(wrappedChain.calculable) :
     @property
     def name(self) : return "%sCorrectedP4%s"%self.xcjets
 
     def __init__(self,xcjets = None, applyResidualCorrectionsToData = None,
-                 applyResidualCorrectionBug = False,
                  gamma    = None, gammaDR    = 0,
                  electron = None, electronDR = 0,
                  muon     = None, muonDR     = 0,
@@ -14,9 +44,10 @@ class xcJet(wrappedChain.calculable) :
                  jesAbs = 1,
                  jesRel = 0 ) :
         self.value = utils.vector()
-        self.jetP4Source = ("%sCorrectedP4%s"%xcjets)[2:]
+        self.jetP4Source = "CorrectedP4".join(xcjets)[2:]
+        if applyResidualCorrectionsToData : print "WARNING: you are applying Spring10 Residual corrections to data!"
 
-        for item in ["xcjets", "applyResidualCorrectionsToData", "applyResidualCorrectionBug", "correctForMuons", "jesAbs", "jesRel"] :
+        for item in ["xcjets", "applyResidualCorrectionsToData", "correctForMuons", "jesAbs", "jesRel"] :
             setattr(self, item, eval(item))
 
         self.other = dict( [ (i,(eval(i),eval(i+"DR"))) for i in ["gamma","electron","muon"]] )
@@ -25,9 +56,8 @@ class xcJet(wrappedChain.calculable) :
         if jesAbs!=1.0 or jesRel!=0.0:
             self.moreName2 += "jes corr: %.2f*(1+%.2f|eta|)"%(jesAbs,jesRel)
 
-    def resPtFactor(self, index, pt, applyBug = False) :
+    def resPtFactor(self, index, pt) :
         p = self.source[self.resCorr]["p"][index]
-        if applyBug : return p[0]
         return p[0]-abs(p[1])*math.atan( math.log10( min(1.0, pt/p[2]) ) )
     
     def resFactor(self, p4) :
@@ -35,8 +65,8 @@ class xcJet(wrappedChain.calculable) :
             etaLo = self.source[self.resCorr]["etaLo"]
             etaHi = self.source[self.resCorr]["etaHi"]
             index = max(0, bisect.bisect(etaLo, p4.eta())-1)
-            if index==0 or index==len(etaLo)-1 or self.applyResidualCorrectionBug : 
-                return self.resPtFactor(index, p4.pt(), applyBug = self.applyResidualCorrectionBug)
+            if index==0 or index==len(etaLo)-1 :
+                return self.resPtFactor(index, p4.pt())
             else :
                 args = (p4.eta(),
                         [(etaLo[i]+etaHi[i])/2.0      for i in range(index-1, index+2)],

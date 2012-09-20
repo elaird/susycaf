@@ -1,31 +1,82 @@
-import math,itertools,ROOT as r, numpy as np
-from supy import analysisStep,steps
+import math,itertools,ROOT as r
+from supy import analysisStep,steps,calculables
+try:
+    import numpy as np
+    import scipy.stats
+except:  pass
+
 #####################################
 
-class jetPrinter(analysisStep) :
-    def __init__(self, jets) : self.jets = jets
+class channelClassification(analysisStep) :
+    labels = ['','ee','mm','tt','em','et','mt','ej','mj','tj','jj']
+    nbins = len(labels)
+
     def uponAcceptance(self,ev) :
+        iBin = self.labels.index(ev['ttDecayMode'])
+        if iBin :
+            self.book.fill( iBin, 'ttDecayMode', self.nbins, 0, self.nbins, xAxisLabels = self.labels )
+
+#####################################
+class jetPrinter(analysisStep) :
+    def uponAcceptance(self,ev) :
+        jets = ev['TopJets']['fixes']
         iTT = ev['genTTbarIndices']
         gen = ev['genP4']
-        print 'gen b,bbar,q*'
-        for i in [iTT['b'],iTT['bbar']]+iTT['q'] :
+        print 'mu,gen b,bbar,q*'
+        for i in [max(iTT['lminus'],iTT['lplus']),iTT['b'],iTT['bbar']]+iTT['q'] :
+            if i==None :
+                print "--"
+                continue
             p4 = gen[i]
             print ("\t%.0f\t%+.1f\t%+.1f")%(p4.pt(),p4.eta(),p4.phi())
         print 'jet'
-        for i in ev['%sIndices%s'%self.jets] :
-            p4 = ev['%sCorrectedP4%s'%self.jets][i]
-            print 'b' if i in ev['%sIndicesGenB%s'%self.jets] else '',
-            print 'q' if i in ev['%sIndicesGenWqq%s'%self.jets] else '',
+        fPU = ev['%sPileUpPtFraction%s'%jets]
+        for i in ev['%sIndices%s'%jets] :
+            p4 = ev['%sCorrectedP4%s'%jets][i]
+            print i, '\t',
+            print 'b' if i in ev['%sIndicesGenB%s'%jets] else '',
+            print 'q' if i in ev['%sIndicesGenWqq%s'%jets] else '',
             print ("\t%.0f\t%+.1f\t%+.1f")%(p4.pt(),p4.eta(),p4.phi()),
-            print 'p' if i==ev['%sIndicesGenTopPQHL%s'%self.jets][0] else '',
-            print 'q' if i==ev['%sIndicesGenTopPQHL%s'%self.jets][1] else '',
-            print 'h' if i==ev['%sIndicesGenTopPQHL%s'%self.jets][2] else '',
-            print 'l' if i==ev['%sIndicesGenTopPQHL%s'%self.jets][3] else ''
-        if ev['%sIndicesOther%s'%self.jets] : print '-id'
-        for i in ev['%sIndicesOther%s'%self.jets] :
-            p4 = ev['%sCorrectedP4%s'%self.jets][i]
+            print "  %.2f  "%fPU[i] ,
+            print 'p' if i==ev['%sIndicesGenTopPQHL%s'%jets][0] else '',
+            print 'q' if i==ev['%sIndicesGenTopPQHL%s'%jets][1] else '',
+            print 'h' if i==ev['%sIndicesGenTopPQHL%s'%jets][2] else '',
+            print 'l' if i==ev['%sIndicesGenTopPQHL%s'%jets][3] else '',
+            print 'g' if i in ev['%sIndicesGenTopExtra%s'%jets] else ''
+        if ev['%sIndicesOther%s'%jets] : print '-id'
+        for i in ev['%sIndicesOther%s'%jets] :
+            p4 = ev['%sCorrectedP4%s'%jets][i]
             print ("\t%.0f\t%+.1f\t%+.1f")%(p4.pt(),p4.eta(),p4.phi())
-            print
+        print
+#####################################
+class pileupJets(analysisStep) :
+    def uponAcceptance(self,ev) :
+        xcjets = ev['TopJets']['fixes']
+        jets = ev['TopJets']['fixesStripped']
+        indices = ev['Indices'.join(xcjets)]
+        indicesPU = ev['IndicesGenPileup'.join(xcjets)]
+        p4 = ev['CorrectedP4'.join(xcjets)]
+        n = ev['CountwithPrimaryHighPurityTracks'.join(jets)]
+        nPU = ev['CountwithPileUpHighPurityTracks'.join(jets)]
+        puPtFrac = ev['PileUpPtFraction'.join(xcjets)]
+
+        for i in indices :
+            eta = abs(p4[i].eta())
+            label = "pileup" if i in indicesPU else "primary"
+            label2 = ('inner' if eta<1.9 else 'middle' if eta<2.6 else 'outer')  + '_' +  label
+            if "outer" in label2 : continue
+
+            self.book.fill( p4[i].pt(), "pT_"+label, 50, 0, 100, title = ';p_{T};jets / bin')
+            self.book.fill( n[i], "ntracks_%s"%label2, 30, 0, 30, title = ';ntracks (%s);jets / bin'%label2 )
+            self.book.fill( puPtFrac[i], "pileupPtFrac_%s"%label2, 50, 0, 1, title = ';pileup Pt Fraction (%s);jets / bin'%label2)
+
+        indicesPrimary = [i for i in indices if i not in indicesPU]
+        if len(indicesPrimary) :
+            iMaxPrimary = max(indicesPrimary, key = puPtFrac.__getitem__)
+            eta = abs(p4[iMaxPrimary].eta())
+            label = ('inner' if eta<1.9 else 'middle' if eta<2.6 else 'outer')  + '_' +  'primaryMax'
+            self.book.fill(puPtFrac[iMaxPrimary], "pileupPtFrac_%s"%label, 50, 0, 1, title = ';pilup Pt Fraction (%s);events / bin'%label)
+
 #####################################
 class Asymmetry(analysisStep) :
     def __init__(self, collection, bins = 18 ) :
@@ -48,6 +99,18 @@ class Asymmetry(analysisStep) :
         self.book.fill( ev[self.DirectedDeltaYttbar], 'ttbarSignedDeltaY', self.bins, -4, 4, title = ';sumP4dir * #Delta Y_{ttbar};events / bin' )
         self.book.fill( ev[self.DirectedDeltaYLHadt], 'lHadtDeltaY',       self.bins, -4, 4, title = ';sumP4dir * #Delta Y_{lhadt};events / bin')
         #self.book.fill( ev[self.Beta],                'ttbarBeta',         self.bins, -math.sqrt(2), math.sqrt(2), title = ';#beta_{ttbar};events / bin')
+        self.book.fill( ev["TTbarSignExpectation"], 'ttbarSignExpectation', self.bins, -1, 1, title = ";<sign #Delta y>_{t#bar{t}};events / bin" )
+#####################################
+class signCheck(analysisStep) :
+    def uponAcceptance(self,ev) :
+        if ev["isRealData"] : return
+        if not ev["genQQbar"] : return
+        if not ev["genTopTTbar"] : return
+        genTT_DDY = ev["genTopDirectedDeltaYttbar"]
+        signGenTT_DDY = 1 if genTT_DDY > 0 else -1 if genTT_DDY<0 else 0
+        self.book.fill( ev["TTbarSignExpectation"] * signGenTT_DDY, "TTbarSignExpectation_trueSign", 41, -1, 1, title = ";<sign #Delta y>_{t#bar{t}} . trueSign;events / bin")
+        self.book.fill( ev["TTbarSignExpectation"] * signGenTT_DDY, "TTbarSignExpectation_trueSign_2bin", 2, -1, 1, title = ";<sign #Delta y>_{t#bar{t}} . trueSign;events / bin")
+
 #####################################
 class Spin(analysisStep) :
     def __init__(self, collection) :
@@ -69,16 +132,18 @@ class kinFitLook(analysisStep) :
     def __init__(self,indexName) : self.moreName = indexName
     def uponAcceptance(self,ev) :
         index = ev[self.moreName]
+        if index<0 : return
         topReco = ev["TopReconstruction"][index]
         residuals = topReco["residuals"]
         lepTopM = topReco['lepTopP4'].M()
         hadTopM = topReco['hadTopP4'].M()
-        lepWM = topReco['lepW'].M()
-        hadWM = topReco['hadW'].M()
-        rawHadWM = topReco['hadWraw'].M()
+        #lepWM = topReco['lepW'].M()
+        #hadWM = topReco['hadW'].M()
+        #rawHadWM = topReco['hadWraw'].M()
 
         for name,val in residuals.iteritems() :
-            self.book.fill(val, "topKinFit_residual_%s"%name+self.moreName, 50,-7,7, title = ";residual %s;events / bin"%name)
+            self.book.fill(val, "residual_%s"%name+self.moreName, 50,-7,7, title = ";residual %s;events / bin"%name)
+            self.book.fill(scipy.stats.norm.cdf(val), "residualCDF_%s"%name+self.moreName, 100,0,1, title = ";cdf(residual) %s;events / bin"%name)
 
         #self.book.fill( (topReco["dS"],topReco["dL"]), "topKinFit_DSoverDL"+self.moreName, (100,100), (0,0), (30,30), title = ";ds;dL;events / bin")
         #self.book.fill( (topReco["sigmaS"],topReco["sigmaL"]), "topKinFit_SigmaSoverSigmaL"+self.moreName, (100,100), (0,0), (30,30), title = ";#sigma_{s};#sigma_{L};events / bin")
@@ -111,7 +176,7 @@ class kinFitLook(analysisStep) :
 class combinatorialFiltering(analysisStep) :
     def __init__(self,jets=None) :
         for item in ["IndicesBtagged","CorrectedP4","IndicesGenTopPQHL","ComboPQBDeltaRawMassWTop"] :
-            setattr(self, item, ("%s"+item+"%s")%jets )
+            setattr(self, item, item.join(jets) )
         theta = math.pi/6
         self.ellipseR = np.array([[math.cos(theta),-math.sin(theta)],[math.sin(theta), math.cos(theta)]])
         
@@ -137,13 +202,10 @@ class combinatorialFiltering(analysisStep) :
                 self.book.fill( (min(rawMs[0],150),min(rawMs[1],250)), "combo_raw_m_%s_%s"%(tag,ptag), (100,150),(-80,-150),(180,300), title = ";(%s) #Delta raw hadronic W mass;(%s) #Delta raw hadronic top mass;events / bin"%(tag,tag) )
 
 class combinatorialFrequency(analysisStep) :
-    def __init__(self,jets=None) :
-        self.jets = jets
-        self.IndicesGenTopPQHL = "%sIndicesGenTopPQHL%s"%jets
-
     def uponAcceptance(self,ev) :
+        if not ev['genTopTTbar'] : return
         recos = ev['TopReconstruction']
-        iP,iQ,iH,iL = ev[self.IndicesGenTopPQHL]
+        iP,iQ,iH,iL = ev['IndicesGenTopPQHL'.join(ev['TopJets']['fixes'])]
 
         igen=ev['genTopRecoIndex']
 
@@ -219,20 +281,33 @@ class topProbLook(analysisStep) :
         self.book.fill(maxProb, "TopComboMaxProbability", 100,0,1, title = ';TopComboMaxProbability;events / bin')
         self.book.fill((maxProb,multiplicity), "TopComboMaxProbabilityLen"+self.indices, (100,10), (0,-0.5), (1,9.5), title = ';TopComboMaxProbability;jet multiplicity;events / bin')
 #####################################
+class kinematics(analysisStep) :
+    def __init__(self,indexName) : self.moreName = indexName
+    def uponAcceptance(self,ev) :
+        index = ev["%sRecoIndex"%self.moreName]
+        if index < 0 : return
+        #topReco = ev["TopReconstruction"][index]
+
+        mass = ev["%sTtxMass"%self.moreName]
+        self.book.fill(mass , "TTX.mass", 70,300,1000, title = ";ttx invariant mass;events / bin")
+#####################################
 class resolutions(analysisStep) :
     def __init__(self,indexName) : self.moreName = indexName
     def uponAcceptance(self,ev) :
+        genTTbar = ev["genTopTTbar"]
+        if not genTTbar : return
+
         topReco = ev["TopReconstruction"]
 
         index = ev[self.moreName]
         self.book.fill(index, self.moreName, 21, -1.5, 19.5, title = ';%s;events / bin'%self.moreName)
+        if index<0 : return
+        
+        if ev['genTTbarIndices']['semi'] :
+            for s in ['lep','nu','bLep','bHad','q'] :
+                self.book.fill(ev['%sDeltaRTopRecoGen'%s][index], s+'DeltaRTopRecoGen', 50,0,2, title = ';%s DeltaR reco gen;events / bin'%s)
+        
 
-        for s in ['lep','nu','bLep','bHad','q'] :
-            self.book.fill(ev['%sDeltaRTopRecoGen'%s][index], s+'DeltaRTopRecoGen', 50,0,2, title = ';%s DeltaR reco gen;events / bin'%s)
-
-
-        genTTbar = ev["genTopTTbar"]
-        if not genTTbar : return
         iX = ev['genTopIndicesX']
 
         self.book.fill(len(iX), "multiplicity_iX", 5, -0.5, 4.5, title = ";n extra hard;events / bin")
@@ -245,16 +320,23 @@ class resolutions(analysisStep) :
         self.book.fill( topReco[index]['ttx'].mass() - gsP4.mass(), "resolution_m", 100, -100, 100, title = ";%s #Delta_{reco-gen} ttx.m;events / bin"%self.moreName )
 
         iLep = min(0,topReco[index]["lepCharge"])
+        gen =  (ev["genP4"][genTTbar[0]], ev["genP4"][genTTbar[1]])
+        reco = (topReco[index]['top'],topReco[index]['tbar'])
+        unfit = (topReco[index]['lepTraw'], topReco[index]['hadTraw'])[::topReco[index]["lepCharge"]]
+
+        self.book.fill( (min(1.99,r.Math.VectorUtil.DeltaR(reco[iLep],gen[iLep])),
+                         min(1.99,r.Math.VectorUtil.DeltaR(reco[not iLep],gen[not iLep]))), "deltaR_lepvhad", (50,50), (0,0), (2,2), title = ";lep top #Delta R_{reco gen};had top #Delta R_{reco gen}; events / bin"  ) 
 
         for func in ['Rapidity','eta'] :
-            gen = (getattr(ev["genP4"][genTTbar[0]],func)(), getattr(ev["genP4"][genTTbar[1]],func)())
-            reco = (getattr(topReco[index]['top'],func)(),getattr(topReco[index]['tbar'],func)())
-            unfit = (getattr(topReco[index]['lepTraw'],func)(), getattr(topReco[index]['hadTraw'],func)())[::topReco[index]["lepCharge"]]
-            for f,fit in [('fit',reco),('unfit',unfit)] :
-                self.book.fill( fit[iLep]     - gen[iLep],       "d%sLepTop_%s"%(func,f), 100,-1,1, title=";lep top #Delta %s_{%s reco gen};events / bin"%(func,f))
-                self.book.fill( fit[not iLep] - gen[not iLep],   "d%sHadTop_%s"%(func,f), 100,-1,1, title=";had top #Delta %s_{%s reco gen};events / bin"%(func,f))
-                self.book.fill( fit[0]-fit[1] - (gen[0]-gen[1]), "dd%sTTbar_%s"%(func,f), 100,-1,1, title = ";#Delta %s_{t#bar{t} %s reco}-#Delta %s_{t#bar{t} gen};events / bin"%(func,f,func))
+            genFunc = (getattr(gen[0],func)(), getattr(gen[1],func)())
+            recoFunc = (getattr(reco[0],func)(),getattr(reco[1],func)())
+            unfitFunc = (getattr(unfit[0],func)(), getattr(unfit[1],func)())
+            for f,fit in [('fit',recoFunc),('unfit',unfitFunc)] :
+                self.book.fill( fit[iLep]     - genFunc[iLep],       "d%sLepTop_%s"%(func,f), 100,-1,1, title=";lep top #Delta %s_{%s reco gen};events / bin"%(func,f))
+                self.book.fill( fit[not iLep] - genFunc[not iLep],   "d%sHadTop_%s"%(func,f), 100,-1,1, title=";had top #Delta %s_{%s reco gen};events / bin"%(func,f))
+                self.book.fill( fit[0]-fit[1] - (genFunc[0]-genFunc[1]), "dd%sTTbar_%s"%(func,f), 100,-1,1, title = ";#Delta %s_{t#bar{t} %s reco}-#Delta %s_{t#bar{t} gen};events / bin"%(func,f,func))
 
+        
         #iHad = max(0,topReco[index]["lepCharge"])
         #genLepY = ev['genP4'][max(ev['genTTbarIndices'][item] for item in ['lplus','lminus'])].Rapidity()
         #self.book.fill( recoY[iHad] - topReco[index]['lep'].Rapidity() - (genY[iHad]-genLepY), "ddRapidityLHadTop", 100,-1,1, title = ";#Delta y_{l-htop reco}-#Delta y_{l-htop gen};events / bin")
@@ -481,3 +563,88 @@ class mcTruthAsymmetryBinned(analysisStep) :
         r.gROOT.cd()
         file.Close()
         #print "Output updated with %s."%asymmByBinVar.GetName()
+######################
+class collisionType(calculables.secondary) :
+    def uponAcceptance(self,ev) :
+        id = ev['genPdgId']
+        iHard = ev['genIndicesHardPartons']
+        iQs = [i for i in iHard if id[i]!=21]
+        nGlu = 2 - len(iQs)
+        self.book.fill(nGlu, 'nCollidingGluons', 3,-0.5,2.5, title = ';N colliding gluons;events / bin')
+        glubar = nGlu==1 and filter(lambda i: id[i]<0,iHard)
+        self.book.fill(ev['genCosThetaStar'],'cosThetaStar_%dglu'%nGlu + ('bar' if glubar else ''), 100,-1,1,
+                       title = ";cos#theta* (%d glu)%s;events / bin"%(nGlu,'(bar)' if glubar else ''))
+        self.book.fill(ev['genCosThetaStarBar'],'cosThetaStarBar_%dglu'%nGlu + ('bar' if glubar else ''), 100,-1,1,
+                       title = ";cos#bar{#theta}* (%d glu)%s;events / bin"%(nGlu,'(bar)' if glubar else ''))
+        p4 = ev['genP4']
+        system = p4[iHard[0]]+p4[iHard[1]]
+        self.book.fill( system.E(), 'sqrtshat_%dglu'%nGlu, 100,0,2000, title = ';#sqrt{#hat{s}} (%d colliding gluons);events / bin'%nGlu )
+
+        iQ = max(iQs, key = lambda i : id[i]) if nGlu!=2 else iHard[0]
+        self.book.fill( system.z() * (1 if p4[iQ].z() > 0 else -1) * (-1 if glubar else 1), 'systemZbyQdir_%dglu'%nGlu, 100,-3000,3000,
+                        title = ";(p_{z} system) * sign(p_{z} quark) , %d colliding gluons;events / bin"%nGlu )
+
+    def organize(self,org) : org.scale(5000)
+
+    def reportCache(self) :
+        fileName = '/'.join(self.outputFileName.split('/')[:-1]+[self.name])
+        optstat = r.gStyle.GetOptStat()
+        r.gStyle.SetOptStat(0)
+        c = r.TCanvas()
+        c.Print(fileName+'.pdf[')
+
+        samples = ['ttj_mg','ttj_mn','ttj_ph']
+        colors = [r.kBlack,r.kBlue,r.kRed]
+        names = [(0,''),(1,''),(1,'bar'),(2,'')]
+        for name in names :
+            pattern = 'cosThetaStar%s'+'_%dglu%s'%name
+            hists = self.fromCache( samples, [pattern%'',pattern%'Bar'])
+            toDraw = []
+            for s in samples :
+                hdiff = hists[s][pattern%''].Clone('diff')
+                hsum = hists[s][pattern%''].Clone('sum')
+                hdiff.Add(hists[s][pattern%'Bar'],-1)
+                hsum.Add(hists[s][pattern%'Bar'])
+                hdiff.SetLineColor(colors[samples.index(s)])
+                hdiff.SetTitle('N_{t}-N_{#bar{t}}')
+                hperc = hdiff.Clone('perc')
+                hperc.Divide(hsum)
+                hperc.GetYaxis().SetTitle('\%')
+                hperc.SetTitle('(N_{t}-N_{#bar{t}}) / (N_{t}+N_{#bar{t}})')
+                toDraw+=[(hdiff,hperc)]
+            for i,(h,_) in enumerate(sorted(toDraw, key = lambda hh : hh[0].GetMaximum(), reverse = True)) : h.Draw('hist' + ('same' if i else ''))
+            c.Print(fileName+'.pdf')
+            for i,(_,h) in enumerate(sorted(toDraw, key = lambda hh : hh[1].GetMaximum(), reverse = True)) : h.Draw('hist' + ('same' if i else ''))
+            c.Print(fileName+'.pdf')
+        c.Print(fileName+'.pdf]')
+        r.gStyle.SetOptStat(optstat)
+        print "Wrote file: %s.pdf"%fileName
+
+
+class mcQuestions(analysisStep) :
+
+    def uponAcceptance(self,ev) :
+        p4 = ev['genP4']
+        id = ev['genPdgId']
+        status = ev['genStatus']
+        iQ,iQbar = ev['genQQbar']
+        iT,iTbar = ev['genTopTTbar']
+        qqbar = p4[iQ] + p4[iQbar]
+        ttbar = p4[iT] + p4[iTbar]
+        qqcmzboost = r.Math.BoostZ( qqbar.BoostToCM().z() )
+        beta = qqbar.BoostToCM()
+        qqcmboost = r.Math.Boost( beta.x(), beta.y(), beta.z() )
+        glus = [i for i in range(iT,len(id)) if id[i]==21 and p4[i].pt() and status[i]==3]
+        nglu = len(glus)
+        qqbarMttbar = qqbar - ttbar
+
+        self.book.fill(nglu, 'N gluons', 5,-0.5,4.5, title = 'N gluons')
+        self.book.fill(qqbar.pt() , 'qqbarpt%d'%nglu, 100,0,50, title = ';q#bar{q} pt, nGlu=%d;'%nglu)
+        self.book.fill(ttbar.pt() , 'ttbarpt%d'%nglu, 100,0,50, title = ';t#bar{t} pt, nGlu=%d;'%nglu)
+        self.book.fill(sum([p4[i] for i in glus],-qqbarMttbar).pt(), 'qqbarMttbarglus%d'%nglu, 10,0,20, title = ';(q#bar{q} - t#bar{t} - glus) pt, nGlu=%d'%nglu)
+        for i in glus :
+            cmzGlu = qqcmzboost( p4[i] )
+            cmGlu  = qqcmboost( p4[i] )
+            self.book.fill(cmGlu.P(), 'cmgluP', 200,0,200, title = ';q#bar{q}cm gluP')
+            self.book.fill(cmzGlu.pt(), 'cmzgluPt', 200,0,200, title = ';q#bar{q}cm_{z} gluP_{T}')
+            self.book.fill(abs(cmzGlu.eta()), 'cmzgluAbsEta', 100,0,5.5, title = ';|cmz glu #eta|')

@@ -4,7 +4,7 @@ import os,analysis,utils,calculables,steps,samples
 
 class variableStash(analysis.analysis) :
     def listOfSteps(self,params) :
-        stepList=[ steps.Print.progressPrinter(2,300),
+        stepList=[ supy.steps.printer.progressPrinter(2,300),
                    steps.Other.collector(["susyScanM0","susyScanM12"]),
                    ]
         return stepList

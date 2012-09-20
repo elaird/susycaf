@@ -10,7 +10,7 @@ class xsLook(analysis.analysis) :
     
     def listOfSteps(self, params) :
         return [
-            steps.Print.progressPrinter(),
+            supy.steps.printer.progressPrinter(),
             steps.Gen.xsHistogrammer(tanBeta = 10.0),
             ]
     

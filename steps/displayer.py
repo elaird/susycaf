@@ -1,5 +1,7 @@
 import os,collections,copy,ROOT as r
-from supy import analysisStep,utils,configuration
+from supy import utils
+import supy
+import configuration
 #####################################
 pdgLookupExists = False
 try:
@@ -8,8 +10,9 @@ try:
 except ImportError:
     pass
 #####################################
-class displayer(analysisStep) :
-    
+from displayer_ttbar import ttbar
+#####################################
+class displayer(supy.steps.displayer) :
     def __init__(self, jets = None, met = None, muons = None, electrons = None, photons = None, taus = None,
                  recHits = None, recHitPtThreshold = -100.0, scale = 200.0, etRatherThanPt = False, doGenParticles = False, doGenJets = False,
                  doEtaPhiPlot = True, deltaPhiStarExtraName = "", deltaPhiStarCut = None, deltaPhiStarDR = None, mhtOverMetName = "",
@@ -66,18 +69,6 @@ class displayer(analysisStep) :
         self.legendDict = collections.defaultdict(int)
         self.legendList = []
 
-    def outputSuffix(self) :
-        return "_displays.root"
-    
-    def setup(self, chain, fileDir) :
-        someDir = r.gDirectory
-        self.outputFile = r.TFile(self.outputFileName, "RECREATE")
-        someDir.cd()
-
-        self.canvas = utils.canvas("canvas")
-        self.canvas.SetFixedAspectRatio()
-        self.canvasIndex = 0
-
         self.ellipse = r.TEllipse()
         self.ellipse.SetFillStyle(0)
 
@@ -109,11 +100,6 @@ class displayer(analysisStep) :
         self.metLlHisto=r.TH2D("metLlHisto",";log ( likelihood / likelihood0 ) / N varied jets;#slashE_{T};tries / bin",100,-20.0+epsilon,0.0+epsilon,100,0.0,300.0)
         self.mhtLlHisto.SetDirectory(0)
         self.metLlHisto.SetDirectory(0)
-
-    def endFunc(self, chains) :
-        self.outputFile.Write()
-        self.outputFile.Close()
-        del self.canvas
 
     def prepareText(self, params, coords) :
         self.text.SetTextSize(params["size"])
@@ -262,8 +248,9 @@ class displayer(analysisStep) :
         isPf = "PF" in jets[0]
         
         p4Vector         = eventVars['%sCorrectedP4%s'%jets]
-        corrVector       = eventVars['%sCorrFactor%s'      %jets2]
-
+        corrVector       = eventVars['%sCorrFactor%s'%jets2]
+        csv              = eventVars['%sCombinedSecondaryVertexBJetTags%s'%jets2]
+        
         if not isPf :
             jetEmfVector  = eventVars['%sEmEnergyFraction%s'%jets2]
             jetFHpdVector = eventVars['%sJetIDFHPD%s'       %jets2]
@@ -287,8 +274,8 @@ class displayer(analysisStep) :
             tight = eventVars["%sPFJetIDtight%s"%jets2]
             
         self.printText(self.renamedDesc(jets[0]+jets[1]))
-        self.printText("ID   pT  eta  phi%s"%("   EMF  fHPD  fRBX N90 corr" if not isPf else "   CHF  NHF  CEF  NEF CM corr"))
-        self.printText("-----------------%s"%("---------------------------" if not isPf else "-----------------------------"))
+        self.printText("ID   pT  eta  phi%s"%("   EMF  fHPD  fRBX N90 corr     csv" if not isPf else "   CHF  NHF  CEF  NEF CM corr     csv"))
+        self.printText("-----------------%s"%("-----------------------------------" if not isPf else "-------------------------------------"))
 
         nJets = p4Vector.size()
         for iJet in range(nJets) :
@@ -301,9 +288,9 @@ class displayer(analysisStep) :
             outString+="%5.0f %4.1f %4.1f"%(jet.pt(), jet.eta(), jet.phi())
 
             if not isPf :
-                outString+=" %5.2f %5.2f %5.2f %3d %4.2f"%(jetEmfVector.at(iJet), jetFHpdVector.at(iJet), jetFRbxVector.at(iJet), jetN90Vector.at(iJet), corrVector.at(iJet))
+                outString+=" %5.2f %5.2f %5.2f %3d %4.2f %7.3f"%(jetEmfVector.at(iJet), jetFHpdVector.at(iJet), jetFRbxVector.at(iJet), jetN90Vector.at(iJet), corrVector.at(iJet), csv.at(iJet))
             else :
-                outString+=" %5.3f %4.2f %4.2f %4.2f%3d %4.2f"%(chf.at(iJet), nhf.at(iJet), cef.at(iJet), nef.at(iJet), cm.at(iJet), corrVector.at(iJet))
+                outString+=" %5.3f %4.2f %4.2f %4.2f%3d %4.2f %7.3f"%(chf.at(iJet), nhf.at(iJet), cef.at(iJet), nef.at(iJet), cm.at(iJet), corrVector.at(iJet), csv.at(iJet))
             self.printText(outString)
 
     def printGenJets(self, eventVars, params, coords, nMax) :
@@ -923,13 +910,13 @@ class displayer(analysisStep) :
 
         if self.printExtraText :
             self.printVertices(eventVars, params = defaults, coords = {"x":x1, "y":yy}, nMax = 3)
-            self.printJets(    eventVars, params = defaults, coords = {"x":x0, "y":yy-7*s}, jets = self.jets, nMax = 7)
+            self.printJets(    eventVars, params = smaller, coords = {"x":x0, "y":yy-7*s}, jets = self.jets, nMax = 7)
 
             if self.doGenJets :
                 self.printGenJets(  eventVars, params = defaults, coords = {"x":x0,      "y":yy-18*s}, nMax = 7)
                 self.printGenParticles(eventVars,params=defaults, coords = {"x":x0+0.40, "y":yy-18*s}, nMax = 7)
             if self.jetsOtherAlgo :
-                self.printJets(     eventVars, params = defaults, coords = {"x":x0,      "y":yy-18*s}, jets = self.jetsOtherAlgo, nMax = 7)
+                self.printJets(     eventVars, params = smaller, coords = {"x":x0,      "y":yy-18*s}, jets = self.jetsOtherAlgo, nMax = 7)
             if self.photons :
                 self.printPhotons(  eventVars, params = defaults, coords = {"x":x0,      "y":yy-40*s}, photons = self.photons, nMax = 3)
             if self.electrons :
@@ -950,9 +937,7 @@ class displayer(analysisStep) :
         pad.Draw()
         return [pad]
 
-    def uponAcceptance(self, eventVars) :
-        self.canvas.Clear()
-
+    def display(self, eventVars) :
         rhoPhiPadYSize = 0.50*self.canvas.GetAspectRatio()
         rhoPhiPadXSize = 0.50
         radius = 0.4
@@ -984,32 +969,4 @@ class displayer(analysisStep) :
                                          "x2":1.0,
                                          "y2":1.0})
         
-        someDir=r.gDirectory
-        self.outputFile.cd()
-        self.canvas.Write("canvas_%d"%self.canvasIndex)
-        self.canvasIndex+=1
-        someDir.cd()
-
-    def mergeFunc(self, products) :
-        def psFromRoot(listOfInFileNames, outFileName) :
-            if not len(listOfInFileNames) : return
-            options = ""
-            dummyCanvas = utils.canvas("display")
-            dummyCanvas.Print(outFileName+"[", options)
-            for inFileName in listOfInFileNames :
-                inFile = r.TFile(inFileName)
-                keys = inFile.GetListOfKeys()
-                for key in keys :
-                    someObject = inFile.Get(key.GetName())
-                    if someObject.ClassName()!="TCanvas" : print "Warning: found an object which is not a TCanvas in the display root file"
-                    someObject.Print(outFileName, options)
-                inFile.Close()
-                os.remove(inFileName)                    
-            dummyCanvas.Print(outFileName+"]", options)
-            pdfFileName = outFileName.replace(".ps",".pdf")
-            os.system("ps2pdf "+outFileName+" "+pdfFileName)
-            os.system("gzip -f "+outFileName)
-            print "The display file \""+pdfFileName+"\" has been written."    
-        
-        psFromRoot(products["outputFileName"], self.outputFileName.replace(".root", ".ps"))
-        print utils.hyphens
+        return locals()

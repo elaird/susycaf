@@ -1,6 +1,30 @@
 import ROOT as r
 from supy import wrappedChain,utils
 ##############################
+class susyScanmGL(wrappedChain.calculable) :
+    def update(self,_) :
+        self.value = self.source["SimpModelScanmGL"]
+##############################
+class susyScanmLSP(wrappedChain.calculable) :
+    def update(self,_) :
+        self.value = self.source["SimpModelScanmLSP"]
+##############################
+class genMotherPdgId(wrappedChain.calculable) :
+    def isFake(self) : return True
+    def update(self,_) :
+        self.value = map( self.motherId, self.source["genHasMother"], self.source["genMotherStored"], self.source["genMother"])
+    def motherId(self, hasMom, momStored, mom) :
+        return 0 if not hasMom else \
+               mom if not momStored else \
+               self.source["genPdgId"].at(mom)
+##############################
+class genMotherIndex(wrappedChain.calculable) :
+    def isFake(self) : return True
+    def update(self,_) :
+        self.value = map( self.motherIndex, self.source["genHasMother"], self.source["genMotherStored"], self.source["genMother"])
+    def motherIndex(self, hasMom, momStored, mom) :
+        return -1 if not (hasMom and momStored) else mom
+##############################
 class deadEcalRegionsFromFile(wrappedChain.calculable) :
     def __init__(self) :
         self.trigPrims = r.std.vector(type(utils.LorentzV()))()
@@ -113,3 +137,12 @@ class isRealData(wrappedChain.calculable) :
     def __init__(self) : self.moreName = "absence of genpthat"
     def update(self,ignored) : self.value = not ("genpthat" in self.source)
 ##############################
+class nTracksAll(wrappedChain.calculable) :
+    def update(self,_) : self.value = sum([self.source[item] for item in ["tracksNEtaLT0p9AllTracks",
+                                                                          "tracksNEta0p9to1p5AllTracks",
+                                                                          "tracksNEtaGT1p5AllTracks"]])
+##############################
+class nTracksHighPurity(wrappedChain.calculable) :
+    def update(self,_) : self.value = sum([self.source[item] for item in ["tracksNEtaLT0p9HighPurityTracks",
+                                                                          "tracksNEta0p9to1p5HighPurityTracks",
+                                                                          "tracksNEtaGT1p5HighPurityTracks"]])
