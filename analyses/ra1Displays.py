@@ -23,18 +23,20 @@ class ra1Displays(supy.analysis) :
                  "thresholds": self.vary(dict( [("375",        (375.0, None,  100.0, 50.0)),#0
                                                 ("325_scaled", (325.0, 375.0,  86.7, 43.3)),#1
                                                 ("275_scaled", (275.0, 325.0,  73.3, 36.7)),#2
-                                                ][0:1] )),
+                                                ] )),
                  }
 
     def calcListJet(self, obj, etRatherThanPt, ptMin, lowPtThreshold, lowPtName, highPtThreshold, highPtName, htThreshold) :
         def calcList(jet, met, photon, muon, electron, muonsInJets, jetIdFlag) :
+            print "WARNING: synchronize muon addition"
             outList = [
                 calculables.xclean.xcJet(jet,
                                          gamma = photon,
                                          gammaDR = 0.5,
                                          muon = muon,
                                          muonDR = 0.5,
-                                         correctForMuons = not muonsInJets,
+                                         #correctForMuons = not muonsInJets,
+                                         correctForMuons = False,
                                          electron = electron,
                                          electronDR = 0.5),
                 calculables.jet.Indices( jet, ptMin = ptMin,           etaMax = 3.0, flagName = jetIdFlag),
@@ -94,7 +96,8 @@ class ra1Displays(supy.analysis) :
     def listOfSteps(self, params) :
         return [
             supy.steps.printer.progressPrinter(),
-            #supy.steps.filters.value("%sSumEt%s"%params["objects"]["jet"], min = 1000),
+            supy.steps.filters.value("%sSumEt%s"%params["objects"]["jet"], min = params["thresholds"][0]),
+            supy.steps.filters.value("%sSumEt%s"%params["objects"]["jet"], max = params["thresholds"][1]),
             steps.displayer.displayer(jets      = params["objects"]["jet"],
                                       muons     = params["objects"]["muon"],
                                       met       = params["objects"]["met"],
@@ -112,7 +115,7 @@ class ra1Displays(supy.analysis) :
                                       jetsOtherAlgo = params["objects"]["compJet"],
                                       recHitsOtherAlgo = params["objects"]["compRechit"],
                                       #doGenJets = True,
-                                      #prettyMode = True,
+                                      prettyMode = True,
                                       ),
             ]
     
