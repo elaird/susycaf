@@ -16,7 +16,7 @@ class displayer(supy.steps.displayer) :
     def __init__(self, jets = None, met = None, muons = None, electrons = None, photons = None, taus = None,
                  recHits = None, recHitPtThreshold = -100.0, scale = 200.0, etRatherThanPt = False, doGenParticles = False, doGenJets = False,
                  doEtaPhiPlot = True, deltaPhiStarExtraName = "", deltaPhiStarCut = None, deltaPhiStarDR = None, mhtOverMetName = "",
-                 showAlphaTMet = True, jetsOtherAlgo = None, metOtherAlgo = None, printExtraText = True, j2Factor = None,
+                 showAlphaTMet = True, jetsOtherAlgo = None, metOtherAlgo = None, recHitsOtherAlgo = None, printExtraText = True, j2Factor = None,
                  ra1Mode = True, ra1CutBits = True, prettyMode = False, tipToTail = False, triggersToPrint = [],
                  flagsToPrint = ["logErrorTooManyClusters","logErrorTooManySeeds",
                                  #"beamHaloCSCLooseHaloId","beamHaloCSCTightHaloId","beamHaloEcalLooseHaloId","beamHaloEcalTightHaloId",
@@ -31,15 +31,19 @@ class displayer(supy.steps.displayer) :
 
         for item in ["scale","jets","met","muons","electrons","photons","taus","recHits","recHitPtThreshold","doGenParticles", "doGenJets",
                      "doEtaPhiPlot","deltaPhiStarExtraName", "deltaPhiStarCut", "deltaPhiStarDR", "mhtOverMetName", "showAlphaTMet",
-                     "jetsOtherAlgo", "metOtherAlgo", "printExtraText", "j2Factor", "ra1Mode", "ra1CutBits", "prettyMode","tipToTail",
-                     "triggersToPrint", "flagsToPrint", "bThresholds"] :
+                     "jetsOtherAlgo", "metOtherAlgo", "recHitsOtherAlgo", "printExtraText", "j2Factor", "ra1Mode", "ra1CutBits", "prettyMode",
+                     "tipToTail", "triggersToPrint", "flagsToPrint", "bThresholds"] :
             setattr(self,item,eval(item))
 
         if len(self.flagsToPrint)>3 : print "WARNING: More than three flags specified in the displayer.  The list will run off the page."
         self.etaBE = configuration.detectorSpecs()["cms"]["etaBE"]
-        self.subdetectors = configuration.detectorSpecs()["cms"]["%sSubdetectors"%self.recHits] if self.recHits else []
-        self.recHitCollections = configuration.detectorSpecs()["cms"]["%sRecHitCollections"%self.recHits] if self.recHits else []
-        
+        self.subdetectors = {None: []}
+        self.recHitCollections = {None: []}
+        for rh in [self.recHits, self.recHitsOtherAlgo] :
+            if not rh : continue
+            self.recHitCollections[rh] = configuration.detectorSpecs()["cms"]["%sRecHitCollections"%rh]
+            self.subdetectors[rh] = configuration.detectorSpecs()["cms"]["%sSubdetectors"%rh]
+
         self.jetRadius = 0.7 if "ak7Jet" in self.jets[0] else 0.5
         self.genJets = "gen%sGenJetsP4"%(self.jets[0].replace("xc","")[:3])
         self.genMet  = "genmetP4True"
@@ -120,10 +124,8 @@ class displayer(supy.steps.displayer) :
 
     def printEvent(self, eventVars, params, coords) :
         self.prepareText(params, coords)
-        for message in ["Run   %#10d"%eventVars["run"],
-                        "Ls    %#10d"%eventVars["lumiSection"],
-                        "Event %#10d"%eventVars["event"],
-                        "PtHat(GeV) %#5.1f"%eventVars["genpthat"] if not eventVars["isRealData"] else "",
+        for message in ["Run %6d / Ls %6d / Event %10d"%(eventVars["run"], eventVars["lumiSection"], eventVars["event"])
+                        #"PtHat(GeV) %#5.1f"%eventVars["genpthat"] if not eventVars["isRealData"] else "",
                         ] :
             if message : self.printText(message)
         for item in self.triggersToPrint :
@@ -173,8 +175,8 @@ class displayer(supy.steps.displayer) :
         ninetyFive = eventVars["%sID95%s"%electrons]
      
         self.printText(self.renamedDesc(electrons[0]+electrons[1]))
-        self.printText("ID   pT  eta  phi  cIso")
-        self.printText("-----------------------")
+        self.printText("ID   pT  eta  phi")#  cIso")
+        self.printText("-----------------")#------")
 
         nElectrons = p4Vector.size()
         for iElectron in range(nElectrons) :
@@ -185,21 +187,20 @@ class displayer(supy.steps.displayer) :
 
             outString = "%2s"%("95" if ninetyFive[iElectron] else "  ")
             outString+="%5.0f %4.1f %4.1f"%(electron.pt(), electron.eta(), electron.phi())
-            outString+=" %5.2f"%cIso[iElectron] if cIso[iElectron]!=None else " %5s"%"-"
+            #outString+=" %5.2f"%cIso[iElectron] if cIso[iElectron]!=None else " %5s"%"-"
             self.printText(outString)
 
     def printMuons(self, eventVars, params, coords, muons, nMax) :
         self.prepareText(params, coords)
         p4Vector = eventVars["%sP4%s"     %muons]
-        tight    = eventVars["%sIDtight%s"%muons]
-        iso      = eventVars["%sCombinedRelativeIso%s"%muons]
-        tr       = eventVars["%sIsTrackerMuon%s"%muons]
+        tight    = eventVars["%sIdPog2012Tight%s"%muons]
+        iso      = eventVars["%sPfIsolationR04DeltaBCorrected%s"%muons]
         gl       = eventVars["%sIsGlobalMuon%s"%muons]
-        glpt     = eventVars["%sIDGlobalMuonPromptTight%s"%muons]
+        pf       = eventVars["%sIsPFMuon%s"%muons]
         
         self.printText(self.renamedDesc(muons[0]+muons[1]))
-        self.printText("ID   pT  eta  phi  cIso cat")
-        self.printText("---------------------------")
+        self.printText(" ID  pT  eta  phi pfIso")
+        self.printText("-----------------------")
 
         nMuons = p4Vector.size()
         for iMuon in range(nMuons) :
@@ -208,28 +209,29 @@ class displayer(supy.steps.displayer) :
                 break
             muon=p4Vector[iMuon]
 
-            outString = "%1s%1s"% (" ","T" if tight[iMuon] else " ")
-            outString+= "%5.0f %4.1f %4.1f"%(muon.pt(), muon.eta(), muon.phi())
+            outString = "%s%s%s"%("G" if gl[iMuon] else " ", "P" if pf[iMuon] else " ", "T" if tight[iMuon] else " ")
+            outString+= "%4.0f %4.1f %4.1f"%(muon.pt(), muon.eta(), muon.phi())
             outString+= " %5.2f"%(iso[iMuon]) if iso[iMuon]<100.0 else ">100".rjust(6)
-            outString+= " %s%s%s"%("T" if tr[iMuon] else " ", "G" if gl[iMuon] else " ","P" if glpt[iMuon] else " ")
 
             self.printText(outString)
 
     def printRecHits(self, eventVars, params, coords, recHits, nMax) :
         self.prepareText(params, coords)
-        
-        self.printText(self.renamedDesc("severe %sRecHits"%recHits))
-        self.printText("  det    pT  eta  phi%s"%(" sl" if recHits=="Calo" else ""))
-        self.printText("---------------------%s"%("---" if recHits=="Calo" else ""))
-        self.printText("SumPt%6.1f"%eventVars["%sRecHitSumPt"%self.recHits])
-        p4 = eventVars["%sRecHitSumP4"%self.recHits]
-        self.printText("SumP4%6.1f %4.1f %4.1f"%(p4.pt(), p4.eta(), p4.phi()))
+
+        self.printText(self.renamedDesc("%s %sRecHits"%("severe" if recHits=="Calo" else "cleaned", recHits)))
+        self.printText("  det  pT  eta  phi%s"%(" sl" if recHits=="Calo" else ""))
+        self.printText("-------------------%s"%("---" if recHits=="Calo" else ""))
+        self.printText("SumPt%4.0f"%eventVars["%sRecHitSumPt"%recHits])
+        p4 = eventVars["%sRecHitSumP4"%recHits]
+        self.printText("SumP4%4.0f %s %4.1f"%(p4.pt(),
+                                              "%4.1f"%p4.eta() if abs(p4.eta())<10.0 else ">10.",
+                                              p4.phi()))
 
         hits = []
-        for detector in self.subdetectors :
-            for collectionName in self.recHitCollections :
-                p4Var = "rechit%s%s%s%s"%(collectionName, self.recHits, "P4",            detector)
-                slVar = "rechit%s%s%s%s"%(collectionName, self.recHits, "SeverityLevel", detector)
+        for detector in self.subdetectors[recHits] :
+            for collectionName in self.recHitCollections[recHits] :
+                p4Var = "rechit%s%s%s%s"%(collectionName, recHits, "P4",            detector)
+                slVar = "rechit%s%s%s%s"%(collectionName, recHits, "SeverityLevel", detector)
                 for iHit in range(len(eventVars[p4Var])) :
                     hit = eventVars[p4Var].at(iHit)
                     l = [hit.pt(), hit.eta(), hit.phi(), detector]
@@ -241,7 +243,7 @@ class displayer(supy.steps.displayer) :
                 self.printText("[%d more not listed]"%(len(hits)-nMax))
                 break
             outString = "%5s"%hit[3]
-            outString+="%6.1f %4.1f %4.1f"%(hit[0], hit[1], hit[2])
+            outString+="%4.0f %4.1f %4.1f"%(hit[0], hit[1], hit[2])
             if recHits=="Calo" : outString +=" %2d"%hit[4]
             self.printText(outString)
         
@@ -935,33 +937,39 @@ class displayer(supy.steps.displayer) :
         
         yy = 0.98
         x0 = 0.01
-        x1 = 0.45
+        x1 = 0.51
         self.printEvent(   eventVars, params = defaults, coords = {"x":x0, "y":yy})
 
         if self.printExtraText :
-            self.printVertices(eventVars, params = defaults, coords = {"x":x1, "y":yy}, nMax = 3)
-            self.printJets(    eventVars, params = smaller, coords = {"x":x0, "y":yy-7*s}, jets = self.jets, nMax = 7)
+            self.printJets(    eventVars, params = smaller, coords = {"x":x0, "y":yy-2*s}, jets = self.jets, nMax = 7)
 
             if self.doGenJets :
-                self.printGenJets(  eventVars, params = defaults, coords = {"x":x0,      "y":yy-18*s}, nMax = 7)
-                self.printGenParticles(eventVars,params=defaults, coords = {"x":x0+0.40, "y":yy-18*s}, nMax = 7)
+                self.printGenJets(  eventVars, params = defaults, coords = {"x":x0, "y":yy-13*s}, nMax = 7)
+                self.printGenParticles(eventVars,params=defaults, coords = {"x":x0+0.40, "y":yy-13*s}, nMax = 7)
             if self.jetsOtherAlgo :
-                self.printJets(     eventVars, params = smaller, coords = {"x":x0,      "y":yy-18*s}, jets = self.jetsOtherAlgo, nMax = 7)
-            if self.photons :
-                self.printPhotons(  eventVars, params = defaults, coords = {"x":x0,      "y":yy-40*s}, photons = self.photons, nMax = 3)
-            if self.electrons :
-                self.printElectrons(eventVars, params = defaults, coords = {"x":x0+0.50, "y":yy-40*s}, electrons = self.electrons, nMax = 3)
+                self.printJets(     eventVars, params = smaller, coords = {"x":x0,  "y":yy-13*s}, jets = self.jetsOtherAlgo, nMax = 7)
+
             if self.muons :
-                muonPars = defaults if self.prettyMode else smaller
-                self.printMuons(    eventVars, params = muonPars, coords = {"x":x0,      "y":yy-47*s}, muons = self.muons, nMax = 3)
-            if self.recHits and not self.prettyMode :
-                self.printRecHits(  eventVars, params = smaller,  coords = {"x":x0+0.52, "y":yy-47*s}, recHits = self.recHits, nMax = 3)
-            if self.flagsToPrint :
-                self.printFlags(    eventVars, params = defaults, coords = {"x":x0,      "y":yy-55*s}, flags = self.flagsToPrint)
+                self.printMuons(    eventVars, params = defaults, coords = {"x":x0, "y":yy-35*s}, muons = self.muons, nMax = 3)
+            self.printVertices(     eventVars, params = defaults, coords = {"x":x1, "y":yy-35*s}, nMax = 3)
+
+            if self.photons :
+                self.printPhotons(  eventVars, params = defaults, coords = {"x":x0, "y":yy-42*s}, photons = self.photons, nMax = 3)
+            if self.electrons :
+                self.printElectrons(eventVars, params = defaults, coords = {"x":x1, "y":yy-42*s}, electrons = self.electrons, nMax = 3)
+
+            if not self.prettyMode :
+                if self.recHits :
+                    self.printRecHits(eventVars,params = defaults,coords = {"x":x0, "y":yy-49*s}, recHits = self.recHits, nMax = 3)
+                if self.recHitsOtherAlgo :
+                    self.printRecHits(eventVars,params = defaults,coords = {"x":x1, "y":yy-49*s}, recHits = self.recHitsOtherAlgo, nMax = 3)
+
+            #if self.flagsToPrint :
+            #    self.printFlags(    eventVars, params = defaults, coords = {"x":x0, "y":yy-49*s}, flags = self.flagsToPrint)
             if self.ra1Mode :
-                self.printKinematicVariables(eventVars, params = defaults, coords = {"x":x0, "y":yy-30*s}, jets = self.jets, jets2 = self.jetsOtherAlgo)
+                self.printKinematicVariables(eventVars, params = defaults, coords = {"x":x0, "y":yy-25*s}, jets = self.jets, jets2 = self.jetsOtherAlgo)
                 if self.ra1CutBits :
-                    self.printCutBits(       eventVars, params = defaults, coords = {"x":x0, "y":yy-35*s}, jets = self.jets, jets2 = self.jetsOtherAlgo,
+                    self.printCutBits(       eventVars, params = defaults, coords = {"x":x0, "y":yy-30*s}, jets = self.jets, jets2 = self.jetsOtherAlgo,
                                          met = self.met, met2 = self.metOtherAlgo)
         self.canvas.cd()
         pad.Draw()
