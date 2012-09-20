@@ -1,10 +1,8 @@
 from supy import wrappedChain,utils
 from jet import xcStrip
 import math,operator,itertools,ROOT as r
-try:
-    import numpy as np
-except:
-    pass
+try: import numpy as np
+except: pass
 
 class TopJets(wrappedChain.calculable) :
     def __init__(self, jets ) : self.value = {"fixes":jets,"fixesStripped":xcStrip(jets)}
@@ -247,7 +245,7 @@ class Beta(wrappedChain.calculable) :
     def update(self, _) :
         self.value = self.source[self.CosThetaStarAvg] * math.sqrt(self.source[self.Alpha])
 ######################################
-class genCosThetaStar(wrappedChain.calculable) :
+class __genCosThetaStar__(wrappedChain.calculable) :
     def update(self,_) :
         '''Cosine angle between colliding and resulting particle in center of mass frame, three cases:
 
@@ -257,32 +255,21 @@ class genCosThetaStar(wrappedChain.calculable) :
         '''
         id = self.source['genPdgId']
         p4 = self.source['genP4']
-        beta = (p4[4]+p4[5]).BoostToCM()
+        iHard = self.source['genIndicesHardPartons']
+        beta = (p4[iHard[0]]+p4[iHard[1]]).BoostToCM()
         boost = r.Math.Boost(beta.x(),beta.y(),beta.z())
 
-        iQs = [i for i in [4,5] if id[i]!=21]
-        iQ = max(iQs,key=lambda i:id[i]) if iQs else 4
-        iTop = 6 if id[6]*id[iQ] > 0 else 7
+        iQs = [i for i in iHard if id[i]!=21]
+        iQ = max(iQs,key=lambda i:id[i]) if iQs else iHard[0]
+        iT = self.topOrBar(*self.source['genTopTTbar'])
 
-        self.value = r.Math.VectorUtil.CosTheta( boost(p4[iTop]), boost(p4[iQ]) )
-class genCosThetaStarBar(wrappedChain.calculable) :
-    def update(self,_) :
-        '''Cosine angle between colliding and resulting particle in center of mass frame, three cases:
-
-        case qqbar -> ttbarX : between light quark and top quark
-        case gq(bar) -> ttbarX : between light (anti)quark and top (anti)quark
-        case gg -> ttbarX : between arbitrary gluon and top quark
-        '''
-        id = self.source['genPdgId']
-        p4 = self.source['genP4']
-        beta = (p4[4]+p4[5]).BoostToCM()
-        boost = r.Math.Boost(beta.x(),beta.y(),beta.z())
-
-        iQs = [i for i in [4,5] if id[i]!=21]
-        iQ = max(iQs,key=lambda i:id[i]) if iQs else 4
-        iTbar = 6 if id[6]*id[iQ] < 0 else 7
-
-        self.value = r.Math.VectorUtil.CosTheta( boost(p4[iTbar]), boost(p4[iQ]) )
+        self.value = r.Math.VectorUtil.CosTheta( boost(p4[iT]), boost(p4[iQ]) )
+class genCosThetaStar(__genCosThetaStar__) :
+    @staticmethod
+    def topOrBar(iTop,iTbar) : return iTop
+class genCosThetaStarBar(__genCosThetaStar__) :
+    @staticmethod
+    def topOrBar(iTop,iTbar) : return iTbar
 ######################################
 class __CosThetaStar__(wrappedChain.calculable) :
     def __init__(self, collection = None, topKey = 't', boostz = "BoostZ") :
@@ -776,7 +763,7 @@ class wTopAsym(wrappedChain.calculable) :
         return ( base + x*g*self.R ) / ( base + x*g*self.R_sm )
     
     def update(self,_) :
-        x,_ = self.source['genttCosThetaStar']
+        x = self.source['genCosThetaStar']
         self.value = None if x==None else self.weight( self.source['genTopAlpha'], x )
 ######################################
 class wTopAsymConst(wTopAsym) :

@@ -223,12 +223,13 @@ class pickEventSpecMaker(analysisStep) :
                 out.write("%14d:%6d:%14d\n"%event)
         out.close()
         print "The pick events spec. file %s has been written."%self.outputFileName
+
 class deadEcalFilter(analysisStep) :
     def __init__(self, jets = None, extraName = "", dR = None, dPhiStarCut = None) :
         for item in ["jets","extraName","dR","dPhiStarCut"] :
             setattr(self,item,eval(item))
-        self.dps = "%sDeltaPhiStar%s%s"%(self.jets[0], self.jets[1], self.extraName)
-        self.deadEcalDR = "%sDeadEcalDR%s%s"%(self.jets[0], self.jets[1], self.extraName)
+        self.dps = "%sDeltaPhiStar%s%s"%(self.jets[0], self.extraName, self.jets[1])
+        self.deadEcalDR = "%sDeadEcalDR%s%s"%(self.jets[0], self.extraName, self.jets[1])
         self.moreName = "%s%s; dR>%5.3f when deltaPhiStar<%5.3f"%(self.jets[0], self.jets[1], self.dR, self.dPhiStarCut)
         
     def select(self, eventVars) :

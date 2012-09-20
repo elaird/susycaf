@@ -16,6 +16,40 @@ class preIdJetPtSelector(analysisStep) :
         if p4s.size() <= self.jetIndex : return False
         return self.jetPtThreshold <= p4s.at(self.jetIndex).pt()
 #####################################
+class mbbHistogrammer(analysisStep) :
+    def __init__(self, cs = "", drMatch = None, bZDaughters = "") :
+        self.mbbList = "%sMbbList%s"%cs
+        for item in ["cs", "drMatch", "bZDaughters"] :
+            setattr(self, item, eval(item))
+
+    def uponAcceptance(self, eventVars) :
+        mbbList = eventVars[self.mbbList]
+        nMbb = len(mbbList)
+        nb = "_2b" if nMbb==1 else "_ge3b"
+
+        for m in mbbList :
+            self.book.fill(m, self.mbbList+nb+"_orig",    50, 0.0,  500.0, title = ";m_{bb} (GeV) (%s jets);b-pair / bin"%nb)
+            self.book.fill(m, self.mbbList+nb,           120, 0.0, 1200.0, title = ";m_{bb} (GeV) (%s jets);b-pair / bin"%nb)
+            self.book.fill(m, self.mbbList+nb+"_coarse",  24, 0.0, 1200.0, title = ";m_{bb} (GeV) (%s jets);b-pair / bin"%nb)
+
+            if not nMbb==1 : continue
+            if eventVars["isRealData"] : continue
+            if len(eventVars[self.bZDaughters])!=2 : continue
+
+            nMatch = 0
+            for iJ in eventVars["%sIndicesBtagged2%s"%self.cs] :
+                for iQ in eventVars[self.bZDaughters] :
+                    dr = r.Math.VectorUtil.DeltaR(eventVars["%sCorrectedP4%s"%self.cs].at(iJ),
+                                                  eventVars["genP4"].at(iQ))
+                    match = dr<self.drMatch
+                    if match :
+                        nMatch += 1
+                        break
+                    #print "iJ=%2d, iQ=%2d, dr=%g"%(iJ,iQ, dr)
+            #self.book.fill(nMatch, self.mbbList+"_nMatch", 5, -0.5, 4.5, title = ";n gen. b(from Z) matched to reco b-jet;matches / bin")
+            if nMatch!=2 : continue
+            self.book.fill(m, self.mbbList+nb+"_both_from_Z", 50, 0.0, 500.0, title = ";m_{bb} (GeV) (2b jets, matched to b's from Z decay);events / bin")
+#####################################
 class jetPtSelector(analysisStep) :
 
     def __init__(self,cs,jetPtThreshold,jetIndex):
@@ -291,7 +325,7 @@ class alphaHistogrammer(analysisStep) :
         self.letter = "E" if etRatherThanPt else "P"
         self.fixes = (cs[0], self.letter+"t"+cs[1])
         for var in ["Sum","DeltaPseudoJet","AlphaT"] : setattr(self,var,("%s"+var+"%s")%self.fixes)
-        self.DeltaPhiStar = "%sDeltaPhiStar%s%s"% (self.cs[0], cs[1], deltaPhiStarExtraName)
+        self.DeltaPhiStar = "%sDeltaPhiStar%s%s"% (self.cs[0], deltaPhiStarExtraName, cs[1])
         self.SumP4 = "%sSumP4%s" % cs
         self.moreName = "%s%s" % cs
         

@@ -1,4 +1,4 @@
-import math,itertools,ROOT as r, numpy as np
+import math,itertools,ROOT as r
 from supy import analysisStep,steps,calculables
 try:
     import numpy as np
@@ -567,19 +567,20 @@ class mcTruthAsymmetryBinned(analysisStep) :
 class collisionType(calculables.secondary) :
     def uponAcceptance(self,ev) :
         id = ev['genPdgId']
-        nGlu = len([i for i in id[4:6] if i==21])
+        iHard = ev['genIndicesHardPartons']
+        iQs = [i for i in iHard if id[i]!=21]
+        nGlu = 2 - len(iQs)
         self.book.fill(nGlu, 'nCollidingGluons', 3,-0.5,2.5, title = ';N colliding gluons;events / bin')
-        glubar = nGlu==1 and filter(lambda i: id[i]<0,[4,5])
+        glubar = nGlu==1 and filter(lambda i: id[i]<0,iHard)
         self.book.fill(ev['genCosThetaStar'],'cosThetaStar_%dglu'%nGlu + ('bar' if glubar else ''), 100,-1,1,
                        title = ";cos#theta* (%d glu)%s;events / bin"%(nGlu,'(bar)' if glubar else ''))
         self.book.fill(ev['genCosThetaStarBar'],'cosThetaStarBar_%dglu'%nGlu + ('bar' if glubar else ''), 100,-1,1,
                        title = ";cos#bar{#theta}* (%d glu)%s;events / bin"%(nGlu,'(bar)' if glubar else ''))
         p4 = ev['genP4']
-        system = p4[4]+p4[5]
+        system = p4[iHard[0]]+p4[iHard[1]]
         self.book.fill( system.E(), 'sqrtshat_%dglu'%nGlu, 100,0,2000, title = ';#sqrt{#hat{s}} (%d colliding gluons);events / bin'%nGlu )
 
-        iQs = [i for i in [4,5] if id[i]!=21]
-        iQ = max(iQs, key = lambda i : id[i]) if nGlu!=2 else 4
+        iQ = max(iQs, key = lambda i : id[i]) if nGlu!=2 else iHard[0]
         self.book.fill( system.z() * (1 if p4[iQ].z() > 0 else -1) * (-1 if glubar else 1), 'systemZbyQdir_%dglu'%nGlu, 100,-3000,3000,
                         title = ";(p_{z} system) * sign(p_{z} quark) , %d colliding gluons;events / bin"%nGlu )
 
@@ -592,7 +593,8 @@ class collisionType(calculables.secondary) :
         c = r.TCanvas()
         c.Print(fileName+'.pdf[')
 
-        samples = ['ttj_mg','ttj_ph'][::-1]
+        samples = ['ttj_mg','ttj_mn','ttj_ph']
+        colors = [r.kBlack,r.kBlue,r.kRed]
         names = [(0,''),(1,''),(1,'bar'),(2,'')]
         for name in names :
             pattern = 'cosThetaStar%s'+'_%dglu%s'%name
@@ -603,15 +605,17 @@ class collisionType(calculables.secondary) :
                 hsum = hists[s][pattern%''].Clone('sum')
                 hdiff.Add(hists[s][pattern%'Bar'],-1)
                 hsum.Add(hists[s][pattern%'Bar'])
-                hdiff.SetLineColor(r.kRed if s=='ttj_ph' else r.kBlack)
+                hdiff.SetLineColor(colors[samples.index(s)])
                 hdiff.SetTitle('N_{t}-N_{#bar{t}}')
                 hperc = hdiff.Clone('perc')
                 hperc.Divide(hsum)
                 hperc.GetYaxis().SetTitle('\%')
                 hperc.SetTitle('(N_{t}-N_{#bar{t}}) / (N_{t}+N_{#bar{t}})')
-                toDraw+=[hdiff,hperc]
-            toDraw[0].Draw('hist'); toDraw[2].Draw('hist same'); c.Print(fileName+'.pdf')
-            toDraw[1].Draw('hist'); toDraw[3].Draw('hist same'); c.Print(fileName+'.pdf')
+                toDraw+=[(hdiff,hperc)]
+            for i,(h,_) in enumerate(sorted(toDraw, key = lambda hh : hh[0].GetMaximum(), reverse = True)) : h.Draw('hist' + ('same' if i else ''))
+            c.Print(fileName+'.pdf')
+            for i,(_,h) in enumerate(sorted(toDraw, key = lambda hh : hh[1].GetMaximum(), reverse = True)) : h.Draw('hist' + ('same' if i else ''))
+            c.Print(fileName+'.pdf')
         c.Print(fileName+'.pdf]')
         r.gStyle.SetOptStat(optstat)
         print "Wrote file: %s.pdf"%fileName
@@ -622,12 +626,15 @@ class mcQuestions(analysisStep) :
     def uponAcceptance(self,ev) :
         p4 = ev['genP4']
         id = ev['genPdgId']
-        qqbar = p4[4] + p4[5]
-        ttbar = p4[6] + p4[7]
+        status = ev['genStatus']
+        iQ,iQbar = ev['genQQbar']
+        iT,iTbar = ev['genTopTTbar']
+        qqbar = p4[iQ] + p4[iQbar]
+        ttbar = p4[iT] + p4[iTbar]
         qqcmzboost = r.Math.BoostZ( qqbar.BoostToCM().z() )
         beta = qqbar.BoostToCM()
         qqcmboost = r.Math.Boost( beta.x(), beta.y(), beta.z() )
-        glus = [i for i in range(8,12) if id[i]==21]
+        glus = [i for i in range(iT,len(id)) if id[i]==21 and p4[i].pt() and status[i]==3]
         nglu = len(glus)
         qqbarMttbar = qqbar - ttbar
 
@@ -635,10 +642,9 @@ class mcQuestions(analysisStep) :
         self.book.fill(qqbar.pt() , 'qqbarpt%d'%nglu, 100,0,50, title = ';q#bar{q} pt, nGlu=%d;'%nglu)
         self.book.fill(ttbar.pt() , 'ttbarpt%d'%nglu, 100,0,50, title = ';t#bar{t} pt, nGlu=%d;'%nglu)
         self.book.fill(sum([p4[i] for i in glus],-qqbarMttbar).pt(), 'qqbarMttbarglus%d'%nglu, 10,0,20, title = ';(q#bar{q} - t#bar{t} - glus) pt, nGlu=%d'%nglu)
-        if id[8]==21 :
-            for i in glus :
-                cmzGlu = qqcmzboost( p4[i] )
-                cmGlu  = qqcmboost( p4[i] )
-                self.book.fill(cmGlu.P(), 'cmgluP', 200,0,200, title = ';q#bar{q}cm gluP')
-                self.book.fill(cmzGlu.pt(), 'cmzgluPt', 200,0,200, title = ';q#bar{q}cm_{z} gluP_{T}')
-                self.book.fill(abs(cmzGlu.eta()), 'cmzgluAbsEta', 100,0,5.5, title = ';|cmz glu #eta|')
+        for i in glus :
+            cmzGlu = qqcmzboost( p4[i] )
+            cmGlu  = qqcmboost( p4[i] )
+            self.book.fill(cmGlu.P(), 'cmgluP', 200,0,200, title = ';q#bar{q}cm gluP')
+            self.book.fill(cmzGlu.pt(), 'cmzgluPt', 200,0,200, title = ';q#bar{q}cm_{z} gluP_{T}')
+            self.book.fill(abs(cmzGlu.eta()), 'cmzgluAbsEta', 100,0,5.5, title = ';|cmz glu #eta|')
