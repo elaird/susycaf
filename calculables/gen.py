@@ -94,6 +94,23 @@ class genSumPt(wrappedChain.calculable) :
         p4 = self.source["genP4"]
         for i in indices :
             self.value += p4.at(i).pt()
+
+class JetIndices(wrappedChain.calculable) :
+    def __init__(self, collection = None, ptMin = None, etaMax = None) :
+        self.fixes = collection
+        self.p4 = "gen%sJetsP4"%collection[0]
+        self.ptMin = ptMin
+        self.etaMax = etaMax
+        self.moreName = "pT>%g GeV; |eta|<%g"%(self.ptMin, self.etaMax)
+
+    def update(self,_) :
+        p4 = self.source[self.p4]
+        self.value = []
+        for i in range(p4.size()) :
+            jet = p4.at(i)
+            if jet.pt()<self.ptMin : continue
+            if abs(jet.eta())>self.etaMax : continue
+            self.value.append(i)
 ##############################
 class susyIniIndices(wrappedChain.calculable) :
     def __init__(self) :
@@ -111,6 +128,40 @@ class susyIniIndices(wrappedChain.calculable) :
             if utils.isSusy(self.source["genMotherPdgId"].at(iParticle)) : #whose mothers are not SUSY particles
                 continue
             self.value.append(iParticle)
+##############################
+class genIndicesStatus3Status3SusyMother(wrappedChain.calculable) :
+    def __init__(self) :
+        self.moreName = "status 3; non-SUSY; SUSY parents"
+
+    def update(self,_) :
+        self.value = []
+        if not self.source["genHandleValid"] : return
+        nParticles = len(self.source["genPdgId"])
+        for iParticle in range(nParticles) :
+            if self.source["genStatus"].at(iParticle)!=3 : #consider only status 3 particles
+                continue
+            if utils.isSusy(self.source["genPdgId"].at(iParticle)) : #which are not SUSY particles
+                continue
+            if not utils.isSusy(self.source["genMotherPdgId"].at(iParticle)) : #whose mothers are SUSY particles
+                continue
+            self.value.append(iParticle)
+##############################
+#class nonSusyFromSusySumEt(wrappedChain.calculable) :
+#    def __init__(self) : #, collection = None) :
+##        self.fixes = collection
+#        self.stash(["genIndicesStatus3Status3SusyMother","P4"])
+#    def update(self, ignored) :
+#        p4s = self.source[self.P4]
+#        indices = self.source["genIndicesStatus3Status3SusyMother"]
+#        self.value = reduce( lambda x,i: x+p4s.at(i).Et(), indices , 0)
+###############################
+class nonSusyFromSusySumP4(wrappedChain.calculable) :
+    def update(self,_) :
+        indices = self.source["genIndicesStatus3Status3SusyMother"]
+        assert len(indices)==4,indices
+        self.value = utils.LorentzV()
+        for i in indices :
+            self.value += self.source["genP4"].at(i)
 ##############################
 class susyIniSumP4(wrappedChain.calculable) :
     def update(self,_) :

@@ -6,6 +6,9 @@ top17 = SampleHolder()
 top17.add("tt_8_mg.job188", '%s/clucas//ICF/automated/2012_06_05_09_30_46/TTJets_TuneZ2star_8TeV-madgraph-tauola.Summer12-PU_S7_START52_V9-v1.AODSIM")'%pnfs, xs = 234.) #from XS twiki; in PREP, xs = 491.3
 top17.add("ttz_8_mg.job269", '%s/zmeng//ICF/automated/2012_07_20_15_24_50")'%pnfs, xs = 0.172) #xs from PREP
 top17.add("ttz_8_mg.job269_1", '["/home/elaird/susycaf/SusyCAF_Tree_11_1_7LX.root"]', xs = 0.172) #xs from PREP
+top17.add("tt_8_mg.job315", '%s/clucas/ICF/automated/2012_08_17_14_42_02/")'%pnfs, xs = 234.)
+
+top17.add("tt_1", '["/home/elaird/susycaf/SusyCAF_Tree_100_1_h3D.root"]', xs = 234.)
 
 y = '%s/yeshaq//ICF/automated/2012_06_05_02_07_12/'%pnfs
 top17.add("t_s_powheg.job200", '%s/clucas//ICF/automated/2012_06_06_18_49_32/")'%pnfs, xs = {"NNLO":5.55, "LO":2.82}["NNLO"])
