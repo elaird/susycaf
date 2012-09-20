@@ -8,6 +8,8 @@ top17.add("ttz_8_mg.job269", '%s/zmeng//ICF/automated/2012_07_20_15_24_50")'%pnf
 top17.add("ttz_8_mg.job269_1", '["/home/elaird/susycaf/SusyCAF_Tree_11_1_7LX.root"]', xs = 0.172) #xs from PREP
 top17.add("tt_8_mg.job315", '%s/clucas/ICF/automated/2012_08_17_14_42_02/")'%pnfs, xs = 234.)
 
+top17.add("tt_1", '["/home/elaird/susycaf/SusyCAF_Tree_100_1_h3D.root"]', xs = 234.)
+
 y = '%s/yeshaq//ICF/automated/2012_06_05_02_07_12/'%pnfs
 top17.add("t_s_powheg.job200", '%s/clucas//ICF/automated/2012_06_06_18_49_32/")'%pnfs, xs = {"NNLO":5.55, "LO":2.82}["NNLO"])
 top17.add("t_t_powheg.job187", '%s/T_t-channel_TuneZ2star_8TeV-powheg-tauola.Summer12-PU_S7_START52_V9-v1.AODSIM")'%y, xs = {"NNLO":56.4, "LO":47.0}["NNLO"])

@@ -477,4 +477,24 @@ class zHistogrammer(analysisStep) :
                            100, -20.0, 20.0,
                            title=";( photon%s p_{T} - MHT ) / sqrt( H_{T} + MHT )    [ %s%s ] ;events / bin"%(photonLabel,self.jetCs[0],self.jetCs[1])
                            )
-#####################################
+
+class bqDotHistogrammer(analysisStep) :
+    def f(self, x) :
+        return x/5901.2 - 1.0
+
+    def fill(self, x, y, sign = "") :
+        self.book.fill((x, y), "bqDotHistogram%s"%sign, (100, 100), (-1.5, -1.5), (1.5, 1.5),
+                       title = "W%s#rightarrowq#bar{q};(b.q)/5901.2 - 1.0;(b.#bar{q})/5901.2 - 1.0;events / bin"%sign)
+
+    def uponAcceptance (self,eventVars) :
+        p4s = eventVars["genP4"]
+        for sign in ["+","-"] :
+            b = p4s.at(eventVars["genIndicesb%s_t%sDaughters"%(sign,sign)][0])
+            i0,i1 = eventVars["genIndicesW%sDaughters"%sign]
+            if eventVars["genPdgId"][i0]>0 :
+                q    = p4s.at(i0)
+                qbar = p4s.at(i1)
+            else :
+                qbar = p4s.at(i0)
+                q    = p4s.at(i1)
+            self.fill(self.f(b.Dot(q)), self.f(b.Dot(qbar)), sign)
