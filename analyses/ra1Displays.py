@@ -6,15 +6,14 @@ class ra1Displays(supy.analysis) :
     
     def parameters(self) :
         objects = self.vary()
-        fields =                                                  [ "jet",                        "jetId",     "muonsInJets",           "met",
-                                                                    "compJet",                "compJetId", "compMuonsInJets",        "compMet",
-                                                                    "muon",                    "electron",          "photon",         "rechit"]
+        fields =                           [ "jet",                        "jetId",     "muonsInJets",           "met",      "rechit",
+                                             "compJet",                "compJetId", "compMuonsInJets",        "compMet", "compRechit",
+                                             "muon",                    "electron",          "photon"]
 
-        objects["caloAK5JetMet_recoLepPhot"]   = dict(zip(fields, [("xcak5Jet","Pat"),       "JetIDloose",             False,   "metP4TypeIPF",
-                                                                   ("xcak5JetPF","Pat"),     "JetIDtight",              True,        "metP4PF",
-                                                                   ("muon","Pat"),     ("electron","Pat"),  ("photon","Pat"),           "Calo",
-                                                                   ]))
-        
+        objects["calo"] = dict(zip(fields, [("xcak5Jet","Pat"),       "JetIDloose",             False,   "metP4TypeIPF",       "Calo",
+                                            ("xcak5JetPF","Pat"),     "JetIDtight",              True,   "metP4TypeIPF",         "PF",
+                                            ("muon","Pat"),     ("electron","Pat"),  ("photon","Pat")]))
+
         return { "objects": objects,
                  "etRatherThanPt" : True,
                  "lowPtThreshold" : 30.0,
@@ -72,6 +71,9 @@ class ra1Displays(supy.analysis) :
 
             calculables.other.RecHitSumPt(obj["rechit"]),
             calculables.other.RecHitSumP4(obj["rechit"]),
+
+            calculables.other.RecHitSumPt(obj["compRechit"]),
+            calculables.other.RecHitSumP4(obj["compRechit"]),
             calculables.vertex.ID(),
             calculables.vertex.Indices(),
             ]
@@ -106,8 +108,9 @@ class ra1Displays(supy.analysis) :
                                       deltaPhiStarDR = 0.3,
                                       j2Factor = params["thresholds"][2]/params["thresholds"][0],
                                       mhtOverMetName = "%sMht%sOver%s"%(params["objects"]["jet"][0], params["highPtName"]+params["objects"]["jet"][1], params["objects"]["met"]),
-                                      #metOtherAlgo  = params["objects"]["compMet"],
+                                      metOtherAlgo  = params["objects"]["compMet"],
                                       jetsOtherAlgo = params["objects"]["compJet"],
+                                      recHitsOtherAlgo = params["objects"]["compRechit"],
                                       #doGenJets = True,
                                       #prettyMode = True,
                                       ),
