@@ -649,7 +649,7 @@ class displayer(supy.steps.displayer) :
         pad.SetTickx()
         pad.SetTicky()
 
-        etaPhiPlot = r.TH2D("etaPhi",";#eta;#phi;",1, -3.0, 3.0, 1, -r.TMath.Pi(), r.TMath.Pi() )
+        etaPhiPlot = r.TH2D("etaPhi",";#eta;#phi;", 1, -r.TMath.Pi(), r.TMath.Pi(), 1, -r.TMath.Pi(), r.TMath.Pi() )
         etaPhiPlot.SetStats(False)
         etaPhiPlot.Draw()
 
