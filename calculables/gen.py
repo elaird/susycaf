@@ -171,6 +171,15 @@ class susyIniSumP4(wrappedChain.calculable) :
         for i in indices :
             self.value += self.source["genP4"].at(i)
 ##############################
+class SumP4(wrappedChain.calculable) :
+    def __init__(self, indices = "") :
+        self.fixes = ("", indices)
+
+    def update(self,_) :
+        self.value = utils.LorentzV()
+        for i in self.source[self.fixes[1]] :
+            self.value += self.source["genP4"].at(i)
+##############################
 class genIndicesB(wrappedChain.calculable) :
     def update(self,_) :
         ids = self.source['genPdgId']
