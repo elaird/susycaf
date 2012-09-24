@@ -1,5 +1,5 @@
 import math,itertools,ROOT as r
-from supy import analysisStep,steps,calculables
+from supy import analysisStep,steps,calculables,utils
 try:
     import numpy as np
     import scipy.stats
@@ -668,3 +668,88 @@ class mcQuestions2(analysisStep) :
 
         for ((v1,m1),(v2,m2)) in itertools.combinations(self.maxes.items(),2) :
             self.book.fill(ev[v1]*ev[v2], "product_%s_%s"%(v1,v2), 2, -m1*m2, m1*m2, title = ";%s . %s;events / bin"%(v1,v2))
+
+
+class dileptonSolver(analysisStep) :
+    def __init__(self, gen = False) :
+        self.collection = 'genTTbar4V' if gen else 'smearTTbar4V'
+    def uponAcceptance(self,ev) :
+        gen = ev['genTTbar4V']
+        smeared = ev[self.collection]
+        if not gen['lp'] and gen['lm'] : return
+
+        t,(b,wp) = smeared['t']
+        t_,(b_,wm) = smeared['t_']
+        met = smeared['met']
+
+        T,(B,WP) = gen['t']
+        T_,(B_,WM) = gen['t_']
+
+        if not all([i.pt()>20 for i in [B,B_,WP[0],WM[0]]]) : return
+        if not all([abs(i.eta())<3 for i in [B,B_,WP[0],WM[0]]]) : return
+
+        solver = utils.fitKinematic.ttbarDileptonSolver( (b,b_), (wp[0],wm[0]), met)
+        solver_ = utils.fitKinematic.ttbarDileptonSolver( (b_,b), (wp[0],wm[0]), met)
+
+        def chi2(vs) : return np.dot(*(2*[np.array([(vs[0]+vs[1]).x(),(vs[0]+vs[1]).y()])-met]))
+        filtered = (lambda A,B : ( (A+B) if len(A)>1 and len(B)>1 else
+                                   max(A,B, key=len) if len(A)!=len(B) else
+                                   [min( A+B, key = chi2 )] if A or B else []))( solver.nunu_s,
+                                                                                 solver_.nunu_s )
+        filtered = [(v,v_) for v,v_ in filtered if 120<(v+b+wp[0]).mass()<240 and 120<(v_+b_+wm[0]).mass()<240]
+
+        self.book.fill(len(solver.nunu_s),'0_n_solutions', 5, -0.5, 4.5, title = ';number of solutions;events/bin')
+        self.book.fill(len(solver_.nunu_s),'1_n_solutions_swapped', 5, -0.5, 4.5, title = ';(swapped bjets) number of solutions;events/bin')
+        self.book.fill(len(solver_.nunu_s)+len(solver.nunu_s),'2_n_solutions_both', 9, -0.5, 8.5, title = ';(both) number of solutions;events/bin')
+        self.book.fill(len(filtered),'3_n_solutions_all_filtered', 9, -0.5, 8.5, title = ';(filtered) number of solutions;events/bin')
+
+        dRs = sorted( [(r.Math.VectorUtil.DeltaR(v,WP[1]),
+                        r.Math.VectorUtil.DeltaR(v_,WM[1])) for v,v_ in filtered], key = lambda p: np.dot(*(2*[p])))
+
+        bestDR = next(iter(dRs), (0,0) )
+        fail =  max(bestDR)>0.5
+        msg = 'fail' if fail else 'pass'
+        limit = 20
+        dWmass = min(limit,max(-limit, (WP[0]+WP[1]).mass() - (WM[0]+WM[1]).mass()))
+        dTmass = min(limit,max(-limit, T.mass() - T_.mass()))
+        self.book.fill( dWmass, 'gen_wmass_delta_'+msg, 100,-(limit+1),(limit+1), title = ';gen w^{+}_{m}-w^{-}_{m} (%s);events / bin'%msg )
+        self.book.fill( dTmass, 'gen_tmass_delta_'+msg, 100,-(limit+1),(limit+1), title = ';gen t_{m}-#bar{t}_{m} (%s);events / bin'%msg )
+        self.book.fill( (dTmass,dWmass), 'gen_v_tmass_wmass_deltas_'+msg, (100,100), (-(limit+1),-(limit+1)), ((limit+1),(limit+1)), title = ';gen t_{m}-#bar{t}_{m} (%s);gen w^{+}_{m}-w^{-}_{m} (%s);events / bin'%(msg,msg))
+        
+        self.book.fill( int(fail),'failed', 2, -0.5, 1.5, title = ';failed;events / bin')
+        self.book.fill( (int(fail),min(abs(T.mass()-172.5),abs(T_.mass()-172.5))),'failed_v_dMass', (2,20), (-0.5,0), (1.5,50), title = ';failed;|mass-172.5|;events / bin')
+        self.book.fill( bestDR, 'dr_v_dr', (20,20), (0,0), (5,5), title = ';dR #nu;dR #bar{#nu};events / bin')
+
+        for v,v_ in filtered :
+            weight = ev['weight'] / float(len(filtered))
+            plus = wp[0] + v
+            minus = wm[0] + v_
+            self.book.fill( plus.M(), "fit_wplus_mass", 100,60,100, title = ';fit W^{+} mass;events / bin', w = weight )
+            self.book.fill( minus.M(), "fit_wminus_mass", 100,60,100, title = ';fit W^{-} mass;events / bin', w = weight )
+            top = b+plus
+            tbar = b_+minus
+            self.book.fill( (b+plus).M(), "fit_t_mass", 100,120,240, title = ';fit t mass;events / bin', w = weight )
+            self.book.fill( (b_+minus).M(), "fit_tbar_mass", 100,120,240, title = ';fit #bar{t} mass;events / bin', w = weight )
+
+            self.book.fill( int(fail),'failed_%d'%len(filtered), 2, -0.5, 1.5, title = ';failed;events / bin', w = weight)
+            dDeltaY = (T.Rapidity() - T_.Rapidity()) - (top.Rapidity()-tbar.Rapidity())
+            dPtOverSumPt = (T+T_).pt() / (T.pt()+T_.pt()) - (top+tbar).pt() / (top.pt()+tbar.pt())
+            dMassTT = (T+T_).mass() - (top+tbar).mass()
+            #####################
+            self.book.fill( dDeltaY, "dDeltaY3_%d"%len(filtered), 100,-3,3, title = ';#Delta y_{t#bar{t}} (gen-reco);events / bin', w = weight )
+            self.book.fill( dDeltaY, "dDeltaY1_%d"%len(filtered), 100,-1,1, title = ';#Delta y_{t#bar{t}} (gen-reco);events / bin', w = weight )
+            self.book.fill( dMassTT, "dMassTT_%d"%len(filtered), 100,-200,200, title = ';m_{t#bar{t}} (gen-reco);events / bin', w = weight )
+            self.book.fill( dPtOverSumPt, "dPtOverSumPt_%d"%len(filtered), 100,-1,1, title = ';pt/sumpt (gen-reco);events / bin', w = weight )
+            for A,B in [(v,WP[1]),(v_,WM[1])] :
+                self.book.fill( abs(A.phi() - B.phi()), 'dphi_nu_%d'%len(filtered), 100, 0,3, title = ';#Delta#phi#nu;events / bin', w = weight)
+                self.book.fill( abs(A.Rapidity() - B.Rapidity()), 'dY_nu_%d'%len(filtered), 100, 0,3, title = ';#Delta y #nu;events / bin', w = weight)
+            #----------
+            self.book.fill( dDeltaY, "dDeltaY3", 100,-3,3, title = ';#Delta y_{t#bar{t}} (gen-reco);events / bin', w = weight )
+            self.book.fill( dDeltaY, "dDeltaY1", 100,-1,1, title = ';#Delta y_{t#bar{t}} (gen-reco);events / bin', w = weight )
+            self.book.fill( dMassTT, "dMassTT", 100,-200,200, title = ';m_{t#bar{t}} (gen-reco);events / bin', w = weight )
+            self.book.fill( dPtOverSumPt, "dPtOverSumPt", 100,-1,1, title = ';pt/sumpt (gen-reco);events / bin', w = weight )
+            for A,B in [(v,WP[1]),(v_,WM[1])] :
+                self.book.fill( abs(A.phi() - B.phi()), 'dphi_nu', 100, 0,3, title = ';#Delta#phi#nu;events / bin', w = weight)
+                self.book.fill( abs(A.Rapidity() - B.Rapidity()), 'dY_nu', 100, 0,3, title = ';#Delta y #nu;events / bin', w = weight)
+            ######################
+            

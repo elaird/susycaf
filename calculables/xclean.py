@@ -32,6 +32,43 @@ class xcJet_SingleLepton(wrappedChain.calculable) :
                                             if lep and 0.5>r.Math.VectorUtil.DeltaR(jet,lep) else
                                             jet ) )
 ##############################
+class xcJet_DoubleLepton(wrappedChain.calculable) :
+
+    @property
+    def name(self) : return self.name_
+
+    def __init__(self, xcjets = None, leptons1 = None, leptons2 = None, indices = None, jesAbs = 1, jesRel = 0) :
+        self.name_ = "CorrectedP4".join(xcjets)
+        self.p4jet = self.name_[2:]
+        self.p4lep1 = "P4".join(leptons1)
+        self.p4lep2 = "P4".join(leptons2)
+        self.indices1 = indices.join(leptons1)
+        self.indices2 = indices.join(leptons2)
+        self.moreName = self.p4jet +" without " + self.p4lep1 + self.indices1.join(['[','[0]]']) +" without " + self.p4lep2 + self.indices2.join(['[','[0]]'])
+        self.jesAbs,self.jesRel = jesAbs,jesRel
+        if jesAbs!=1 or jesRel!=0 :
+            self.moreName2 += "jes corr: %.2f*(1+%.2f|eta|) data only"%(jesAbs,jesRel)
+
+
+    def jes(self, p4) :
+        return  ( p4 if not (self.source['isRealData'] and (self.jesAbs!=1 or self.jesRel!=0)) else
+                  p4 * self.jesAbs*(1+self.jesRel*abs(p4.eta())) )
+
+    def update(self,_) :
+        jets = self.source[self.p4jet]
+        iLep1 = next(iter(self.source[self.indices1]), None )
+        iLep2 = next(iter(self.source[self.indices2]), None )
+        lep1 =  self.source[self.p4lep1][iLep1] if iLep1>None else None
+        lep2 =  self.source[self.p4lep2][iLep2] if iLep2>None else None
+        self.value = utils.vector()
+        for iJet in range(len(jets)) :
+            jet = jets[iJet]
+            match1 = lep1 and 0.5>r.Math.VectorUtil.DeltaR(jet,lep1)
+            match2 = lep2 and 0.5>r.Math.VectorUtil.DeltaR(jet,lep2)
+            drop = (lep1+lep2) if match1 and match2 else lep1 if match1 else lep2 if match2 else None
+            self.value.push_back( self.jes( next( j if j.M()>0 else utils.LorentzV(1,jet.eta(),jet.phi(),0) for j in [jet - drop])
+                                            if match1 or match2 else jet ) )
+##############################
 class xcJet(wrappedChain.calculable) :
     @property
     def name(self) : return "%sCorrectedP4%s"%self.xcjets

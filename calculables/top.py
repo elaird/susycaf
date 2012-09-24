@@ -1,6 +1,6 @@
 from supy import wrappedChain,utils
 from jet import xcStrip
-import math,operator,itertools,ROOT as r
+import math,operator,itertools,random,ROOT as r
 try: import numpy as np
 except: pass
 
@@ -562,6 +562,46 @@ class genTTbarIndices(wrappedChain.calculable) :
         self.value['blep'] = None if not self.value['semi'] else self.value['b'] if self.value['lminus']==None else self.value['bbar']
         self.value['bhad'] = None if not self.value['semi'] else self.value['bbar'] if self.value['lminus']==None else self.value['b']
 ######################################
+class genTTbar4V(wrappedChain.calculable) :
+    def update(self,_) :
+        id = self.source['genPdgId']
+        p4 = self.source['genP4']
+        i = self.source['genTTbarIndices']
+        t,t_,b,b_ = (p4[i[j]] for j in ['t','tbar','b','bbar'])
+        wp = [p4[j] for j in sorted( i['wplusChild'], reverse = False, key = lambda i: id[i])] # mu+, v
+        wm = [p4[j] for j in sorted( i['wminusChild'], reverse = True, key = lambda i: id[i])] # mu-, v_
+        met4 = ( (wp[1] if i['lplus'] else utils.LorentzV()) +
+                 (wm[1] if i['lminus'] else utils.LorentzV()) )
+        self.value = {'t' : (t, (b,wp)),
+                      't_': (t_,(b_,wm)),
+                      'lp' : i['lplus']!=None,
+                      'lm' : i['lminus']!=None,
+                      'met': (met4.px(),met4.py())
+                      }
+class smearTTbar4V(wrappedChain.calculable) :
+    @staticmethod
+    def delta(pt) : return random.gauss(0,1./math.sqrt(abs(pt)))
+
+    @classmethod
+    def smeared(cls, t,(b,w), leptonic) :
+        B = b * (1+cls.delta(b.pt()))
+        W = (w[0],None) if leptonic else (w[0] * (1+cls.delta(w[0].pt())),
+                                          w[1] * (1+cls.delta(w[1].pt())))
+        return (B+W[0]+(utils.LorentzV() if leptonic else W[1]),
+                (B,W))
+
+    def update(self,_) :
+        p4 = self.source['genTTbar4V']
+        t,(b,wp) = p4['t']
+        t_,(b_,wm) = p4['t_']
+        met,lp,lm = [p4[i] for i in ['met','lp','lm']]
+        visible = [b,b_] + (wp if not lp else []) + (wm if not lm else [])
+        sumxy = (sum(i.x() for i in visible),
+                 sum(i.y() for i in visible))
+        self.value = {'t' : self.smeared(t,(b,wp), lp),
+                      't_': self.smeared(t_,(b_,wm), lm),
+                      'met' : tuple( x+sumx*self.delta(sumx) for sumx,x in zip(sumxy,met)) }
+######################################
 class genTopSemiLeptonicWithinAcceptance(wrappedChain.calculable) :
     def __init__(self, jetPtMin = None, jetAbsEtaMax = None, lepPtMin = None, lepAbsEtaMax = None) :
         for item in ['jetPtMin','jetAbsEtaMax','lepPtMin','lepAbsEtaMax'] : setattr(self,item,eval(item))
@@ -945,3 +985,111 @@ class BMomentsSum2(wrappedChain.calculable) :
         phi2 = self.source["Phi2Moment".join(jets)]
         eta2 = self.source["Eta2Moment".join(jets)]
         self.value = phi2[iH]+phi2[iL]+eta2[iH]+eta2[iL]
+######################################
+######################################
+######################################
+######################################
+######################################
+######################################
+class DiLeptonsPM(wrappedChain.calculable) :
+    def __init__(self, collection1, collection2) :
+        self.L1 = collection1
+        self.L2 = collection2
+    def update(self,_) :
+        Q1 = self.source['Charge'.join(self.L1)][self.source['IndicesAnyIsoIsoOrder'.join(self.L1)][0]]
+        Q2 = self.source['Charge'.join(self.L2)][self.source['IndicesAnyIsoIsoOrder'.join(self.L2)][0]]
+        L1 = self.source['P4'.join(self.L1)][self.source['IndicesAnyIsoIsoOrder'.join(self.L1)][0]]
+        L2 = self.source['P4'.join(self.L2)][self.source['IndicesAnyIsoIsoOrder'.join(self.L2)][0]]
+        self.value = (L1,L2)[::Q1] if Q1==-Q2 else None
+######################################
+class DiLeptonsPtOverSumPt(wrappedChain.calculable) :
+    def update(self,_) :
+        L1,L2 = self.source['DiLeptonsPM']
+        self.value = (L1+L2).pt() / (L1.pt() + L2.pt())
+######################################
+class DiLeptonsAssociatedJets(wrappedChain.calculable) :
+    def update(self,_) :
+        jets = self.source['TopJets']['fixes']
+        indices = self.source['IndicesBtagged'.join(jets)]
+        p4 = self.source['CorrectedP4'.join(jets)]
+        self.value = (p4[indices[0]],p4[indices[1]])
+######################################
+class LeptonsSumAbsRapidity(wrappedChain.calculable) :
+    def update(self,_) :
+        L1,L2 = self.source['DiLeptonsPM']
+        self.value = abs(L1.Rapidity()) + abs(L2.Rapidity())
+######################################
+class TopsReconstructionDiLepton(wrappedChain.calculable) :
+    def __init__(self, met) :
+        self.met = met
+    def update(self,_) :
+        b1,b2 = self.source['DiLeptonsAssociatedJets']
+        lp,lm = self.source['DiLeptonsPM']
+        metP4 = self.source[self.met]
+        met = (metP4.x(),metP4.y())
+
+        tops = []
+        solvers = [utils.fitKinematic.ttbarDileptonSolver( (b,b_),(lp,lm), met ) for b,b_ in [(b1,b2),(b2,b1)] ]
+
+        def chi2(sol) :
+            assert len(sol.nunu_s) < 2
+            vs = next(iter(sol.nunu_s),None)
+            if not vs : return 1e6
+            return np.dot(*(2*[np.array([(vs[0]+vs[1]).x(),(vs[0]+vs[1]).y()])-met]))
+        for sol in ( solvers if all(len(s.nunu_s)>1 for s in solvers) else
+                     [max(solvers, key=lambda s: len(s.nunu_s))] if len(solvers[0].nunu_s)!=len(solvers[1].nunu_s) else
+                     [min(solvers, key = chi2)] if any(s.nunu_s for s in solvers) else []) :
+            bb_ = sol.bb_
+            mm_ = sol.mumu_
+            for v,v_ in sol.nunu_s :
+                tops.append( {'t': bb_[0]+mm_[0]+v,
+                              'b': bb_[0],
+                              'l+':mm_[0],
+                              'v': v,
+                              
+                              't_':bb_[1]+mm_[1]+v_,
+                              'b_':bb_[1],
+                              'l-':mm_[1],
+                              'v_':v_,
+                              } )
+        self.value = [top for top in tops if
+                      120<top['t'].mass()<240 and
+                      120<top['t_'].mass()<240]
+######################################
+class TopsExpectation(wrappedChain.calculable) :
+    def calculate(self,_) :
+        assert False, 'You need to redefine the function "calculate(topSolution)" for %s'%self.name
+    def update(self,_) :
+        tops = self.source['TopsReconstructionDiLepton']
+        self.value = sum(self.calculate(top) for top in tops) / float(len(tops))
+######################################
+class TopsDeltaAbsY(TopsExpectation) : 
+    def calculate(self,top) :
+        return top['t'].Rapidity() - top['t_'].Rapidity()
+######################################
+class TopsDeltaY(TopsExpectation) : 
+    def calculate(self,top) :
+        return top['t'].Rapidity() - top['t_'].Rapidity()
+######################################
+class TopsSumAbsY(TopsExpectation) :
+    def calculate(self,top) :
+        return abs(top['t'].Rapidity()) + abs(top['t_'].Rapidity())
+######################################
+class TopsPtOverSumPt(TopsExpectation) :
+    def calculate(self,top) :
+        t,t_ = top['t'],top['t_']
+        return (t+t_).pt() / ( t.pt() + t_.pt() )
+######################################
+class genTopsDDeltaY(wrappedChain.calculable) :
+    def update(self,_) :
+        p4 = self.source['genTTbar4V']
+        gen = p4['t'][0].Rapidity() - p4['t_'][0].Rapidity()
+        reco = self.source['TopsDeltaY']
+        self.value = gen - reco
+######################################
+class genTopsDDeltaAbsY(wrappedChain.calculable) :
+    def update(self,_) :
+        p4 = self.source['genTTbar4V']
+        gen = abs(p4['t'][0].Rapidity()) - abs(p4['t_'][0].Rapidity())
+        reco = self.source['TopsDeltaAbsY']
+        self.value = gen - reco
