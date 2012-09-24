@@ -623,7 +623,7 @@ class hadronicLook2011(supy.analysis) :
 
 
     def makeEfficiencyPlots(self, org, sampleName) :
-        print org.tag
+
         def sampleIndex(org, name) :
             for iSample,sample in enumerate(org.samples) :
                 if sample["name"]==name :
