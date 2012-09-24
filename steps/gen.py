@@ -62,13 +62,13 @@ class scanHistogrammer(analysisStep) :
             setattr(self, item, eval(item))
         self.moreName = self.htVar
 
-        self.m0Nbins =  44
-        self.m0Lo =    100
-        self.m0Hi = 1200.0
+        self.m0Nbins =  52
+        self.m0Lo =    0.0
+        self.m0Hi = 1300.0
 
-        self.m12Nbins =  44
-        self.m12Lo =     50
-        self.m12Hi = 1150.0
+        self.m12Nbins =  52
+        self.m12Lo =    0.0
+        self.m12Hi = 1300.0
 
         self.bins = (self.m0Nbins, self.m12Nbins)
         self.lo = (self.m0Lo, self.m12Lo)
@@ -102,7 +102,7 @@ class scanHistogrammer(analysisStep) :
         m12 = eventVars["susyScanmLSP"]
 
         #title = ";m_{0} (GeV);m_{1/2} (GeV)"
-        title = ";m_{gluino} (GeV);m_{LSP} (GeV)"
+        title = ";m_{squark} (GeV);m_{LSP} (GeV)"
 
         self.book.fill( (m0, m12), "nEvents", self.bins, self.lo, self.hi,         title = "%s;%s"%(title,"nEvents"))
         if self.htVar :
@@ -516,3 +516,47 @@ class zHistogrammer(analysisStep) :
                            title=";( photon%s p_{T} - MHT ) / sqrt( H_{T} + MHT )    [ %s%s ] ;events / bin"%(photonLabel,self.jetCs[0],self.jetCs[1])
                            )
 #####################################
+class DPhiHistogrammer(analysisStep) :
+    
+    def uponAcceptance(self,e) :
+        mhtoverht = e["nonSusyFromSusySumP4PtOvernonSusyFromSusySumEt"]
+        mht = e["nonSusyFromSusySumP4"].pt()
+        ht = e["nonSusyFromSusySumEt"]
+        dphiLsp = e["DPhiNeutralino"]
+        p4 = e["genP4"]
+
+        for iDaughter in  e["genIndicesNeutralino"] :
+            iMother = e["genMotherIndex"].at(iDaughter)
+            if iMother < 0 : continue
+            dphi = abs(r.Math.VectorUtil.DeltaPhi(p4.at(iDaughter),p4.at(iMother)))
+            self.book.fill(dphi, "DphiNeutralinoMother", 20, 0.0, r.TMath.Pi(),title=";#Delta#Phi between lsp and mother;lsp / bin")
+
+            self.book.fill((dphi,mhtoverht), "MHT_HT_v_Dphilsp-mother",
+                           (20, 50), (0.0, 0.0), (r.TMath.Pi(), 1.0),
+                           title=";#Delta#Phi between LSP and mother;MHT/H_{T} from Gen Jets; LSP / bin"
+                           )
+
+#            self.book.fill((mhtoverht,dphi), "Dphilsp-mother_v_MHT_HT",
+#                           (50,20), (0.0, 0.0), (1.0, r.TMath.Pi()),
+#                           title=";MHT/H_{T} from Gen Jets;#Delta#Phi between LSP and mother; LSP / bin"
+#                           )
+
+            self.book.fill((dphi,mht), "MHT_v_DphiLSP-mother",
+                           (20, 50), (0.0, 0.0), (r.TMath.Pi(), 1000),
+                           title=";#Delta#Phi between LSP and mother;MHT (GeV) from Gen Jets; LSP / bin"
+                           )
+
+            self.book.fill((dphi,ht), "HT_v_DphiLSP-mother",
+                           (20, 100), (0.0, 0.0), (r.TMath.Pi(), 2000),
+                           title=";#Delta#Phi between LSP and mother;HT (GeV) from Gen Jets; LSP / bin"
+                           )
+
+            self.book.fill((dphiLsp,dphi), "DphiLSP-mother_v_DphiLsp",
+                           (20, 20), (0.0, 0.0), (r.TMath.Pi(), r.TMath.Pi()),
+                           title=";#Delta#Phi between LSP and mother;#Delta#Phi between LSPs; LSP / bin"
+                           )
+
+#####################################
+
+            
+
