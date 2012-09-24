@@ -95,6 +95,27 @@ class genSumPt(wrappedChain.calculable) :
         for i in indices :
             self.value += p4.at(i).pt()
 
+class DeltaR(wrappedChain.calculable) :
+    def __init__(self, indices = "") :
+        self.fixes = (indices,"")
+
+    def update(self,_) :
+        p4 = self.source["genP4"]
+        indices = self.source[self.fixes[0]]
+        self.value = None
+        if len(indices)==2 :
+            self.value = r.Math.VectorUtil.DeltaR(p4.at(indices[0]), p4.at(indices[1]))
+
+class MinDeltaPhiMet(wrappedChain.calculable) :
+    def __init__(self, indices = "", met = "") :
+        self.fixes = (indices, met)
+
+    def update(self,_) :
+        p4 = self.source["genP4"]
+        indices = self.source[self.fixes[0]]
+        met = self.source[self.fixes[1]]
+        self.value = min([abs(r.Math.VectorUtil.DeltaPhi(met, p4.at(i))) for i in indices])
+
 class JetIndices(wrappedChain.calculable) :
     def __init__(self, collection = None, ptMin = None, etaMax = None) :
         self.fixes = collection
