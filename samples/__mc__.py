@@ -222,6 +222,7 @@ mc.add("t1tttt.yos", '%s/yeshaq//ICF/automated/2012_07_10_17_01_28/")'%pnfs, xs 
 mc.add("t1bbbb.yos", '%s/yeshaq//ICF/automated/2012_07_10_17_11_44/")'%pnfs, xs = {"LO":107.5}["LO"]) #dummy xs
 mc.add("t1tttt.chr", '%s/clucas//ICF/automated/2012_06_04_18_26_52/")'%pnfs, xs = 1.0) #dummy xs
 mc.add("t2.ted", '%s/elaird/ICF/automated/2011_03_08_23_04_26/")'%srm, lumi = 1.0) #dummy xs
+mc.add("t28tev.chr", '%s/clucas//ICF/automated/2012_08_01_11_43_66/")'%pnfs, xs = {"LO":107.5}["LO"]) #dummy xs
 
 #MSUGRA SCANS
 mc.add("scan_tanbeta10_burt1",'%s/bbetchar//ICF/automated/2011_07_10_04_13_24/",)'%srm, lumi = 1.0) #dummy lumi
