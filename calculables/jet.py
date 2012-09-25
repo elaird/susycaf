@@ -52,7 +52,7 @@ class HtBin(wrappedChain.calculable) :
 class Indices(wrappedChain.calculable) :
     def __init__(self, collection = None, ptMin = None, etaMax = None, flagName = None, extraName = "",
                  scaleThresholds = False, htBins = None, referenceThresholds = None):
-        self.fixes = (collection[0],collection[1]+extraName)
+        self.fixes = (collection[0],extraName+collection[1])
         self.stash(["IndicesOther"])
         self.stash(["CorrectedP4", "IndicesKilled"],collection)
         self.flag = None if not flagName else \
@@ -183,6 +183,17 @@ class IndicesBtagged2(wrappedChain.calculable) :
             v = self.source[self.tag].at(i)
             if v > self.threshold :
                 self.value.append(i)
+#####################################
+class MbbList(wrappedChain.calculable) :
+    def __init__(self, collection) :
+        self.fixes = collection
+        self.stash(["CorrectedP4", "IndicesBtagged2"])
+
+    def update(self,_) :
+        self.value = []
+        p4 = self.source[self.CorrectedP4]
+        for l,r in itertools.combinations(self.source[self.IndicesBtagged2], 2) :
+            self.value.append( (p4.at(l)+p4.at(r)).mass() )
 ###################################
 class IndicesGenB(wrappedChain.calculable) :
     def __init__(self,collection) :
@@ -352,7 +363,7 @@ class SumEt(wrappedChain.calculable) :
 ##############################
 class SumP4(wrappedChain.calculable) :
     def __init__(self, collection = None, extraName = "") :
-        self.fixes = (collection[0],collection[1]+extraName)
+        self.fixes = (collection[0],extraName+collection[1])
         self.stash(["Indices"])
         self.stash(['CorrectedP4'],collection)
     def update(self,ignored) :
@@ -621,7 +632,7 @@ class DeltaX01(wrappedChain.calculable) :
 ##############################
 class DeltaPhiStar(wrappedChain.calculable) :
     def __init__(self, collection = None, extraName = "") :
-        self.fixes = (collection[0],collection[1]+extraName)
+        self.fixes = (collection[0],extraName+collection[1])
         self.stash(["CorrectedP4"],collection)
         self.stash(["Indices","SumP4"])
 
@@ -781,14 +792,13 @@ class ecalDeadTowerMatchedJetIndices(wrappedChain.calculable) :
     def update(self,ignored) :
         self.value = map(self.matchingJetIndex,self.source["ecalDeadTowerTrigPrimP4"])
 #####################################
-class deadEcalDR(wrappedChain.calculable) :
-    @property
-    def name(self) : return "%sDeadEcalDR%s%s"%(self.jets[0], self.jets[1], self.extraName)
-    
+class DeadEcalDR(wrappedChain.calculable) :
     def __init__(self, jets = None, extraName = "", minNXtals = None, checkCracks = True, maxDPhiStar = 0.5) :
         for item in ["jets","extraName","minNXtals","checkCracks","maxDPhiStar"] :
             setattr(self,item,eval(item))
-        self.dps = "%sDeltaPhiStar%s%s"%(self.jets[0], self.jets[1], self.extraName)
+
+        self.fixes = (jets[0], extraName+jets[1])
+        self.stash(["DeltaPhiStar"])
         self.moreName = "%s%s; nXtal>=%d; cracks %schecked"%(self.jets[0], self.jets[1], self.minNXtals, "" if self.checkCracks else "NOT ")
 
     def oneJetDRs(self, jet) :
@@ -812,7 +822,7 @@ class deadEcalDR(wrappedChain.calculable) :
     
     def update(self, ignored) :
         self.value = []
-        dps = self.source[self.dps]
+        dps = self.source[self.DeltaPhiStar]
         if not dps : return
 
         for dPhiStar,iJet in dps :

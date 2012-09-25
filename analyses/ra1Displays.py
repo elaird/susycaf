@@ -6,15 +6,14 @@ class ra1Displays(supy.analysis) :
     
     def parameters(self) :
         objects = self.vary()
-        fields =                                                  [ "jet",                        "jetId",     "muonsInJets",           "met",
-                                                                    "compJet",                "compJetId", "compMuonsInJets",        "compMet",
-                                                                    "muon",                    "electron",          "photon",         "rechit"]
+        fields =                           [ "jet",                        "jetId",     "muonsInJets",           "met",      "rechit",
+                                             "compJet",                "compJetId", "compMuonsInJets",        "compMet", "compRechit",
+                                             "muon",                    "electron",          "photon"]
 
-        objects["caloAK5JetMet_recoLepPhot"]   = dict(zip(fields, [("xcak5Jet","Pat"),       "JetIDloose",             False,   "metP4TypeIPF",
-                                                                   ("xcak5JetPF","Pat"),     "JetIDtight",              True,        "metP4PF",
-                                                                   ("muon","Pat"),     ("electron","Pat"),  ("photon","Pat"),           "Calo",
-                                                                   ]))
-        
+        objects["calo"] = dict(zip(fields, [("xcak5Jet","Pat"),       "JetIDloose",             False,   "metP4TypeIPF",       "Calo",
+                                            ("xcak5JetPF","Pat"),     "JetIDtight",              True,   "metP4TypeIPF",         "PF",
+                                            ("muon","Pat"),     ("electron","Pat"),  ("photon","Pat")]))
+
         return { "objects": objects,
                  "etRatherThanPt" : True,
                  "lowPtThreshold" : 30.0,
@@ -24,19 +23,20 @@ class ra1Displays(supy.analysis) :
                  "thresholds": self.vary(dict( [("375",        (375.0, None,  100.0, 50.0)),#0
                                                 ("325_scaled", (325.0, 375.0,  86.7, 43.3)),#1
                                                 ("275_scaled", (275.0, 325.0,  73.3, 36.7)),#2
-                                                ][0:1] )),
+                                                ] )),
                  }
 
     def calcListJet(self, obj, etRatherThanPt, ptMin, lowPtThreshold, lowPtName, highPtThreshold, highPtName, htThreshold) :
         def calcList(jet, met, photon, muon, electron, muonsInJets, jetIdFlag) :
+            print "WARNING: synchronize muon addition"
             outList = [
                 calculables.xclean.xcJet(jet,
-                                         applyResidualCorrectionsToData = False,
                                          gamma = photon,
                                          gammaDR = 0.5,
                                          muon = muon,
                                          muonDR = 0.5,
-                                         correctForMuons = not muonsInJets,
+                                         #correctForMuons = not muonsInJets,
+                                         correctForMuons = False,
                                          electron = electron,
                                          electronDR = 0.5),
                 calculables.jet.Indices( jet, ptMin = ptMin,           etaMax = 3.0, flagName = jetIdFlag),
@@ -50,8 +50,8 @@ class ra1Displays(supy.analysis) :
                 calculables.jet.DeltaPseudoJet(jet, etRatherThanPt),
                 calculables.jet.AlphaT(jet, etRatherThanPt),
                 calculables.jet.AlphaTMet(jet, etRatherThanPt, met),
-                calculables.jet.MhtOverMet((jet[0], jet[1]+highPtName), met),
-                calculables.jet.deadEcalDR(jet, extraName = lowPtName, minNXtals = 10),
+                calculables.jet.MhtOverMet((jet[0], highPtName+jet[1]), met),
+                calculables.jet.DeadEcalDR(jet, extraName = lowPtName, minNXtals = 10),
                 supy.calculables.other.fixedValue("%sFixedHtBin%s"%jet, htThreshold),
                 ]
             return outList+supy.calculables.fromCollections(calculables.jet, [jet])
@@ -66,13 +66,16 @@ class ra1Displays(supy.analysis) :
             calculables.xclean.IndicesUnmatched(collection = obj["photon"], xcjets = obj["jet"], DR = 0.5),
             calculables.xclean.IndicesUnmatched(collection = obj["electron"], xcjets = obj["jet"], DR = 0.5),
 
-            calculables.muon.Indices( obj["muon"], ptMin = 10, ID = "IdPog2012Tight", usePfIso = True, pfRelIsoMax = 0.20),
+            calculables.muon.Indices( obj["muon"], ptMin = 10, isoMax = 0.20, ISO = "PfIsolationR04DeltaBCorrected", ID = "IdPog2012Tight"),
             calculables.electron.Indices( obj["electron"], ptMin = 10, flag2012 = "Veto"),
             calculables.photon.Indices(obj["photon"], ptMin = 25, flagName = "photonIDRA3Pat"),
             calculables.photon.CombinedIsoDR03RhoCorrected(obj["photon"]),
 
             calculables.other.RecHitSumPt(obj["rechit"]),
             calculables.other.RecHitSumP4(obj["rechit"]),
+
+            calculables.other.RecHitSumPt(obj["compRechit"]),
+            calculables.other.RecHitSumP4(obj["compRechit"]),
             calculables.vertex.ID(),
             calculables.vertex.Indices(),
             ]
@@ -93,7 +96,8 @@ class ra1Displays(supy.analysis) :
     def listOfSteps(self, params) :
         return [
             supy.steps.printer.progressPrinter(),
-            #supy.steps.filters.value("%sSumEt%s"%params["objects"]["jet"], min = 1000),
+            supy.steps.filters.value("%sSumEt%s"%params["objects"]["jet"], min = params["thresholds"][0]),
+            supy.steps.filters.value("%sSumEt%s"%params["objects"]["jet"], max = params["thresholds"][1]),
             steps.displayer.displayer(jets      = params["objects"]["jet"],
                                       muons     = params["objects"]["muon"],
                                       met       = params["objects"]["met"],
@@ -106,10 +110,11 @@ class ra1Displays(supy.analysis) :
                                       deltaPhiStarCut = 0.5,
                                       deltaPhiStarDR = 0.3,
                                       j2Factor = params["thresholds"][2]/params["thresholds"][0],
-                                      mhtOverMetName = "%sMht%sOver%s"%(params["objects"]["jet"][0], params["objects"]["jet"][1]+params["highPtName"], params["objects"]["met"]),
-                                      #metOtherAlgo  = params["objects"]["compMet"],
-                                      #jetsOtherAlgo = params["objects"]["compJet"],
-                                      doGenJets = True,
+                                      mhtOverMetName = "%sMht%sOver%s"%(params["objects"]["jet"][0], params["highPtName"]+params["objects"]["jet"][1], params["objects"]["met"]),
+                                      metOtherAlgo  = params["objects"]["compMet"],
+                                      jetsOtherAlgo = params["objects"]["compJet"],
+                                      recHitsOtherAlgo = params["objects"]["compRechit"],
+                                      #doGenJets = True,
                                       prettyMode = True,
                                       ),
             ]
@@ -127,6 +132,7 @@ class ra1Displays(supy.analysis) :
         sampleDict.add("Data_4bJets1", '["/uscms/home/yeshaq/work/susycaf/4bjets/SusyCAF_Tree_1.root"]', lumi = 1.1e3)
         sampleDict.add("Data_4bJets2", '["/uscms/home/yeshaq/work/susycaf/4bjets/SusyCAF_Tree_2.root"]', lumi = 1.1e3)
         sampleDict.add("Data_4bJets3", '["/uscms/home/yeshaq/work/susycaf/4bjets/SusyCAF_Tree_3.root"]', lumi = 1.1e3)
+        sampleDict.add("Data_4bJets", '["/uscms/home/yeshaq/work/susycaf/4bjets/SusyCAF_Tree_1.root","/uscms/home/yeshaq/work/susycaf/4bjets/SusyCAF_Tree_2.root","/uscms/home/yeshaq/work/susycaf/4bjets/SusyCAF_Tree_3.root"]', lumi = 1.1e3)
         sampleDict.add("MC_4bJets1", '["/uscms/home/yeshaq/work/susycaf/4bjets/MC/TTJets/SusyCAF_Tree_1.root"]', lumi = 1.1e3)
         sampleDict.add("MC_4bJets2", '["/uscms/home/yeshaq/work/susycaf/4bjets/MC/TTJets/SusyCAF_Tree_2.root"]', lumi = 1.1e3)
         sampleDict.add("MC_4bJets3", '["/uscms/home/yeshaq/work/susycaf/4bjets/MC/TTJets/SusyCAF_Tree_3.root"]', lumi = 1.1e3)
@@ -135,4 +141,4 @@ class ra1Displays(supy.analysis) :
         return [sampleDict]
     
     def listOfSamples(self,params) :
-        return supy.samples.specify(names = ["MC_4bJets4"])
+        return supy.samples.specify(names = ["Data_4bJets"])

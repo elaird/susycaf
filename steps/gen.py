@@ -9,21 +9,13 @@ except ImportError:
 #####################################
 class genJetPrinter(analysisStep) :
 
-    def __init__(self,jetCollection,jetSuffix) :
-        self.jetCollection=jetCollection
-        self.jetSuffix=jetSuffix
-        self.moreName="("
-        self.moreName+=self.jetCollection
-        self.moreName+="; "
-        self.moreName+=self.jetSuffix
-        self.moreName+=")"
+    def __init__(self, cs = None) :
+        self.cs = cs
+        self.moreName="(%s%s)"%self.cs
+        self.p4 = "%sGenJetsP4%s"%self.cs
 
     def uponAcceptance (self,eventVars) :
-        p4Vector        =eventVars[self.jetCollection+'GenJetsP4'     +self.jetSuffix]
-        #emEnergy        =eventVars[self.jetCollection+'EmEnergy'        +self.jetSuffix]
-        #hadEnergy       =eventVars[self.jetCollection+'HadEnergy'       +self.jetSuffix]
-        #invisibleEnergy =eventVars[self.jetCollection+'InvisibleEnergy' +self.jetSuffix]
-        #auxiliaryEnergy =eventVars[self.jetCollection+'AuxiliaryEnergy' +self.jetSuffix]
+        p4Vector = eventVars[self.p4]
 
         print " jet   pT (GeV)    eta    phi    emF   hadF   invF   auxF"
         print "---------------------------------------------------------"
@@ -31,19 +23,11 @@ class genJetPrinter(analysisStep) :
             jet=p4Vector[iJet]
             totalEnergy=jet.energy()
             
-            outString=" "
-            #if (iJet in otherJetIndices) : outString="-"
-            #if (iJet in cleanJetIndices) : outString="*"
-            
-            outString+=" %2d"   %iJet
-            outString+="     %#6.1f"%jet.pt()
-            outString+="   %#4.1f"%jet.eta()
-            outString+="   %#4.1f"%jet.phi()
-            #outString+="   %#4.2f"%(       emEnergy[iJet]/totalEnergy)
-            #outString+="   %#4.2f"%(      hadEnergy[iJet]/totalEnergy)
-            #outString+="   %#4.2f"%(invisibleEnergy[iJet]/totalEnergy)
-            #outString+="   %#4.2f"%(auxiliaryEnergy[iJet]/totalEnergy)
-            ##outString+="  %#4.2f"%( (emEnergy[iJet]+hadEnergy[iJet]+invisibleEnergy[iJet]+auxiliaryEnergy[iJet]) / totalEnergy )
+            outString  = " "
+            outString += " %2d"   %iJet
+            outString += "     %#6.1f"%jet.pt()
+            outString += "   %#4.1f"%jet.eta()
+            outString += "   %#4.1f"%jet.phi()
             print outString
         print
 #####################################
@@ -273,28 +257,6 @@ class topPrinter(analysisStep) :
         print
         print
         if abs(tt.E() - (p4s[4]+p4s[5]).E())>0.5 : print (50*' '), "2 -> 3+"
-#####################################
-class genSHatHistogrammer(analysisStep) :
-
-    def uponAcceptance (self,eventVars) :
-        p4 = eventVars["genP4"]
-        size=p4.size()
-        counts = [0,0]
-        indices = [-1,-1]
-        for iGen in range(size) :
-            if not eventVars["genMotherStored"].at(iGen) : continue
-            motherIndex = eventVars["genMother"].at(iGen)
-            if motherIndex!=0 and motherIndex!=1 : continue
-            counts[motherIndex] += 1
-            indices[motherIndex] = iGen
-
-        if counts[0]!=1 or counts[1]!=1 :
-            print "bad counts",counts
-            return
-        
-        rootSHat = ( p4.at(indices[0])+p4.at(indices[1]) ).mass()
-        print indices,rootSHat
-        self.book.fill(rootSHat, "rootSHat", 100, 0.0, 300.0, title = ";#sqrt{#hat{s}} (GeV);events / bin")
 #####################################
 class photonEfficiencyPlots(analysisStep) :
 
@@ -557,6 +519,23 @@ class DPhiHistogrammer(analysisStep) :
                            )
 
 #####################################
+class bqDotHistogrammer(analysisStep) :
+    def f(self, x) :
+        return x/5901.2 - 1.0
 
-            
+    def fill(self, x, y, sign = "") :
+        self.book.fill((x, y), "bqDotHistogram%s"%sign, (100, 100), (-1.5, -1.5), (1.5, 1.5),
+                       title = "W%s#rightarrowq#bar{q};(b.q)/5901.2 - 1.0;(b.#bar{q})/5901.2 - 1.0;events / bin"%sign)
 
+    def uponAcceptance (self,eventVars) :
+        p4s = eventVars["genP4"]
+        for sign in ["+","-"] :
+            b = p4s.at(eventVars["genIndicesb%s_t%sDaughters"%(sign,sign)][0])
+            i0,i1 = eventVars["genIndicesW%sDaughters"%sign]
+            if eventVars["genPdgId"][i0]>0 :
+                q    = p4s.at(i0)
+                qbar = p4s.at(i1)
+            else :
+                qbar = p4s.at(i0)
+                q    = p4s.at(i1)
+            self.fill(self.f(b.Dot(q)), self.f(b.Dot(qbar)), sign)
