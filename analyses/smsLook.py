@@ -10,8 +10,11 @@ class smsLook(supy.analysis) :
         out += supy.calculables.zeroArgs(supy.calculables)
         out += [calculables.gen.genIndices(pdgs = [-16,-14,-12,12,14,16], label = "Status3Nu", status = [3]),
                 calculables.gen.genIndices(pdgs = [-6,6], label = "Status3t", status = [3]),
+                calculables.gen.genIndices(pdgs = [-24,24], label = "Status3W", status = [3]),
                 calculables.gen.genIndices(pdgs = [ 6], label = "Status3t+", status = [3]),
                 calculables.gen.genIndices(pdgs = [-6], label = "Status3t-", status = [3]),
+                calculables.gen.genIndices(pdgs = [ 24], label = "Status3W+", status = [3]),
+                calculables.gen.genIndices(pdgs = [-24], label = "Status3W-", status = [3]),
                 calculables.gen.genIndices(pdgs = [-5,5], label = "Status3b", status = [3]),
 
                 calculables.gen.genIndices(pdgs = [], label = "Status3t+Daughters", status = [3], motherPdgs = [ 6]),
@@ -20,7 +23,11 @@ class smsLook(supy.analysis) :
                 calculables.gen.genIndices(pdgs = [], label = "Status3W-Daughters", status = [3], motherPdgs = [-24]),
 
                 calculables.gen.genIndicesPtSorted(label = "Status3t"),
+                calculables.gen.genIndicesPtSorted(label = "Status3W"),
                 calculables.gen.genIndicesPtSorted(label = "Status3b"),
+
+                supy.calculables.other.pt("genP4", indices = "genIndicesStatus3t+", index = 0),
+                supy.calculables.other.pt("genP4", indices = "genIndicesStatus3t-", index = 0),
 
                 calculables.gen.SumP4(indices = "genIndicesStatus3t"),
                 calculables.gen.DeltaR(indices = "genIndicesStatus3t+Daughters"),
@@ -90,6 +97,9 @@ class smsLook(supy.analysis) :
             supy.steps.histos.pt("genP4", 40, 0.0, 400.0, indices = "genIndicesStatus3tPtSorted", index = 0, xtitle = "    leading t quark"),
             supy.steps.histos.pt("genP4", 40, 0.0, 400.0, indices = "genIndicesStatus3tPtSorted", index = 1, xtitle = "sub-leading t quark"),
 
+            supy.steps.histos.pt("genP4", 40, 0.0, 400.0, indices = "genIndicesStatus3WPtSorted", index = 0, xtitle = "    leading W"),
+            supy.steps.histos.pt("genP4", 40, 0.0, 400.0, indices = "genIndicesStatus3WPtSorted", index = 1, xtitle = "sub-leading W"),
+
             supy.steps.histos.pt("genP4", 20, 0.0, 200.0, indices = "genIndicesStatus3bPtSorted", index = 0, xtitle = "    leading b quark"),
             supy.steps.histos.pt("genP4", 20, 0.0, 200.0, indices = "genIndicesStatus3bPtSorted", index = 1, xtitle = "sub-leading b quark"),
 
@@ -106,6 +116,13 @@ class smsLook(supy.analysis) :
             supy.steps.histos.value('genIndicesStatus3t-DaughtersDeltaR', 100, 0.0, 5.0, xtitle = "#DeltaR(b,W) from #bar{t}"),
             supy.steps.histos.value('genIndicesStatus3W+DaughtersDeltaR', 100, 0.0, 5.0, xtitle = "#DeltaR(q,q') from W+"),
             supy.steps.histos.value('genIndicesStatus3W-DaughtersDeltaR', 100, 0.0, 5.0, xtitle = "#DeltaR(q,q') from W-"),
+
+            supy.steps.histos.histogrammer(("genP4.pt0genIndicesStatus3t-", "genIndicesStatus3t-DaughtersDeltaR"),
+                                           (100, 100), (0.0, 0.0), (500.0, 5.0),
+                                           title = ";p_{T} of #bar{t} (GeV);#DeltaR(b,W) from #bar{t};events / bin"),
+            supy.steps.histos.histogrammer(("genP4.pt0genIndicesStatus3t+", "genIndicesStatus3t+DaughtersDeltaR"),
+                                           (100, 100), (0.0, 0.0), (500.0, 5.0),
+                                           title = ";p_{T} of t (GeV);#DeltaR(b,W) from t;events / bin"),
             ]
 
     def progress(self) :
