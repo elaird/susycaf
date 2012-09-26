@@ -176,7 +176,7 @@ class smsLook(supy.analysis) :
         from supy.samples import specify
         return (#supy.samples.specify(names = ["T2tt_8.job351"])+
                 supy.samples.specify(names = ["T2tt_500_100"])+
-                supy.samples.specify(names = ["T2tt_500_300"])+
+                supy.samples.specify(names = ["T2tt_500_300"], nEventsMax = 4000)+
                 supy.samples.specify(names = ["tt_8_mg.job315_1"])+
                 []
                 )
@@ -189,7 +189,8 @@ class smsLook(supy.analysis) :
             return x
         mcOps = {"markerStyle":1, "lineWidth":1, "goptions":"ehist"}
         org.mergeSamples(targetSpec = md({"name":"stop-stop (500,100)", "color":r.kRed}, mcOps), allWithPrefix = "T2tt_500_100")
-        org.mergeSamples(targetSpec = md({"name":"t-t", "color":r.kBlue}, mcOps), allWithPrefix = "tt")
+        org.mergeSamples(targetSpec = md({"name":"stop-stop (500,300)", "color":r.kBlue}, mcOps), allWithPrefix = "T2tt_500_300")
+        org.mergeSamples(targetSpec = md({"name":"t-t", "color":r.kBlack}, mcOps), allWithPrefix = "tt")
 
         org.scale(20.0e3)
         pl = supy.plotter(org,
