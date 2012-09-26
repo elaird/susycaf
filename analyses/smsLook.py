@@ -46,8 +46,8 @@ class smsLook(supy.analysis) :
     def stepsPrepare(self, params) :
         return [supy.steps.other.collector(["susyScanmGL","susyScanmLSP"]),
                 supy.steps.filters.value('susyScanmGL', min = 499, max = 501),
-                supy.steps.filters.value('susyScanmLSP', min = 99, max = 101),
-                supy.steps.other.skimmmer(),
+                supy.steps.filters.value('susyScanmLSP', min = 299, max = 301),
+                supy.steps.other.skimmer(),
                 ]
 
     def triggerFilters(self, thresh = tuple()) :
@@ -174,7 +174,9 @@ class smsLook(supy.analysis) :
 
     def listOfSamples(self,params) :
         from supy.samples import specify
-        return (supy.samples.specify(names = ["T2tt_500_100"])+
+        return (#supy.samples.specify(names = ["T2tt_8.job351"])+
+                supy.samples.specify(names = ["T2tt_500_100"])+
+                supy.samples.specify(names = ["T2tt_500_300"])+
                 supy.samples.specify(names = ["tt_8_mg.job315_1"])+
                 []
                 )
