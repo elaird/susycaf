@@ -177,6 +177,7 @@ class smsLook(supy.analysis) :
             self.genFilters() +
             self.met() +
             self.triggerFilters(thresh = (150,), offline = True) +
+            #self.triggerFilters(thresh = (60, 60, 60, 60, 20, 20), offline = True) +
             self.deltaPhi() +
             [])+[
             supy.steps.filters.label('misc plots'),
