@@ -101,9 +101,10 @@ class smsLook(supy.analysis) :
             #supy.steps.histos.multiplicity('genIndicesStatus3Nu'),
             supy.steps.filters.multiplicity('genIndicesStatus3Nu', max = 0),
             supy.steps.filters.pt('genmetP4True', min = 50.0),
-            supy.steps.histos.pt('genmetP4True', 100, 0.0, 500.0, xtitle = "gen. MET (GeV)"),
             #supy.steps.histos.multiplicity('genIndicesStatus3t'),
             ]
+    def met(self) :
+        return [supy.steps.histos.pt('genmetP4True', 100, 0.0, 500.0, xtitle = "gen. MET (GeV)"),]
 
     def ptPlots(self) :
         return [
@@ -165,6 +166,7 @@ class smsLook(supy.analysis) :
     def printer(self) :
         return [
             steps.printer.eventPrinter(),
+            steps.printer.metPrinter(collections = ["genmetP4True"]),
             steps.gen.particlePrinter(),
             ]
 
@@ -173,6 +175,7 @@ class smsLook(supy.analysis) :
             #self.stepsPrepare(params) +
             self.progress() +
             self.genFilters() +
+            self.met() +
             self.triggerFilters(thresh = (150,), offline = True) +
             self.deltaPhi() +
             [])+[
@@ -180,6 +183,7 @@ class smsLook(supy.analysis) :
             ]+(
             #self.printer() +
             #self.ttPlots() +
+            self.met() +
             self.ptPlots() +
             self.deltaRPlots() +
             [])
@@ -196,10 +200,10 @@ class smsLook(supy.analysis) :
     def listOfSamples(self,params) :
         from supy.samples import specify
         return (#supy.samples.specify(names = ["T2tt_8.job351"])+
-                #supy.samples.specify(names = ["T2tt_500_0"],   nEventsMax = 20000)+
-                #supy.samples.specify(names = ["T2tt_500_100"], nEventsMax = 20000)+
-                #supy.samples.specify(names = ["T2tt_500_300"], nEventsMax = 20000)+
-                supy.samples.specify(names = ["tt_8_mg.job315_1"])+
+                supy.samples.specify(names = ["T2tt_500_0"],   nEventsMax = 20000)+
+                supy.samples.specify(names = ["T2tt_500_100"], nEventsMax = 20000)+
+                supy.samples.specify(names = ["T2tt_500_300"], nEventsMax = 20000)+
+                #supy.samples.specify(names = ["tt_8_mg.job315_1"])+
                 supy.samples.specify(names = ["tt_8_mg.job315_zeroNu_50Met"])+
                 []
                 )
