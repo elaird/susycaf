@@ -173,21 +173,15 @@ class particleP4Printer(analysisStep) :
 #####################################
 class metPrinter(analysisStep) :
 
-    def __init__(self,collections) :
-        self.collections=collections
+    def __init__(self, collections = []) :
+        self.collections = collections
         self.moreName = str(self.collections)
-        self.nHyphens=56
+        self.nSpaces = max(map(lambda x:len(x), self.collections))
 
-    def select (self,eventVars) :
-        print
+    def uponAcceptance(self, eventVars) :
         for met in self.collections :
-            metVector=eventVars[met]
-            outString=met.ljust(15)
-            outString+=" pT %#6.1f GeV"%metVector.pt()
-            outString+="; phi %#4.1f"  %metVector.phi()
-            print outString
-        print
-        return True
+            p4 = eventVars[met]
+            print "%s pT=%#6.1f GeV; phi=%#4.1f"%(met.ljust(self.nSpaces), p4.pt(), p4.phi())
 #####################################
 class nFlaggedRecHitFilter(analysisStep) :
 
