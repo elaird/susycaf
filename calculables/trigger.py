@@ -188,7 +188,7 @@ class CrossTriggerWeight(calculables.secondary) :
 
     def mcTriggeringProb(self) :
         indices = self.source['Indices'.join(self.jets)]
-        if len(indices) < 3 : return None
+        if len(indices) < 3 : return 0
         p4 = self.source['CorrectedP4'.join(self.jets)]
         abcs = self.abcs( self.random_trigger_type() )
         return self.prob( [ self.gompertz( abcs[ 1.4 < abs(p4[i].eta()) ], p4[i].pt())
@@ -201,7 +201,7 @@ class CrossTriggerWeight(calculables.secondary) :
     def update(self,_) :
         self.value = ( self.mcTriggeringProb() if not self.source['isRealData'] else
                        1                       if self.triggerFired() else
-                       None )
+                       0 )
 
     def uponAcceptance(self,ev) :
         jets = self.source['CorrectedP4'.join(self.jets)]

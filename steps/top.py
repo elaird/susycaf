@@ -320,7 +320,7 @@ class resolutions(analysisStep) :
         
         gsP4 = ev['genSumP4']
         self.book.fill( topReco[index]['ttx'].pt() - gsP4.pt(), "resolution_pt", 100, -100, 100, title = ";%s #Delta_{reco-gen} ttx.pt;events / bin"%self.moreName )
-        self.book.fill( topReco[index]['ttx'].mass() - gsP4.mass(), "resolution_m", 100, -100, 100, title = ";%s #Delta_{reco-gen} ttx.m;events / bin"%self.moreName )
+        self.book.fill( topReco[index]['ttx'].mass() - gsP4.mass(), "resolution_m", 100, -200, 200, title = ";%s #Delta_{reco-gen} ttx.m;events / bin"%self.moreName )
 
         iLep = min(0,topReco[index]["lepCharge"])
         gen =  (ev["genP4"][genTTbar[0]], ev["genP4"][genTTbar[1]])

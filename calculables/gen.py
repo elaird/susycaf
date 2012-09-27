@@ -3,7 +3,7 @@ import ROOT as r
 ##############################
 class wGG(wrappedChain.calculable) :
     def update(self,_) :
-        self.value = None if self.source['genQQbar'] or self.source['genQG'] else 1
+        self.value = None if any(self.source[g] for g in ['genQG','genQQbar','genAG']) else 1
 ##############################
 class wQQ(wrappedChain.calculable) :
     def update(self,_) :
@@ -12,6 +12,10 @@ class wQQ(wrappedChain.calculable) :
 class wQG(wrappedChain.calculable) :
     def update(self,_) :
         self.value = 1 if self.source['genQG'] else None
+##############################
+class wAG(wrappedChain.calculable) :
+    def update(self,_) :
+        self.value = 1 if self.source['genAG'] else None
 ##############################
 class genIndicesHardPartons(wrappedChain.calculable) :
     def __init__(self,indices = (4,5)) : self.value = indices
@@ -32,9 +36,19 @@ class genQG(wrappedChain.calculable) :
         if self.source['isRealData'] : self.value = (); return
         ids = self.source['genPdgId']
         iHard = self.source['genIndicesHardPartons']
-        iQg = (next((i for i in iHard if abs(ids[i]) in range(1,7)), None),
+        iQg = (next((i for i in iHard if ids[i] in range(1,7)), None),
                next((i for i in iHard if ids[i]==21), None))
         self.value = iQg if None not in iQg else ()
+##############################
+class genAG(wrappedChain.calculable) :
+    '''Index of (anti)quark and of gluon with hard collision.'''
+    def update(self,_) :
+        if self.source['isRealData'] : self.value = (); return
+        ids = self.source['genPdgId']
+        iHard = self.source['genIndicesHardPartons']
+        iAg = (next((i for i in iHard if ids[i] in range(-6,0)), None),
+               next((i for i in iHard if ids[i]==21), None))
+        self.value = iAg if None not in iAg else ()
 ##############################
 class genQuark(wrappedChain.calculable) :
     '''Indices of non-top quarks resulting from hard interaction.'''
@@ -57,7 +71,7 @@ class genGlu(wrappedChain.calculable) :
 ##############################
 class qDir(wrappedChain.calculable) :
     def update(self,_) :
-        iQ = next(iter(max(self.source['genQQbar'],self.source['genQG'])),None)
+        iQ = next(iter(max(self.source[g] for g in ['genQQbar','genQG','genAG'])),None)
         self.value = (1 if self.source['genP4'][iQ].pz() > 0 else -1) if iQ!=None else None
 ##############################
 class genSumP4(wrappedChain.calculable) :

@@ -462,7 +462,7 @@ class genTopP4(wrappedChain.calculable) :
         indices = self.source['genTTbarIndices']
         p4 = self.source['genP4']
         qqbar = self.source['genQQbar']
-        qg = self.source['genQG']
+        qg = max(self.source['genQG'],self.source['genAG'])
         self.value = { 't':p4[indices['t']],
                        'tbar':p4[indices['tbar']],
                        'quark':p4[qqbar[0] if qqbar else qg[0] if qg else self.source['genIndicesHardPartons'][0]],
@@ -868,20 +868,20 @@ class QQbarHardAsym(__HardAsym__) :
 class GqHardAsym(__HardAsym__) :
     def __init__(self) :
         self.hard = utils.asymmWeighting.Asymm_gq_hard()
-        self.indices = [('genQG',1),('genQG',0),('genTopTTbar',0),('genTopTTbar',1),('genQuark',0)]
+        self.indices = [('genQG',1),('genQG',0),('genTopTTbar',0),('genTopTTbar',1),('genQuark',0)] # broken sincy intro of wAG
 class GqbarHardAsym(__HardAsym__) :
     def __init__(self) :
         self.hard = utils.asymmWeighting.Asymm_gqbar_hard()
-        self.indices = [('genQG',1),('genQG',0),('genTopTTbar',0),('genTopTTbar',1),('genQuark',0)]
+        self.indices = [('genQG',1),('genQG',0),('genTopTTbar',0),('genTopTTbar',1),('genQuark',0)] # broken sincy intro of wAG
 class wQQbarHardAsym(__wHardAsym__) :
     def hardname(self) : return 'QQbarHardAsym'
 class wQgHardAsym(__wHardAsym__) :
     def hardname(self) :
-        return 'GqHardAsym' if self.source['genQG'][0]>0 else 'GqbarHardAsym'
+        return 'GqHardAsym' if self.source['genQG'][0]>0 else 'GqbarHardAsym' # broken sincy intro of wAG
 class hardSymmAnti(wrappedChain.calculable) :
     def update(self,_) :
         qq = self.source['genQQbar']
-        qg = self.source['genQG']
+        qg = self.source['genQG'] # broken sincy intro of wAG
         if not (qq or qg) : self.value = () ; return
         h = self.source['QQbarHardAsym' if qq else 'GqHardAsym' if qg[0]>0 else 'GqbarHardAsym']
         self.value = () if not h else (h.symm,h.anti)
