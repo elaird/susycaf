@@ -50,7 +50,7 @@ class smsLook(supy.analysis) :
                 supy.steps.other.skimmer(),
                 ]
 
-    def triggerFilters(self, thresh = tuple()) :
+    def triggerFilters(self, thresh = tuple(), offline = False) :
         "/online/collisions/2012/7e33/v4.0/HLT/V11"
         out = []
 
@@ -70,6 +70,11 @@ class smsLook(supy.analysis) :
             out = [supy.steps.filters.pt("genak5GenJetsP4", indices = "ak5GenJetIndices", index = 3, min = 60.0),
                    supy.steps.filters.pt("genak5GenJetsP4", indices = "ak5GenJetIndices", index = 5, min = 20.0),
                    ]
+            if offline :
+                out += [
+                    supy.steps.filters.pt("genak5GenJetsP4", indices = "ak5GenJetIndices", index = 3, min = 80.0),
+                    supy.steps.filters.pt("genak5GenJetsP4", indices = "ak5GenJetIndices", index = 5, min = 30.0),
+                    ]
 
         elif thresh==(45, 45, 45, 45, 45, 45) :
             "HLT_SixJet45_v6"
@@ -81,6 +86,12 @@ class smsLook(supy.analysis) :
             out = [supy.steps.filters.pt("genak5GenJetsP4", indices = "ak5GenJetIndices", index = 7, min = 30.0),
                    ]
 
+        elif thresh==(150,) :
+            "HLT_PFMET150_v6"
+            out = [supy.steps.filters.pt("genmetP4True", min = 150.0),]
+            if offline :
+                out += [supy.steps.filters.pt("genmetP4True", min = 180.0),]
+
         if out : out.insert(0, supy.steps.filters.label('trigger requirements'))
         return out
 
@@ -89,6 +100,8 @@ class smsLook(supy.analysis) :
             #supy.steps.histos.pt('genmetP4True', 100, 0.0, 500.0, xtitle = "gen. MET (GeV)"),
             #supy.steps.histos.multiplicity('genIndicesStatus3Nu'),
             supy.steps.filters.multiplicity('genIndicesStatus3Nu', max = 0),
+            supy.steps.filters.pt('genmetP4True', min = 50.0),
+            supy.steps.histos.pt('genmetP4True', 100, 0.0, 500.0, xtitle = "gen. MET (GeV)"),
             #supy.steps.histos.multiplicity('genIndicesStatus3t'),
             ]
 
@@ -125,6 +138,27 @@ class smsLook(supy.analysis) :
                                            title = ";p_{T} of t (GeV);#DeltaR(b,W) from t;events / bin"),
             ]
 
+    def deltaPhi(self) :
+        return [
+            supy.steps.filters.label('Dphi requirements'),
+            #supy.steps.histos.histogrammer("genIndicesStatus3bMinDeltaPhiMetgenmetP4True", 100, 0.0, r.TMath.Pi(),
+            #                               title = ";min. |#Delta#phi(b,MET)|;events / bin"),
+            #supy.steps.histos.histogrammer(("genmetP4True", "genIndicesStatus3bMinDeltaPhiMetgenmetP4True"),
+            #                               (100, 100), (0.0, 0.0), (300.0, r.TMath.Pi()),
+            #                               title = ";MET;min. |#Delta#phi(b,MET)|;events / bin", funcString = "lambda x:(x[0].pt(),x[1])"),
+            supy.steps.filters.value("genIndicesStatus3bMinDeltaPhiMetgenmetP4True", min = 0.2),
+            supy.steps.filters.value("genIndicesStatus3W-DaughtersMinDeltaPhiMetgenmetP4True", min = 0.2),
+            supy.steps.filters.value("genIndicesStatus3W+DaughtersMinDeltaPhiMetgenmetP4True", min = 0.2),
+            ]
+
+    def ttPlots(self) :
+        return [
+            supy.steps.histos.pt('SumP4genIndicesStatus3t', 100, 0.0, 500.0, xtitle = "(t+t system)"),
+            supy.steps.histos.histogrammer(("genmetP4True", "SumP4genIndicesStatus3t"), (100, 100), (0.0, 0.0), (1000.0, 1000.0),
+                                           title = ";gen. MET (GeV);(t+t system) p_{T} (GeV);events / bin",
+                                           funcString = "lambda x:(x[0].pt(),x[1].pt())"),
+            ]
+
     def progress(self) :
         return [supy.steps.printer.progressPrinter()]
 
@@ -139,26 +173,13 @@ class smsLook(supy.analysis) :
             #self.stepsPrepare(params) +
             self.progress() +
             self.genFilters() +
-            self.triggerFilters() +
+            self.triggerFilters(thresh = (150,), offline = True) +
+            self.deltaPhi() +
             [])+[
-            supy.steps.filters.pt('genmetP4True', min = 50.0),
-            supy.steps.histos.pt('genmetP4True', 100, 0.0, 500.0, xtitle = "gen. MET (GeV)"),
-            supy.steps.histos.histogrammer("genIndicesStatus3bMinDeltaPhiMetgenmetP4True", 100, 0.0, r.TMath.Pi(),
-                                           title = ";min. |#Delta#phi(b,MET)|;events / bin"),
-            supy.steps.histos.histogrammer(("genmetP4True", "genIndicesStatus3bMinDeltaPhiMetgenmetP4True"),
-                                           (100, 100), (0.0, 0.0), (300.0, r.TMath.Pi()),
-                                           title = ";MET;min. |#Delta#phi(b,MET)|;events / bin", funcString = "lambda x:(x[0].pt(),x[1])"),
-
-            supy.steps.filters.value("genIndicesStatus3bMinDeltaPhiMetgenmetP4True", min = 0.2),
-            supy.steps.filters.value("genIndicesStatus3W-DaughtersMinDeltaPhiMetgenmetP4True", min = 0.2),
-            supy.steps.filters.value("genIndicesStatus3W+DaughtersMinDeltaPhiMetgenmetP4True", min = 0.2),
-            supy.steps.histos.pt('genmetP4True', 100, 0.0, 500.0, xtitle = "gen. MET (GeV)"),
-            #supy.steps.histos.pt('SumP4genIndicesStatus3t', 100, 0.0, 500.0, xtitle = "(t+t system)"),
-            #supy.steps.histos.histogrammer(("genmetP4True", "SumP4genIndicesStatus3t"), (100, 100), (0.0, 0.0), (1000.0, 1000.0),
-            #                               title = ";gen. MET (GeV);(t+t system) p_{T} (GeV);events / bin",
-            #                               funcString = "lambda x:(x[0].pt(),x[1].pt())"),
+            supy.steps.filters.label('misc plots'),
             ]+(
             #self.printer() +
+            #self.ttPlots() +
             self.ptPlots() +
             self.deltaRPlots() +
             [])
@@ -189,9 +210,9 @@ class smsLook(supy.analysis) :
             x.update(y)
             return x
         mcOps = {"markerStyle":1, "lineWidth":1, "goptions":"ehist"}
-        org.mergeSamples(targetSpec = md({"name":"stop-stop (500,  0)", "color":r.kGreen}, mcOps), allWithPrefix = "T2tt_500_0")
-        org.mergeSamples(targetSpec = md({"name":"stop-stop (500,100)", "color":r.kRed}, mcOps), allWithPrefix = "T2tt_500_100")
-        org.mergeSamples(targetSpec = md({"name":"stop-stop (500,300)", "color":r.kBlue}, mcOps), allWithPrefix = "T2tt_500_300")
+        org.mergeSamples(targetSpec = md({"name":"st-st (500,  0)", "color":r.kGreen}, mcOps), allWithPrefix = "T2tt_500_0")
+        org.mergeSamples(targetSpec = md({"name":"st-st (500,100)", "color":r.kRed}, mcOps), allWithPrefix = "T2tt_500_100")
+        org.mergeSamples(targetSpec = md({"name":"st-st (500,300)", "color":r.kBlue}, mcOps), allWithPrefix = "T2tt_500_300")
         org.mergeSamples(targetSpec = md({"name":"t-t", "color":r.kBlack}, mcOps), allWithPrefix = "tt")
 
         org.scale(20.0e3)
