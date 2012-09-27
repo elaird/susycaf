@@ -196,10 +196,11 @@ class smsLook(supy.analysis) :
     def listOfSamples(self,params) :
         from supy.samples import specify
         return (#supy.samples.specify(names = ["T2tt_8.job351"])+
-                supy.samples.specify(names = ["T2tt_500_0"],   nEventsMax = 20000)+
-                supy.samples.specify(names = ["T2tt_500_100"], nEventsMax = 20000)+
-                supy.samples.specify(names = ["T2tt_500_300"], nEventsMax = 20000)+
+                #supy.samples.specify(names = ["T2tt_500_0"],   nEventsMax = 20000)+
+                #supy.samples.specify(names = ["T2tt_500_100"], nEventsMax = 20000)+
+                #supy.samples.specify(names = ["T2tt_500_300"], nEventsMax = 20000)+
                 supy.samples.specify(names = ["tt_8_mg.job315_1"])+
+                supy.samples.specify(names = ["tt_8_mg.job315_zeroNu_50Met"])+
                 []
                 )
 
@@ -213,7 +214,8 @@ class smsLook(supy.analysis) :
         org.mergeSamples(targetSpec = md({"name":"st-st (500,  0)", "color":r.kGreen}, mcOps), allWithPrefix = "T2tt_500_0")
         org.mergeSamples(targetSpec = md({"name":"st-st (500,100)", "color":r.kRed}, mcOps), allWithPrefix = "T2tt_500_100")
         org.mergeSamples(targetSpec = md({"name":"st-st (500,300)", "color":r.kBlue}, mcOps), allWithPrefix = "T2tt_500_300")
-        org.mergeSamples(targetSpec = md({"name":"t-t", "color":r.kBlack}, mcOps), allWithPrefix = "tt")
+        org.mergeSamples(targetSpec = md({"name":"t-t", "color":r.kCyan}, mcOps), sources = ["tt_8_mg.job315_1"])
+        org.mergeSamples(targetSpec = md({"name":"t-t (0nu,50met)", "color":r.kBlack}, mcOps), sources = ["tt_8_mg.job315_zeroNu_50Met"])
 
         org.scale(20.0e3)
         pl = supy.plotter(org,
