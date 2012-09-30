@@ -39,7 +39,7 @@ class smsLook(supy.analysis) :
                 calculables.gen.MinDeltaPhiMet(indices = "genIndicesStatus3W+Daughters", met = "genmetP4True"),
                 calculables.gen.MinDeltaPhiMet(indices = "genIndicesStatus3W-Daughters", met = "genmetP4True"),
 
-                calculables.gen.JetIndices(("ak5Gen", ""), ptMin = 10.0, etaMax = 3.0),
+                calculables.gen.JetIndices(("ak5Gen", ""), ptMin = 20.0, etaMax = 3.0),
                 ]
         return out
                 
@@ -105,6 +105,21 @@ class smsLook(supy.analysis) :
             ]
     def met(self) :
         return [supy.steps.histos.pt('genmetP4True', 100, 0.0, 500.0, xtitle = "gen. MET (GeV)"),]
+
+    def b(self) :
+        return [supy.steps.filters.label('b requirements'),
+                supy.steps.filters.pt("genP4", indices = "genIndicesStatus3b", index = 0, min = 30.0),
+                supy.steps.filters.pt("genP4", indices = "genIndicesStatus3b", index = 1, min = 30.0),
+                supy.steps.filters.absEta("genP4", indices = "genIndicesStatus3b", index = 0, max = 2.2),
+                supy.steps.filters.absEta("genP4", indices = "genIndicesStatus3b", index = 1, max = 2.2),
+                ]
+
+    def jet(self) :
+        return [supy.steps.filters.label('jet requirements'),
+                #supy.steps.histos.multiplicity('ak5GenJetIndices', max = 15),
+                supy.steps.filters.multiplicity('ak5GenJetIndices', min = 6),
+                supy.steps.filters.multiplicity('ak5GenJetIndices', max = 8),
+                ]
 
     def ptPlots(self) :
         return [
@@ -178,15 +193,17 @@ class smsLook(supy.analysis) :
             self.met() +
             self.triggerFilters(thresh = (150,), offline = True) +
             #self.triggerFilters(thresh = (60, 60, 60, 60, 20, 20), offline = True) +
-            self.deltaPhi() +
+            self.jet() +
+            self.b() +
+            #self.deltaPhi() +
             [])+[
             supy.steps.filters.label('misc plots'),
             ]+(
             #self.printer() +
             #self.ttPlots() +
             self.met() +
-            self.ptPlots() +
-            self.deltaRPlots() +
+            #self.ptPlots() +
+            #self.deltaRPlots() +
             [])
 
     def listOfSampleDictionaries(self) :
