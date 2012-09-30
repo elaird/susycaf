@@ -8,43 +8,51 @@ class smsLook(supy.analysis) :
         out  = []
         out += supy.calculables.zeroArgs(calculables)
         out += supy.calculables.zeroArgs(supy.calculables)
-        out += [calculables.gen.genIndices(pdgs = [-16,-14,-12,12,14,16], label = "Status3Nu", status = [3]),
-                calculables.gen.genIndices(pdgs = [-6,6], label = "Status3t", status = [3]),
-                calculables.gen.genIndices(pdgs = [-24,24], label = "Status3W", status = [3]),
-                calculables.gen.genIndices(pdgs = [ 6], label = "Status3t+", status = [3]),
-                calculables.gen.genIndices(pdgs = [-6], label = "Status3t-", status = [3]),
-                calculables.gen.genIndices(pdgs = [ 24], label = "Status3W+", status = [3]),
-                calculables.gen.genIndices(pdgs = [-24], label = "Status3W-", status = [3]),
-                calculables.gen.genIndices(pdgs = [-5,5], label = "Status3b", status = [3]),
-                calculables.gen.genIndices(pdgs = [-11,11], label = "Status3e", status = [3]),
-                calculables.gen.genIndices(pdgs = [-13,13], label = "Status3mu", status = [3]),
-                calculables.gen.genIndices(pdgs = [-15,15], label = "Status3tau", status = [3]),
+        out += [calculables.gen.Indices(pdgs = [-16,-14,-12,12,14,16], label = "Status3Nu", status = [3]),
+                calculables.gen.Indices(pdgs = [-6,6], label = "Status3t", status = [3]),
+                calculables.gen.Indices(pdgs = [-24,24], label = "Status3W", status = [3]),
+                calculables.gen.Indices(pdgs = [ 6], label = "Status3t+", status = [3]),
+                calculables.gen.Indices(pdgs = [-6], label = "Status3t-", status = [3]),
+                calculables.gen.Indices(pdgs = [ 24], label = "Status3W+", status = [3]),
+                calculables.gen.Indices(pdgs = [-24], label = "Status3W-", status = [3]),
+                calculables.gen.Indices(pdgs = [-5,5], label = "Status3b", status = [3]),
+                calculables.gen.Indices(pdgs = [-11,11], label = "Status3e", status = [3]),
+                calculables.gen.Indices(pdgs = [-13,13], label = "Status3mu", status = [3]),
+                calculables.gen.Indices(pdgs = [-15,15], label = "Status3tau", status = [3]),
+                calculables.gen.Indices(pdgs = [-15,15], label = "2TauFrom3Tau", status = [2], motherIndices = "IndicesStatus3tau"),
 
-                calculables.gen.genIndices(pdgs = [], label = "Status3t+Daughters", status = [3], motherPdgs = [ 6]),
-                calculables.gen.genIndices(pdgs = [], label = "Status3t-Daughters", status = [3], motherPdgs = [-6]),
-                calculables.gen.genIndices(pdgs = [], label = "Status3W+Daughters", status = [3], motherPdgs = [ 24]),
-                calculables.gen.genIndices(pdgs = [], label = "Status3W-Daughters", status = [3], motherPdgs = [-24]),
+                calculables.gen.Indices(pdgs = [-11,11], label = "Status1eFromTau",
+                                        status = [1], motherIndices =  "Indices2TauFrom3Tau"),
+                calculables.gen.Indices(pdgs = [-13,13], label = "Status1muFromTau",
+                                        status = [1], motherIndices = "Indices2TauFrom3Tau"),
 
-                calculables.gen.genIndicesPtSorted(label = "Status3t"),
-                calculables.gen.genIndicesPtSorted(label = "Status3W"),
-                calculables.gen.genIndicesPtSorted(label = "Status3b"),
+                calculables.gen.Indices(pdgs = [], label = "Status3t+Daughters", status = [3], motherPdgs = [ 6]),
+                calculables.gen.Indices(pdgs = [], label = "Status3t-Daughters", status = [3], motherPdgs = [-6]),
+                calculables.gen.Indices(pdgs = [], label = "Status3W+Daughters", status = [3], motherPdgs = [ 24]),
+                calculables.gen.Indices(pdgs = [], label = "Status3W-Daughters", status = [3], motherPdgs = [-24]),
 
-                calculables.gen.ParticleKineIndices(collection = ("genIndicesStatus3b", ""), ptMin = 30.0, etaMax = 2.2),
-                calculables.gen.ParticleKineIndices(collection = ("genIndicesStatus3e", ""), ptMin = 10.0, etaMax = 2.3),
-                calculables.gen.ParticleKineIndices(collection = ("genIndicesStatus3mu", ""), ptMin = 10.0, etaMax = 2.3),
+                calculables.gen.IndicesPtSorted(label = "Status3t"),
+                calculables.gen.IndicesPtSorted(label = "Status3W"),
+                calculables.gen.IndicesPtSorted(label = "Status3b"),
 
-                supy.calculables.other.pt("genP4", indices = "genIndicesStatus3t+", index = 0),
-                supy.calculables.other.pt("genP4", indices = "genIndicesStatus3t-", index = 0),
+                calculables.gen.KineIndices(indices = "IndicesStatus3b", ptMin = 30.0, etaMax = 2.2),
+                calculables.gen.KineIndices(indices = "IndicesStatus3e", ptMin = 10.0, etaMax = 2.3),
+                calculables.gen.KineIndices(indices = "IndicesStatus3mu", ptMin = 10.0, etaMax = 2.3),
+                calculables.gen.KineIndices(indices = "IndicesStatus1eFromTau", ptMin = 10.0, etaMax = 2.3),
+                calculables.gen.KineIndices(indices = "IndicesStatus1muFromTau", ptMin = 10.0, etaMax = 2.3),
 
-                calculables.gen.SumP4(indices = "genIndicesStatus3t"),
-                calculables.gen.DeltaR(indices = "genIndicesStatus3t+Daughters"),
-                calculables.gen.DeltaR(indices = "genIndicesStatus3t-Daughters"),
-                calculables.gen.DeltaR(indices = "genIndicesStatus3W+Daughters"),
-                calculables.gen.DeltaR(indices = "genIndicesStatus3W-Daughters"),
+                supy.calculables.other.pt("genP4", indices = "IndicesStatus3t+", index = 0),
+                supy.calculables.other.pt("genP4", indices = "IndicesStatus3t-", index = 0),
 
-                calculables.gen.MinDeltaPhiMet(indices = "genIndicesStatus3b", met = "genmetP4True"),
-                calculables.gen.MinDeltaPhiMet(indices = "genIndicesStatus3W+Daughters", met = "genmetP4True"),
-                calculables.gen.MinDeltaPhiMet(indices = "genIndicesStatus3W-Daughters", met = "genmetP4True"),
+                calculables.gen.SumP4(indices = "IndicesStatus3t"),
+                calculables.gen.DeltaR(indices = "IndicesStatus3t+Daughters"),
+                calculables.gen.DeltaR(indices = "IndicesStatus3t-Daughters"),
+                calculables.gen.DeltaR(indices = "IndicesStatus3W+Daughters"),
+                calculables.gen.DeltaR(indices = "IndicesStatus3W-Daughters"),
+
+                calculables.gen.MinDeltaPhiMet(indices = "IndicesStatus3b", met = "genmetP4True"),
+                calculables.gen.MinDeltaPhiMet(indices = "IndicesStatus3W+Daughters", met = "genmetP4True"),
+                calculables.gen.MinDeltaPhiMet(indices = "IndicesStatus3W-Daughters", met = "genmetP4True"),
 
                 calculables.gen.JetIndices(("ak5Gen", ""), ptMin = 20.0, etaMax = 3.0),
                 ]
@@ -105,10 +113,10 @@ class smsLook(supy.analysis) :
     def genFilters(self) :
         return [
             #supy.steps.histos.pt('genmetP4True', 100, 0.0, 500.0, xtitle = "gen. MET (GeV)"),
-            #supy.steps.histos.multiplicity('genIndicesStatus3Nu'),
-            #supy.steps.filters.multiplicity('genIndicesStatus3Nu', max = 0),
+            #supy.steps.histos.multiplicity('IndicesStatus3Nu'),
+            #supy.steps.filters.multiplicity('IndicesStatus3Nu', max = 0),
             supy.steps.filters.pt('genmetP4True', min = 100.0),
-            #supy.steps.histos.multiplicity('genIndicesStatus3t'),
+            #supy.steps.histos.multiplicity('IndicesStatus3t'),
             #supy.steps.other.skimmer(),
             ]
     def met(self) :
@@ -116,7 +124,7 @@ class smsLook(supy.analysis) :
 
     def b(self) :
         return [supy.steps.filters.label('b requirements'),
-                supy.steps.filters.multiplicity("genIndicesStatus3bParticleKineIndices", min = 2, max = 2),
+                supy.steps.filters.multiplicity("KineIndicesStatus3b", min = 2, max = 2),
                 ]
 
     def jet(self) :
@@ -129,27 +137,29 @@ class smsLook(supy.analysis) :
     def lepton(self) :
         return [
             supy.steps.filters.label('lepton vetoes'),
-            #supy.steps.histos.multiplicity("genIndicesStatus3eParticleKineIndices"),
-            #supy.steps.histos.multiplicity("genIndicesStatus3muParticleKineIndices"),
-            #supy.steps.histos.pt("genP4", 100, 0.0, 100.0, indices = "genIndicesStatus3eParticleKineIndices", index = 0),
-            #supy.steps.histos.pt("genP4", 100, 0.0, 100.0, indices = "genIndicesStatus3muParticleKineIndices", index = 0),
-            supy.steps.filters.multiplicity("genIndicesStatus3eParticleKineIndices", max = 0),
-            supy.steps.filters.multiplicity("genIndicesStatus3muParticleKineIndices", max = 0),
+            #supy.steps.histos.multiplicity("KineIndicesStatus3e"),
+            #supy.steps.histos.multiplicity("KineIndicesStatus3mu"),
+            #supy.steps.histos.pt("genP4", 100, 0.0, 100.0, indices = "KineIndicesStatus3e", index = 0),
+            #supy.steps.histos.pt("genP4", 100, 0.0, 100.0, indices = "KineIndicesStatus3mu", index = 0),
+            supy.steps.filters.multiplicity("KineIndicesStatus3e", max = 0),
+            supy.steps.filters.multiplicity("KineIndicesStatus3mu", max = 0),
+            supy.steps.filters.multiplicity("KineIndicesStatus1eFromTau", max = 0),
+            supy.steps.filters.multiplicity("KineIndicesStatus1muFromTau", max = 0),
             ]
 
     def ptPlots(self) :
         return [
-            supy.steps.histos.pt("genP4", 40, 0.0, 400.0, indices = "genIndicesStatus3tPtSorted", index = 0, xtitle = "    leading t quark"),
-            supy.steps.histos.pt("genP4", 40, 0.0, 400.0, indices = "genIndicesStatus3tPtSorted", index = 1, xtitle = "sub-leading t quark"),
+            supy.steps.histos.pt("genP4", 40, 0.0, 400.0, indices = "IndicesStatus3tPtSorted", index = 0, xtitle = "    leading t quark"),
+            supy.steps.histos.pt("genP4", 40, 0.0, 400.0, indices = "IndicesStatus3tPtSorted", index = 1, xtitle = "sub-leading t quark"),
 
-            supy.steps.histos.pt("genP4", 40, 0.0, 400.0, indices = "genIndicesStatus3WPtSorted", index = 0, xtitle = "    leading W"),
-            supy.steps.histos.pt("genP4", 40, 0.0, 400.0, indices = "genIndicesStatus3WPtSorted", index = 1, xtitle = "sub-leading W"),
+            supy.steps.histos.pt("genP4", 40, 0.0, 400.0, indices = "IndicesStatus3WPtSorted", index = 0, xtitle = "    leading W"),
+            supy.steps.histos.pt("genP4", 40, 0.0, 400.0, indices = "IndicesStatus3WPtSorted", index = 1, xtitle = "sub-leading W"),
 
-            supy.steps.histos.pt("genP4", 20, 0.0, 200.0, indices = "genIndicesStatus3bPtSorted", index = 0, xtitle = "    leading b quark"),
-            supy.steps.histos.pt("genP4", 20, 0.0, 200.0, indices = "genIndicesStatus3bPtSorted", index = 1, xtitle = "sub-leading b quark"),
+            supy.steps.histos.pt("genP4", 20, 0.0, 200.0, indices = "IndicesStatus3bPtSorted", index = 0, xtitle = "    leading b quark"),
+            supy.steps.histos.pt("genP4", 20, 0.0, 200.0, indices = "IndicesStatus3bPtSorted", index = 1, xtitle = "sub-leading b quark"),
 
-            supy.steps.histos.absEta("genP4", 20, 0.0, 3.0, indices = "genIndicesStatus3bPtSorted", index = 0, xtitle = "    leading b quark"),
-            supy.steps.histos.absEta("genP4", 20, 0.0, 3.0, indices = "genIndicesStatus3bPtSorted", index = 1, xtitle = "sub-leading b quark"),
+            supy.steps.histos.absEta("genP4", 20, 0.0, 3.0, indices = "IndicesStatus3bPtSorted", index = 0, xtitle = "    leading b quark"),
+            supy.steps.histos.absEta("genP4", 20, 0.0, 3.0, indices = "IndicesStatus3bPtSorted", index = 1, xtitle = "sub-leading b quark"),
 
             supy.steps.histos.pt("genak5GenJetsP4", 20, 0.0, 200.0, indices = "ak5GenJetIndices", index = 3, xtitle = "4th gen. jet"),
             supy.steps.histos.pt("genak5GenJetsP4", 20, 0.0, 200.0, indices = "ak5GenJetIndices", index = 5, xtitle = "6th gen. jet"),
@@ -157,15 +167,15 @@ class smsLook(supy.analysis) :
 
     def deltaRPlots(self) :
         return [
-            supy.steps.histos.value('genIndicesStatus3t+DaughtersDeltaR', 100, 0.0, 5.0, xtitle = "#DeltaR(b,W) from t"),
-            supy.steps.histos.value('genIndicesStatus3t-DaughtersDeltaR', 100, 0.0, 5.0, xtitle = "#DeltaR(b,W) from #bar{t}"),
-            supy.steps.histos.value('genIndicesStatus3W+DaughtersDeltaR', 100, 0.0, 5.0, xtitle = "#DeltaR(q,q') from W+"),
-            supy.steps.histos.value('genIndicesStatus3W-DaughtersDeltaR', 100, 0.0, 5.0, xtitle = "#DeltaR(q,q') from W-"),
+            supy.steps.histos.value('IndicesStatus3t+DaughtersDeltaR', 100, 0.0, 5.0, xtitle = "#DeltaR(b,W) from t"),
+            supy.steps.histos.value('IndicesStatus3t-DaughtersDeltaR', 100, 0.0, 5.0, xtitle = "#DeltaR(b,W) from #bar{t}"),
+            supy.steps.histos.value('IndicesStatus3W+DaughtersDeltaR', 100, 0.0, 5.0, xtitle = "#DeltaR(q,q') from W+"),
+            supy.steps.histos.value('IndicesStatus3W-DaughtersDeltaR', 100, 0.0, 5.0, xtitle = "#DeltaR(q,q') from W-"),
 
-            supy.steps.histos.histogrammer(("genP4.pt0genIndicesStatus3t-", "genIndicesStatus3t-DaughtersDeltaR"),
+            supy.steps.histos.histogrammer(("genP4.pt0IndicesStatus3t-", "IndicesStatus3t-DaughtersDeltaR"),
                                            (100, 100), (0.0, 0.0), (500.0, 5.0),
                                            title = ";p_{T} of #bar{t} (GeV);#DeltaR(b,W) from #bar{t};events / bin"),
-            supy.steps.histos.histogrammer(("genP4.pt0genIndicesStatus3t+", "genIndicesStatus3t+DaughtersDeltaR"),
+            supy.steps.histos.histogrammer(("genP4.pt0IndicesStatus3t+", "IndicesStatus3t+DaughtersDeltaR"),
                                            (100, 100), (0.0, 0.0), (500.0, 5.0),
                                            title = ";p_{T} of t (GeV);#DeltaR(b,W) from t;events / bin"),
             ]
@@ -173,20 +183,20 @@ class smsLook(supy.analysis) :
     def deltaPhi(self) :
         return [
             supy.steps.filters.label('Dphi requirements'),
-            #supy.steps.histos.histogrammer("genIndicesStatus3bMinDeltaPhiMetgenmetP4True", 100, 0.0, r.TMath.Pi(),
+            #supy.steps.histos.histogrammer("IndicesStatus3bMinDeltaPhiMetgenmetP4True", 100, 0.0, r.TMath.Pi(),
             #                               title = ";min. |#Delta#phi(b,MET)|;events / bin"),
-            #supy.steps.histos.histogrammer(("genmetP4True", "genIndicesStatus3bMinDeltaPhiMetgenmetP4True"),
+            #supy.steps.histos.histogrammer(("genmetP4True", "IndicesStatus3bMinDeltaPhiMetgenmetP4True"),
             #                               (100, 100), (0.0, 0.0), (300.0, r.TMath.Pi()),
             #                               title = ";MET;min. |#Delta#phi(b,MET)|;events / bin", funcString = "lambda x:(x[0].pt(),x[1])"),
-            supy.steps.filters.value("genIndicesStatus3bMinDeltaPhiMetgenmetP4True", min = 0.2),
-            supy.steps.filters.value("genIndicesStatus3W-DaughtersMinDeltaPhiMetgenmetP4True", min = 0.2),
-            supy.steps.filters.value("genIndicesStatus3W+DaughtersMinDeltaPhiMetgenmetP4True", min = 0.2),
+            supy.steps.filters.value("IndicesStatus3bMinDeltaPhiMetgenmetP4True", min = 0.2),
+            supy.steps.filters.value("IndicesStatus3W-DaughtersMinDeltaPhiMetgenmetP4True", min = 0.2),
+            supy.steps.filters.value("IndicesStatus3W+DaughtersMinDeltaPhiMetgenmetP4True", min = 0.2),
             ]
 
     def ttPlots(self) :
         return [
-            supy.steps.histos.pt('SumP4genIndicesStatus3t', 100, 0.0, 500.0, xtitle = "(t+t system)"),
-            supy.steps.histos.histogrammer(("genmetP4True", "SumP4genIndicesStatus3t"), (100, 100), (0.0, 0.0), (1000.0, 1000.0),
+            supy.steps.histos.pt('SumP4IndicesStatus3t', 100, 0.0, 500.0, xtitle = "(t+t system)"),
+            supy.steps.histos.histogrammer(("genmetP4True", "SumP4IndicesStatus3t"), (100, 100), (0.0, 0.0), (1000.0, 1000.0),
                                            title = ";gen. MET (GeV);(t+t system) p_{T} (GeV);events / bin",
                                            funcString = "lambda x:(x[0].pt(),x[1].pt())"),
             ]
@@ -212,11 +222,11 @@ class smsLook(supy.analysis) :
             self.jet() +
             self.b() +
             self.lepton() +
-            self.deltaPhi() +
+            #self.deltaPhi() +
             [])+[
             supy.steps.filters.label('misc plots'),
             ]+(
-            #self.printer() +
+            self.printer() +
             #self.ttPlots() +
             self.met() +
             #self.ptPlots() +
