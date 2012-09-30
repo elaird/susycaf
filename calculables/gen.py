@@ -35,40 +35,54 @@ class genStatus1P4(wrappedChain.calculable) :
             if self.source["genStatus"].at(i)!=1 : continue
             self.value.append(self.source["genP4"][i])
 ##############################
-class genIndices(wrappedChain.calculable) :
+class Indices(wrappedChain.calculable) :
     @property
-    def name(self) : return "genIndices" + self.label
+    def name(self) : return "Indices" + self.label
 
-    def __init__(self, pdgs = [], label = None, status = [], motherPdgs = []) :
+    def __init__(self, pdgs = [], label = None, status = [], motherPdgs = [], motherIndices = "") :
         self.label = label
         self.PDGs = frozenset(pdgs)
         self.status = frozenset(status)
         self.motherPdgs = frozenset(motherPdgs)
-        self.moreName = "; ".join(["pdgId in %s" %str(list(self.PDGs)),
-                                   "status in %s"%str(list(self.status)),
-                                   "motherPdg in %s"%str(list(self.motherPdgs))
-                                   ])
+        self.motherIndices = motherIndices
+        self.moreName = "; ".join(filter(lambda x:x,
+                                         ["pdgId in %s" %str(list(self.PDGs)) if self.PDGs else "",
+                                          "status in %s"%str(list(self.status)) if self.status else "",
+                                          "motherPdg in %s"%str(list(self.motherPdgs)) if self.motherPdgs else "",
+                                          "motherIndices = %s"%self.motherIndices if self.motherIndices else ""
+                                          ])
+                                  )
 
     def update(self,_) :
         pdg = self.source["genPdgId"]
         status = self.source["genStatus"]
         motherPdg = self.source["genMotherPdgId"]
+        motherIndex = self.source["genMotherIndex"]
+        motherIndices = self.source[self.motherIndices] if self.motherIndices else []
         self.value = filter( lambda i: ( (not self.PDGs) or (pdg.at(i) in self.PDGs) ) and \
                                  ( (not self.status) or (status.at(i) in self.status) ) and \
-                                 ( (not self.motherPdgs) or (motherPdg.at(i) in self.motherPdgs) ),
+                                 ( (not self.motherPdgs) or (motherPdg.at(i) in self.motherPdgs) ) and \
+                                 ( (not self.motherIndices) or (motherIndex.at(i) in motherIndices) ),
                              range(pdg.size()) )
 
-class genIndicesPtSorted(wrappedChain.calculable) :
+class genIndices(Indices) :
+    @property
+    def name(self) : return "genIndices" + self.label
+
+class IndicesPtSorted(wrappedChain.calculable) :
     @property
     def name(self) :
         return "%sPtSorted"%self.label
 
     def __init__(self, label = "") :
-        self.label = "genIndices"+label
+        self.label = "Indices"+label
 
     def update(self,_) :
         p4 = self.source["genP4"]
         self.value = sorted(self.source[self.label], key = lambda i:p4.at(i).pt(), reverse = True)
+
+class genIndicesPtSorted(IndicesPtSorted) :
+    pass
 
 class genRootSHat(wrappedChain.calculable) :
     def update(self,_) :
@@ -82,12 +96,12 @@ class genSumPt(wrappedChain.calculable) :
         return "_".join(["genSumPt"]+self.indexLabels)
 
     def __init__(self, indexLabels = []) :
-        self.indexLabels = map(lambda s:s.replace("genIndices",""), indexLabels)
+        self.indexLabels = map(lambda s:s.replace("Indices",""), indexLabels)
 
     def update(self,_) :
         indices = []
         for label in self.indexLabels :
-            indices += self.source["genIndices"+label]
+            indices += self.source["Indices"+label]
         indices = set(indices)
 
         self.value = 0.0
@@ -133,7 +147,7 @@ class JetIndices(wrappedChain.calculable) :
             if abs(jet.eta())>self.etaMax : continue
             self.value.append(i)
 
-class ParticleKineIndices(wrappedChain.calculable) :
+class KineIndices(wrappedChain.calculable) :
     def __init__(self, collection = None, ptMin = None, etaMax = None) :
         self.fixes = collection
         self.ptMin = ptMin
