@@ -148,16 +148,19 @@ class JetIndices(wrappedChain.calculable) :
             self.value.append(i)
 
 class KineIndices(wrappedChain.calculable) :
-    def __init__(self, collection = None, ptMin = None, etaMax = None) :
-        self.fixes = collection
+    @property
+    def name(self) : return self.indices.replace("Indices","KineIndices")
+
+    def __init__(self, indices = None, ptMin = None, etaMax = None) :
+        self.indices = indices
         self.ptMin = ptMin
         self.etaMax = etaMax
-        self.moreName = "pT>%g GeV; |eta|<%g; %s%s"%((self.ptMin, self.etaMax,)+self.fixes)
+        self.moreName = "pT>%g GeV; |eta|<%g; %s"%(self.ptMin, self.etaMax, self.indices)
 
     def update(self,_) :
         p4 = self.source["genP4"]
         self.value = []
-        for i in self.source[self.fixes[0]] :
+        for i in self.source[self.indices] :
             particle = p4.at(i)
             if particle.pt()<self.ptMin : continue
             if abs(particle.eta())>self.etaMax : continue
