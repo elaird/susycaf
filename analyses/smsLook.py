@@ -30,6 +30,10 @@ class smsLook(supy.analysis) :
                 calculables.gen.Indices(pdgs = [], label = "Status3t-Daughters", status = [3], motherPdgs = [-6]),
                 calculables.gen.Indices(pdgs = [], label = "Status3W+Daughters", status = [3], motherPdgs = [ 24]),
                 calculables.gen.Indices(pdgs = [], label = "Status3W-Daughters", status = [3], motherPdgs = [-24]),
+                calculables.gen.Indices(pdgs = [1,2,3,4,-1,-2,-3,-4], label = "Status3W+DaughtersQ", status = [3], motherPdgs = [ 24]),
+                calculables.gen.Indices(pdgs = [1,2,3,4,-1,-2,-3,-4], label = "Status3W-DaughtersQ", status = [3], motherPdgs = [-24]),
+                calculables.gen.Indices(pdgs = [15, -15], label = "Status3W+DaughtersTau", status = [3], motherPdgs = [ 24]),
+                calculables.gen.Indices(pdgs = [15, -15], label = "Status3W-DaughtersTau", status = [3], motherPdgs = [-24]),
 
                 calculables.gen.IndicesPtSorted(label = "Status3t"),
                 calculables.gen.IndicesPtSorted(label = "Status3W"),
@@ -51,8 +55,10 @@ class smsLook(supy.analysis) :
                 calculables.gen.DeltaR(indices = "IndicesStatus3W-Daughters"),
 
                 calculables.gen.MinDeltaPhiMet(indices = "IndicesStatus3b", met = "genmetP4True"),
-                calculables.gen.MinDeltaPhiMet(indices = "IndicesStatus3W+Daughters", met = "genmetP4True"),
-                calculables.gen.MinDeltaPhiMet(indices = "IndicesStatus3W-Daughters", met = "genmetP4True"),
+                calculables.gen.MinDeltaPhiMet(indices = "IndicesStatus3W+DaughtersQ", met = "genmetP4True"),
+                calculables.gen.MinDeltaPhiMet(indices = "IndicesStatus3W-DaughtersQ", met = "genmetP4True"),
+                calculables.gen.MinDeltaPhiMet(indices = "IndicesStatus3W+DaughtersTau", met = "genmetP4True"),
+                calculables.gen.MinDeltaPhiMet(indices = "IndicesStatus3W-DaughtersTau", met = "genmetP4True"),
 
                 calculables.gen.JetIndices(("ak5Gen", ""), ptMin = 20.0, etaMax = 3.0),
                 ]
@@ -189,8 +195,10 @@ class smsLook(supy.analysis) :
             #                               (100, 100), (0.0, 0.0), (300.0, r.TMath.Pi()),
             #                               title = ";MET;min. |#Delta#phi(b,MET)|;events / bin", funcString = "lambda x:(x[0].pt(),x[1])"),
             supy.steps.filters.value("IndicesStatus3bMinDeltaPhiMetgenmetP4True", min = 0.2),
-            supy.steps.filters.value("IndicesStatus3W-DaughtersMinDeltaPhiMetgenmetP4True", min = 0.2),
-            supy.steps.filters.value("IndicesStatus3W+DaughtersMinDeltaPhiMetgenmetP4True", min = 0.2),
+            supy.steps.filters.value("IndicesStatus3W-DaughtersQMinDeltaPhiMetgenmetP4True", min = 0.2),
+            supy.steps.filters.value("IndicesStatus3W+DaughtersQMinDeltaPhiMetgenmetP4True", min = 0.2),
+            supy.steps.filters.value("IndicesStatus3W-DaughtersTauMinDeltaPhiMetgenmetP4True", min = 0.2),
+            supy.steps.filters.value("IndicesStatus3W+DaughtersTauMinDeltaPhiMetgenmetP4True", min = 0.2),
             ]
 
     def ttPlots(self) :
@@ -222,11 +230,11 @@ class smsLook(supy.analysis) :
             self.jet() +
             self.b() +
             self.lepton() +
-            #self.deltaPhi() +
+            self.deltaPhi() +
             [])+[
             supy.steps.filters.label('misc plots'),
             ]+(
-            self.printer() +
+            #self.printer() +
             #self.ttPlots() +
             self.met() +
             #self.ptPlots() +
