@@ -128,7 +128,7 @@ class MinDeltaPhiMet(wrappedChain.calculable) :
         p4 = self.source["genP4"]
         indices = self.source[self.fixes[0]]
         met = self.source[self.fixes[1]]
-        self.value = min([abs(r.Math.VectorUtil.DeltaPhi(met, p4.at(i))) for i in indices])
+        self.value = min([abs(r.Math.VectorUtil.DeltaPhi(met, p4.at(i))) for i in indices]) if indices else 100.0
 
 class JetIndices(wrappedChain.calculable) :
     def __init__(self, collection = None, ptMin = None, etaMax = None) :
