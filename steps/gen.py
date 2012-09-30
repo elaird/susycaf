@@ -167,6 +167,7 @@ class particlePrinter(analysisStep) :
         self.extra = extra
         
     def uponAcceptance (self,eventVars) :
+        if self.quietMode : return
 
         self.sumP4.SetCoordinates(0.0,0.0,0.0,0.0)
 

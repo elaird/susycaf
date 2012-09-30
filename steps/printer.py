@@ -3,6 +3,8 @@ from supy import analysisStep,utils
 #####################################
 class eventPrinter(analysisStep) :
     def uponAcceptance(self, eventVars) :
+        if self.quietMode : return
+
         print
         s = "run %7d  event %10d  ls %#5d"%(eventVars["run"], eventVars["event"], eventVars["lumiSection"])
         if eventVars["isRealData"] :
@@ -174,6 +176,7 @@ class metPrinter(analysisStep) :
         self.nSpaces = max(map(lambda x:len(x), self.collections))
 
     def uponAcceptance(self, eventVars) :
+        if self.quietMode : return
         for met in self.collections :
             p4 = eventVars[met]
             print "%s pT=%#6.1f GeV; phi=%#4.1f"%(met.ljust(self.nSpaces), p4.pt(), p4.phi())
