@@ -132,6 +132,22 @@ class JetIndices(wrappedChain.calculable) :
             if jet.pt()<self.ptMin : continue
             if abs(jet.eta())>self.etaMax : continue
             self.value.append(i)
+
+class ParticleKineIndices(wrappedChain.calculable) :
+    def __init__(self, collection = None, ptMin = None, etaMax = None) :
+        self.fixes = collection
+        self.ptMin = ptMin
+        self.etaMax = etaMax
+        self.moreName = "pT>%g GeV; |eta|<%g; %s%s"%((self.ptMin, self.etaMax,)+self.fixes)
+
+    def update(self,_) :
+        p4 = self.source["genP4"]
+        self.value = []
+        for i in self.source[self.fixes[0]] :
+            particle = p4.at(i)
+            if particle.pt()<self.ptMin : continue
+            if abs(particle.eta())>self.etaMax : continue
+            self.value.append(i)
 ##############################
 class susyIniIndices(wrappedChain.calculable) :
     def __init__(self) :
