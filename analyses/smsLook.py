@@ -16,6 +16,9 @@ class smsLook(supy.analysis) :
                 calculables.gen.genIndices(pdgs = [ 24], label = "Status3W+", status = [3]),
                 calculables.gen.genIndices(pdgs = [-24], label = "Status3W-", status = [3]),
                 calculables.gen.genIndices(pdgs = [-5,5], label = "Status3b", status = [3]),
+                calculables.gen.genIndices(pdgs = [-11,11], label = "Status3e", status = [3]),
+                calculables.gen.genIndices(pdgs = [-13,13], label = "Status3mu", status = [3]),
+                calculables.gen.genIndices(pdgs = [-15,15], label = "Status3tau", status = [3]),
 
                 calculables.gen.genIndices(pdgs = [], label = "Status3t+Daughters", status = [3], motherPdgs = [ 6]),
                 calculables.gen.genIndices(pdgs = [], label = "Status3t-Daughters", status = [3], motherPdgs = [-6]),
@@ -25,6 +28,10 @@ class smsLook(supy.analysis) :
                 calculables.gen.genIndicesPtSorted(label = "Status3t"),
                 calculables.gen.genIndicesPtSorted(label = "Status3W"),
                 calculables.gen.genIndicesPtSorted(label = "Status3b"),
+
+                calculables.gen.ParticleKineIndices(collection = ("genIndicesStatus3b", ""), ptMin = 30.0, etaMax = 2.2),
+                calculables.gen.ParticleKineIndices(collection = ("genIndicesStatus3e", ""), ptMin = 10.0, etaMax = 2.3),
+                calculables.gen.ParticleKineIndices(collection = ("genIndicesStatus3mu", ""), ptMin = 10.0, etaMax = 2.3),
 
                 supy.calculables.other.pt("genP4", indices = "genIndicesStatus3t+", index = 0),
                 supy.calculables.other.pt("genP4", indices = "genIndicesStatus3t-", index = 0),
@@ -99,19 +106,17 @@ class smsLook(supy.analysis) :
         return [
             #supy.steps.histos.pt('genmetP4True', 100, 0.0, 500.0, xtitle = "gen. MET (GeV)"),
             #supy.steps.histos.multiplicity('genIndicesStatus3Nu'),
-            supy.steps.filters.multiplicity('genIndicesStatus3Nu', max = 0),
-            supy.steps.filters.pt('genmetP4True', min = 50.0),
+            #supy.steps.filters.multiplicity('genIndicesStatus3Nu', max = 0),
+            supy.steps.filters.pt('genmetP4True', min = 100.0),
             #supy.steps.histos.multiplicity('genIndicesStatus3t'),
+            #supy.steps.other.skimmer(),
             ]
     def met(self) :
         return [supy.steps.histos.pt('genmetP4True', 100, 0.0, 500.0, xtitle = "gen. MET (GeV)"),]
 
     def b(self) :
         return [supy.steps.filters.label('b requirements'),
-                supy.steps.filters.pt("genP4", indices = "genIndicesStatus3b", index = 0, min = 30.0),
-                supy.steps.filters.pt("genP4", indices = "genIndicesStatus3b", index = 1, min = 30.0),
-                supy.steps.filters.absEta("genP4", indices = "genIndicesStatus3b", index = 0, max = 2.2),
-                supy.steps.filters.absEta("genP4", indices = "genIndicesStatus3b", index = 1, max = 2.2),
+                supy.steps.filters.multiplicity("genIndicesStatus3bParticleKineIndices", min = 2, max = 2),
                 ]
 
     def jet(self) :
@@ -120,6 +125,17 @@ class smsLook(supy.analysis) :
                 supy.steps.filters.multiplicity('ak5GenJetIndices', min = 6),
                 supy.steps.filters.multiplicity('ak5GenJetIndices', max = 8),
                 ]
+
+    def lepton(self) :
+        return [
+            supy.steps.filters.label('lepton vetoes'),
+            #supy.steps.histos.multiplicity("genIndicesStatus3eParticleKineIndices"),
+            #supy.steps.histos.multiplicity("genIndicesStatus3muParticleKineIndices"),
+            #supy.steps.histos.pt("genP4", 100, 0.0, 100.0, indices = "genIndicesStatus3eParticleKineIndices", index = 0),
+            #supy.steps.histos.pt("genP4", 100, 0.0, 100.0, indices = "genIndicesStatus3muParticleKineIndices", index = 0),
+            supy.steps.filters.multiplicity("genIndicesStatus3eParticleKineIndices", max = 0),
+            supy.steps.filters.multiplicity("genIndicesStatus3muParticleKineIndices", max = 0),
+            ]
 
     def ptPlots(self) :
         return [
@@ -195,7 +211,8 @@ class smsLook(supy.analysis) :
             #self.triggerFilters(thresh = (60, 60, 60, 60, 20, 20), offline = True) +
             self.jet() +
             self.b() +
-            #self.deltaPhi() +
+            self.lepton() +
+            self.deltaPhi() +
             [])+[
             supy.steps.filters.label('misc plots'),
             ]+(
@@ -221,8 +238,10 @@ class smsLook(supy.analysis) :
                 supy.samples.specify(names = ["T2tt_500_0"],   nEventsMax = 20000)+
                 supy.samples.specify(names = ["T2tt_500_100"], nEventsMax = 20000)+
                 supy.samples.specify(names = ["T2tt_500_300"], nEventsMax = 20000)+
-                #supy.samples.specify(names = ["tt_8_mg.job315_1"])+
                 supy.samples.specify(names = ["tt_8_mg.job315_zeroNu_50Met"])+
+                supy.samples.specify(names = ["tt_8_mg.job315_1_oneNu_100Met"])+
+                supy.samples.specify(names = ["tt_8_mg.job315_1_twoNu_100Met"])+
+                #supy.samples.specify(names = ["tt_8_mg.job315_1"])+
                 []
                 )
 
@@ -236,8 +255,10 @@ class smsLook(supy.analysis) :
         org.mergeSamples(targetSpec = md({"name":"st-st (500,  0)", "color":r.kGreen}, mcOps), allWithPrefix = "T2tt_500_0")
         org.mergeSamples(targetSpec = md({"name":"st-st (500,100)", "color":r.kRed}, mcOps), allWithPrefix = "T2tt_500_100")
         org.mergeSamples(targetSpec = md({"name":"st-st (500,300)", "color":r.kBlue}, mcOps), allWithPrefix = "T2tt_500_300")
-        org.mergeSamples(targetSpec = md({"name":"t-t", "color":r.kCyan}, mcOps), sources = ["tt_8_mg.job315_1"])
-        org.mergeSamples(targetSpec = md({"name":"t-t (0nu,50met)", "color":r.kBlack}, mcOps), sources = ["tt_8_mg.job315_zeroNu_50Met"])
+        org.mergeSamples(targetSpec = md({"name":"tt", "color":r.kCyan}, mcOps), sources = ["tt_8_mg.job315_1"])
+        org.mergeSamples(targetSpec = md({"name":"tt (0nu,50met)", "color":r.kBlack}, mcOps), sources = ["tt_8_mg.job315_zeroNu_50Met"])
+        org.mergeSamples(targetSpec = md({"name":"tt (1nu,100met)", "color":r.kOrange+3}, mcOps), sources = ["tt_8_mg.job315_1_oneNu_100Met"])
+        org.mergeSamples(targetSpec = md({"name":"tt (2nu,100met)", "color":r.kOrange-3}, mcOps), sources = ["tt_8_mg.job315_1_twoNu_100Met"])
 
         org.scale(20.0e3)
         pl = supy.plotter(org,
