@@ -135,7 +135,7 @@ class smsLook(supy.analysis) :
 
     def jet(self) :
         return [supy.steps.filters.label('jet requirements'),
-                #supy.steps.histos.multiplicity('ak5GenJetIndices', max = 15),
+                supy.steps.histos.multiplicity('ak5GenJetIndices', max = 15),
                 supy.steps.filters.multiplicity('ak5GenJetIndices', min = 6),
                 supy.steps.filters.multiplicity('ak5GenJetIndices', max = 8),
                 ]
@@ -230,7 +230,7 @@ class smsLook(supy.analysis) :
             self.jet() +
             self.b() +
             self.lepton() +
-            self.deltaPhi() +
+            #self.deltaPhi() +
             [])+[
             supy.steps.filters.label('misc plots'),
             ]+(
