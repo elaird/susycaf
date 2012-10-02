@@ -257,14 +257,15 @@ class smsLook(supy.analysis) :
                 supy.samples.specify(names = ["T2tt_500_100"], nEventsMax = 20000)+
                 supy.samples.specify(names = ["T2tt_500_300"], nEventsMax = 20000)+
                 supy.samples.specify(names = ["tt_8_mg.job315_zeroNu_50Met"])+
-                supy.samples.specify(names = ["tt_8_mg.job315_1_oneNu_100Met"])+
-                supy.samples.specify(names = ["tt_8_mg.job315_1_twoNu_100Met"])+
-                #supy.samples.specify(names = ["tt_8_mg.job315_1"])+
+                supy.samples.specify(names = ["tt_8_mg.job315_oneNu_100Met"], nFilesMax = 1)+
+                supy.samples.specify(names = ["tt_8_mg.job315_twoNu_100Met"], nFilesMax = 1)+
+                #supy.samples.specify(names = ["tt_8_mg.job315"])+
                 []
                 )
 
     def conclude(self,pars) :
         org = self.organizer(pars)
+        #supy.utils.printSkimResults(org)
 
         def md(x, y) :
             x.update(y)
