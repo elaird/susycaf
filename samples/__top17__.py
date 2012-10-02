@@ -11,6 +11,10 @@ top17.add("tt_8_mg.job315_zeroNu_50Met", '["/uscms/home/elaird/141_ntuples/job31
 top17.add("tt_8_mg.job315_1_oneNu_100Met", '["/uscms/home/elaird/141_ntuples/job315/tt_8_mg.job315_oneNu_100Met.root"]', xs = 234.*(1465./20000.))
 top17.add("tt_8_mg.job315_1_twoNu_100Met", '["/uscms/home/elaird/141_ntuples/job315/tt_8_mg.job315_twoNu_100Met.root"]', xs = 234.*(510./20000.))
 
+loc = "/uscms/home/elaird/141_ntuples/job315"
+top17.add("tt_8_mg.job315_oneNu_100Met", 'utils.fileListFromDisk(location = "%s/oneNu_100Met/tt_8_mg.job315_*_skim.root", isDirectory = False)'%loc, xs = 7.037891e-02 * 2.340000e+02)
+top17.add("tt_8_mg.job315_twoNu_100Met", 'utils.fileListFromDisk(location = "%s/twoNu_100Met/tt_8_mg.job315_*_skim.root", isDirectory = False)'%loc, xs = 2.542509e-02 * 2.340000e+02)
+
 top17.add("ttz_8_mg.job269", '%s/zmeng//ICF/automated/2012_07_20_15_24_50")'%pnfs, xs = 0.172) #xs from PREP
 top17.add("ttz_8_mg.job269_1", '["/uscms/home/elaird/141_ntuples/job269/SusyCAF_Tree_11_1_7LX.root"]', xs = 0.172) #xs from PREP
 
