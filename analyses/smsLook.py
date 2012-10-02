@@ -276,8 +276,8 @@ class smsLook(supy.analysis) :
         org.mergeSamples(targetSpec = md({"name":"st-st (500,300)", "color":r.kBlue}, mcOps), allWithPrefix = "T2tt_500_300")
         org.mergeSamples(targetSpec = md({"name":"tt", "color":r.kCyan}, mcOps), sources = ["tt_8_mg.job315_1"])
         org.mergeSamples(targetSpec = md({"name":"tt (0nu,50met)", "color":r.kBlack}, mcOps), sources = ["tt_8_mg.job315_zeroNu_50Met"])
-        org.mergeSamples(targetSpec = md({"name":"tt (1nu,100met)", "color":r.kOrange+3}, mcOps), sources = ["tt_8_mg.job315_1_oneNu_100Met"])
-        org.mergeSamples(targetSpec = md({"name":"tt (2nu,100met)", "color":r.kOrange-3}, mcOps), sources = ["tt_8_mg.job315_1_twoNu_100Met"])
+        org.mergeSamples(targetSpec = md({"name":"tt (1nu,100met)", "color":r.kOrange+3}, mcOps), sources = ["tt_8_mg.job315_oneNu_100Met"])
+        org.mergeSamples(targetSpec = md({"name":"tt (2nu,100met)", "color":r.kOrange-3}, mcOps), sources = ["tt_8_mg.job315_twoNu_100Met"])
 
         org.scale(20.0e3)
         pl = supy.plotter(org,
