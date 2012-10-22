@@ -301,6 +301,12 @@ class kinematics(analysisStep) :
         self.book.fill(ev[self.moreName+"PtSum"],   "TT.pt",   100,  0, 200, title = ";ttbar.pt;events / bin")
         self.book.fill( topReco[index]['hadTraw'].mass(), "rawHadTopMass", 100, 100,300, title = ";%s raw hadronic top mass;events / bin"%self.moreName)
         self.book.fill( topReco[index]['hadWraw'].mass(), "rawHadWMass", 100, 0,200, title = ";%s raw hadronic W mass;events / bin"%self.moreName)
+
+        lo = (-1,0)
+        up = (1,1)
+        v = tuple( max(L,min(val,U-1e-6)) for val,L,U  in zip((ev['TridiscriminantWTopQCD'],
+                                                               ev[self.moreName+'SqrtPtOverSumPt']), lo, up) )
+        self.book.fill( v, 'triD_v_sqtsumptopt', (100,100), lo, up, title = ""  )
 #####################################
 class resolutions(analysisStep) :
     def __init__(self,indexName) : self.moreName = indexName

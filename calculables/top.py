@@ -139,6 +139,12 @@ class PtOverSumPt(wrappedChain.calculable) :
         self.stash(['Pt','SumPt'])
     def update(self,_) : self.value = self.source[self.Pt] / self.source[self.SumPt]
 ######################################
+class SqrtPtOverSumPt(wrappedChain.calculable) :
+    def __init__(self, collection = None) :
+        self.fixes = collection
+        self.stash(['PtOverSumPt'])
+    def update(self,_) : self.value = math.sqrt(self.source[self.PtOverSumPt])
+######################################
 class PtPlusSumPt(wrappedChain.calculable) :
     def __init__(self, collection = None) :
         self.fixes = collection

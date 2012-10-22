@@ -238,6 +238,7 @@ class topAsymm(supy.analysis) :
                                              funcEven = '++'.join(['(1-abs(x))']+['x**%d'%d for d in [0,2,4,6,8,10,12,14,16,18]]),
                                              funcOdd = '++'.join(['x**%d'%d for d in [1,3,5,7,9,11,13]])).disable(saDisable)
              , ssteps.filters.label('symm anti')
+             , ssteps.histos.value('beamHaloCSCLooseHaloId',2,-0.5,1.5, w = 'pu').onlySim()
              , ssteps.filters.value('tw',min=1e-8)
              , ssteps.histos.symmAnti('genTopCosPhiBoost','genTopCosPhiBoost',100,-1,1).disable(saDisable)
              , ssteps.histos.symmAnti('genTopDeltaBetazRel','genTopDeltaBetazRel',100,-1,1).disable(saDisable)
@@ -406,6 +407,7 @@ class topAsymm(supy.analysis) :
                                                        correlations = pars['discriminant2DPlots'],
                                                        dists = { "fitTopPtPlusSumPt" : (20,0,600),
                                                                  "fitTopPtOverSumPt" : (20,0,1),
+                                                                 "fitTopSqrtPtOverSumPt" : (10,0,1),
                                                                  "fitTopSumP4AbsEta" : (20,0,6),
                                                                  #"fitTopAbsSumRapidities" : (20, 0, 4),
                                                                  #"M3".join(jets) : (20,0,600),
@@ -449,7 +451,9 @@ class topAsymm(supy.analysis) :
         org.mergeSamples(targetSpec = {"name":"W+jets", "color":28}, sources = ["w%dj_mg.tw.%s"%(n,rw) for n in [2,3,4]])
         org.mergeSamples(targetSpec = {"name":"DY+jets", "color":r.kYellow}, allWithPrefix="dyj_ll_mg")
         org.mergeSamples(targetSpec = {"name":"Single top", "color":r.kGray}, sources = ["%s.tw.%s"%(s,rw) for s in self.single_top()])
-        org.mergeSamples(targetSpec = {"name":"Standard Model", "color":r.kGreen+2}, sources = ["multijet","t#bar{t}","W+jets","DY+jets","Single top"], keepSources = True)
+        org.mergeSamples(targetSpec = {"name":"Standard Model", "color":r.kGreen+2}, sources = ["t#bar{t}","W+jets","DY+jets","Single top"], keepSources = True)
+
+        self.skimStats(org)
 
         org.scale( lumiToUseInAbsenceOfData = 5008 )
 
@@ -467,6 +471,31 @@ class topAsymm(supy.analysis) :
         
         supy.plotter(org, pdfFileName = self.pdfFileName(org.tag+"_log"),  doLog = True, pegMinimum = 0.01, **kwargs ).plotAll()
         supy.plotter(org, pdfFileName = self.pdfFileName(org.tag+"_nolog"), doLog = False, **kwargs ).plotAll()
+
+    def skimStats(self,org) :
+        statsname = {'DY+jets':'dy',
+                     'W+jets': 'wj',
+                     't#bar{t}':'tt',
+                     'ttj_ph.wGG.tw.pu':'ttgg',
+                     'ttj_ph.wQG.tw.pu':'ttqg',
+                     'ttj_ph.wAG.tw.pu':'ttag',
+                     'ttj_ph.wQQ.tw.pu':'ttqq',
+                     'Single top' : 'st',
+                     'SingleMu.2011': 'mu'
+                     }
+
+        fileName = '%s/stats_%s.root'%(self.globalStem,org.tag)
+        tfile = r.TFile.Open(fileName,'RECREATE')
+        grab = ['beamHaloCSCLooseHaloId', 'triD_v_sqtsumptopt']
+        for g in grab :
+            tfile.mkdir(g).cd()
+            for ss,hist in zip( org.samples,
+                                org.steps[next(org.indicesOfStepsWithKey(g))][g] ) :
+                if not hist or ss['name']=='Standard Model': continue
+                h = hist.Clone(statsname[ss['name']] if ss['name'] in statsname else ss['name'])
+                h.Write()
+        tfile.Close()
+        print 'Wrote: ', fileName
 
     def plotMeldScale(self,rw,lname,tt) :
         if (lname,rw, tt) not in self.orgMelded : print "run meldScale() before plotMeldScale()"; return
@@ -511,6 +540,7 @@ class topAsymm(supy.analysis) :
 
         self.orgMelded[(lname,rw,tt)] = supy.organizer.meld(organizers = organizers)
         org = self.orgMelded[(lname,rw,tt)]
+        self.skimStats(org)
         templateSamples = ['top.t#bar{t}','top.W','QCD.multijet']
         baseSamples = ['top.Single','top.DY']
 
