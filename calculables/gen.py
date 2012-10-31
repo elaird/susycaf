@@ -35,6 +35,17 @@ class genStatus1P4(wrappedChain.calculable) :
             if self.source["genStatus"].at(i)!=1 : continue
             self.value.append(self.source["genP4"][i])
 ##############################
+class varAbs(wrappedChain.calculable) :
+    @property
+    def name(self) : return "%sAbs"%(self.var)
+    
+    def __init__(self, var = "") :
+        self.var = var
+
+    def update(self,_) :
+        v = self.source[self.var]
+        self.value = abs(v)
+##############################
 class genIndices(wrappedChain.calculable) :
     @property
     def name(self) : return "genIndices" + self.label
