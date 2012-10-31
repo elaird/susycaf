@@ -39,21 +39,23 @@ class hadronicLook(supy.analysis) :
                                             ]))
         
         return { "objects": objects,
-                 "nJetsMinMax" :      self.vary(dict([ ("ge2",(2,None)),  ("2",(2,2)),  ("ge3",(3,None)),  ("3",(3,3)) ]       [0:1] )),
-                 "nBTagJets":         self.vary(dict([ ("nbe0",(0,0)),  ("nbe1",(1,1)),  ("nbe2",(2,2)),  ("nbge3",(3,None)) ]       [0:4] )),
+                 "nJetsMinMax" :      self.vary(dict([ ("ge2",(2,None)),  ("2",(2,2)),  ("ge3",(3,None)),  ("3",(3,3)), ("e23",(2,3)), ("ge4",(4,None))][4:5] )),
+                 "nBTagJets":         self.vary(dict([ ("nbe0",(0,0)),  ("nbe1",(1,1)),  ("nbe2",(2,2)),  ("nbe3",(3,3)),  ("nbge4",(4,None)) ][0:1] )),
                  "etRatherThanPt" : [True,False][0],
                  "lowPtThreshold" : 30.0,
                  "lowPtName" : "lowPt",
                  "highPtThreshold" : 50.0,
                  "highPtName" : "highPt",
                  "tanBeta" : [None, 3, 10, 50][0],
+                 "signalScan" : True,
                  "thresholds": self.vary(dict( [("275",        (275.0, 325.0, 100.0, 50.0)),#0
                                                 ("325",        (325.0, 375.0, 100.0, 50.0)),#1
                                                 ("375",        (375.0, None,  100.0, 50.0)),#2
                                                 ("325_scaled", (325.0, 375.0,  86.7, 43.3)),#3
                                                 ("275_scaled", (275.0, 325.0,  73.3, 36.7)),#4
                                                 ("675",        (675.0, None,  100.0, 50.0)),#5
-                                                ][4:5] )),
+                                                ("875",        (875.0, None,  100.0, 50.0)),#6
+                                                ][6:7] )),
                  "triggerList": triggers_alphaT_2012, 
                  }
 
@@ -66,7 +68,7 @@ class hadronicLook(supy.analysis) :
                                          gammaDR = 0.5,
                                          muon = muon,
                                          muonDR = 0.5,
-                                         correctForMuons = not muonsInJets,
+                                         #correctForMuons = not muonsInJets,
                                          electron = electron,
                                          electronDR = 0.5),
                 calculables.jet.Indices( jet, ptMin = ptMin,           etaMax = 3.0, flagName = jetIdFlag),
@@ -130,8 +132,10 @@ class hadronicLook(supy.analysis) :
         return outList
 
     def stepsEventCount(self, params, label = "") :
+        _jet = params["objects"]["jet"]
+        _et = "Et" if params["etRatherThanPt"] else "Pt"
         out = []
-
+        
         if params["signalScan"] :
             if "scanBefore" in label :
                 out = [supy.steps.filters.label("scanBefore"), steps.gen.scanHistogrammer(htVar = "", befOrAf = "Before")]
@@ -188,7 +192,7 @@ class hadronicLook(supy.analysis) :
         return out
 
     def stepsBtagJets(self, params) :
-        jet = params["objects"]["jet"]
+        _jet = params["objects"]["jet"]
         out = [supy.steps.filters.multiplicity("%sIndicesBtagged2%s"%_jet, min = params["nBTagJets"][0], max = params["nBTagJets"][1]),
                supy.steps.histos.multiplicity("%sIndicesBtagged2%s"%_jet),
                ]
@@ -256,7 +260,7 @@ class hadronicLook(supy.analysis) :
 
             supy.steps.filters.value("%sAlphaT%s%s"%(_jet[0], _et, _jet[1]), min = 0.55),
 
-            #supy.steps.histos.histogrammer("%sMaxEmEnergyFraction%s"%(_jet[0], _jet[1]), 20, 0.0, 1.0, title = ";MaxEmEnergyFraction;events / bin"),
+            supy.steps.histos.histogrammer("%sMaxEmEnergyFraction%s"%(_jet[0], _jet[1]), 20, 0.0, 1.0, title = ";MaxEmEnergyFraction;events / bin"),
             #supy.steps.filters.value("%sMaxEmEnergyFraction%s"%(_jet[0],_jet[1]), max = .1),
             ]
 
@@ -279,7 +283,7 @@ class hadronicLook(supy.analysis) :
 
     def stepsOptional(self, params) :
         return [
-            #supy.steps.other.skimmer(),
+            supy.steps.other.skimmer(),
             #steps.other.duplicateEventCheck(),
             #steps.other.pickEventSpecMaker(),
             #steps.other.cutBitHistogrammer(self.togglePfJet(_jet), self.togglePfMet(_met)),
@@ -336,27 +340,43 @@ class hadronicLook(supy.analysis) :
         _et = "Et" if _etRatherThanPt else "Pt"
 
         return ([supy.steps.printer.progressPrinter()] +
+                #self.stepsEventCount(params, label = "scanBefore") +
                 #self.stepsGenValidation() +
                 self.stepsEvent() +
                 self.stepsTrigger(params) +
                 self.stepsHtLeadingJets(params) +
                 self.stepsXclean(params) +
+                self.stepsBtagJets(params) +
                 #self.stepsPlotsOne(params) +
                 self.stepsQcdRejection(params) +
                 self.stepsPlotsTwo(params) +
-                self.stepsMbb(params) +
+                #self.stepsMbb(params) +
                 #self.stepsDisplayer(params) +
-                #self.stepsOptional(params) +
+                self.stepsOptional(params) +
                 #self.stepsHtBins(params) +
+                #self.stepsEventCount(params, label = "scanAfter") +
                 [])
 
     def listOfSampleDictionaries(self) :
         sh = supy.samples.SampleHolder()
         sh.add("275_ge2b", '["/uscms/home/elaird/08_mbb/02_skim/2012_5fb_275_ge2b.root"]', lumi = 5.0e3)
-        return [samples.ht17, samples.top17, samples.ewk17, samples.qcd17, sh]
+        sh.add("375_ge2b", '["/uscms/home/yeshaq/nobackup/supy-output/hadronicLook/375_calo_ge2/HadronicRegion.root"]', lumi = 5.0e3)
+        return [samples.ht17, samples.top17, samples.ewk17, samples.qcd17, sh, samples.susy17]
     
     def listOfSamples(self,params) :
         from supy.samples import specify
+
+        def data_53X() :
+            jw2012 = calculables.other.jsonWeight("cert/Cert_190456-203002_8TeV_PromptReco_Collisions12_JSON.txt")
+
+            out = []
+            #out += specify(names = "HTMHT.Run2012B-13Jul2012-v1.AOD.job358", weights = jw2012)#, nFilesMax = 1, nEventsMax = 1000)
+            #out += specify(names = "HTMHT.Run2012C-24Aug2012-v1.AOD.job361", weights = jw2012)#, nFilesMax = 1, nEventsMax = 1000)
+            #out += specify(names = "HTMHT.Run2012C-PromptReco-v2.AOD.job360", weights = jw2012)#, nFilesMax = 1, nEventsMax = 1000)
+            #out += specify(names = "HT.Run2012A-13Jul2012-v1.AOD.job358",  weights = jw2012)#, nFilesMax = 1, nEventsMax = 1000)
+            #out += specify(names = "HT.Run2012A-recover-06Aug2012-v1.AOD.job359",  weights = jw2012)#, nFilesMax = 1, nEventsMax = 1000)
+            out += specify(names = "375_ge2b")
+            return out
 
         def data_52X() :
             jw2012 = calculables.other.jsonWeight("cert/Cert_190456-196531_8TeV_PromptReco_Collisions12_JSON.txt")
@@ -432,16 +452,28 @@ class hadronicLook(supy.analysis) :
         def susy(eL) :
             return specify(names = "lm6", effectiveLumi = eL, color = r.kRed)
 
+        def sms() :
+            out = []
+            #out += specify(names = "t2bb.job418")#, nFilesMax = 1, nEventsMax = 500)
+            out += specify(names = "t1tttt.job442")#, nFilesMax = 1, nEventsMax = 500)
+            #out += specify(names = "t1bbbb.job443", nFilesMax = 1, nEventsMax = 500)
+            #out += specify(names = "t1.job444", nFilesMax = 1, nEventsMax = 500)
+            #out += specify(names = "t2tt.job445")#, nFilesMax = 1, nEventsMax = 500)
+            #out += specify(names = "t2.job446", nFilesMax = 1, nEventsMax = 500)
+            return out
+
         return (
+            data_53X() +
             #data_52X() +
-            data_52X_2b_skim() +
-            w_binned() +
-            z_binned() +
-            top() +
-            vv() +
+            #data_52X_2b_skim() +
+            #w_binned() +
+            #z_binned() +
+            #top() +
+            #vv() +
             #qcd_py6(30.0e3) +
             #qcd_b_py6(30.0e3) +
             ##w_inclusive() +
+            #sms() +
             []
             )
 
@@ -451,7 +483,7 @@ class hadronicLook(supy.analysis) :
             return x
         
         #org.mergeSamples(targetSpec = {"name":"2012 Data", "color":r.kBlack, "markerStyle":20}, allWithPrefix = "HT")
-        org.mergeSamples(targetSpec = {"name":"2012 Data", "color":r.kBlack, "markerStyle":20}, allWithPrefix = "275_ge2b")
+        org.mergeSamples(targetSpec = {"name":"2012 Data", "color":r.kBlack, "markerStyle":20}, allWithPrefix = "HT")
 
         mcOps = {"markerStyle":1, "lineWidth":3, "goptions":"hist"}
 
@@ -486,10 +518,11 @@ class hadronicLook(supy.analysis) :
         #utils.printSkimResults(org)            
 
         self.mergeSamples(org)
-        org.scale()
+        org.scale() if not self.parameters()["signalScan"] else org.scale(100.0)
         
         self.makeStandardPlots(org)
         #self.makeIndividualPlots(org)
+        self.makeEfficiencyPlots(org)
 
     def makeStandardPlots(self, org) :
         #plot
@@ -607,50 +640,50 @@ class hadronicLook(supy.analysis) :
                     return iSample
             assert False, "could not find sample %s"%name
                 
-            def numerAndDenom(org, var) :
-                d = {}
-                
-                for selection in org.steps :
-                    if   "scanBefore" in selection.title : label = "before"
-                    elif "scanAfter" in selection.title : label = "after"
-                    if selection.name!= "scanHistogrammer" : continue
-                    d[label] = selection[var][sampleIndex(org, sampleName)].Clone(label)
-                return d
+        def numerAndDenom(org, var) :
+            d = {}
+            
+            for selection in org.steps :
+                if   "scanBefore" in selection.title : label = "before"
+                elif "scanAfter" in selection.title : label = "after"
+                if selection.name!= "scanHistogrammer" : continue
+                d[label] = selection[var][sampleIndex(org, sampleName)].Clone(label)
+            return d
+            
+        keep = []
+        file = r.TFile("%s_%s.root"%(sampleName, org.tag), "RECREATE")
+        canvas = r.TCanvas()
+        canvas.SetRightMargin(0.2)
+        canvas.SetTickx()
+        canvas.SetTicky()
+        psFileName = "%s_%s.ps"%(sampleName, org.tag)
+        canvas.Print(psFileName+"[","Lanscape")
                     
-            keep = []
-            file = r.TFile("%s_%s.root"%(sampleName, org.tag), "RECREATE")
-            canvas = r.TCanvas()
-            canvas.SetRightMargin(0.2)
-            canvas.SetTickx()
-            canvas.SetTicky()
-            psFileName = "%s_%s.ps"%(sampleName, org.tag)
-            canvas.Print(psFileName+"[","Lanscape")
-                    
-            assert len(self.parameters()["objects"])==1
-            for key,value in self.parameters()["objects"].iteritems() :
-                jet = value["jet"]
+        assert len(self.parameters()["objects"])==1
+        for key,value in self.parameters()["objects"].iteritems() :
+            jet = value["jet"]
                 
-                for variable in ["nEvents"] :
-                    histos = numerAndDenom(org, variable)
-                    if "before" not in histos or "after" not in histos : continue
-                    result = histos["after"].Clone(variable)
-                    result.Divide(histos["before"])
-                    result.SetMarkerStyle(20)
-                    result.SetStats(False)
-                    if result.ClassName()[2]=="1" :
-                        #result.GetYaxis().SetRangeUser(0.0,1.0)
-                        result.GetYaxis().SetTitle("efficiency")
-                        result.Draw()
-                    else :
-                        #result.GetZaxis().SetRangeUser(0.0,1.0)
-                        #result.GetZaxis().SetTitle("efficiency")
-                        result.Draw("colz")
-                    canvas.Print(psFileName,"Lanscape")
-                    result.Write()
-                canvas.Print(psFileName+"]","Lanscape")
-                temp = psFileName.replace(".chr","_chr").replace(".ps",".pdf")
-                os.system("ps2pdf "+ psFileName +" "+ temp)
-                os.remove(psFileName)
-                file.Close()
+        for variable in ["nEvents"] :
+            histos = numerAndDenom(org, variable)
+            if "before" not in histos or "after" not in histos : continue
+            result = histos["after"].Clone(variable)
+            result.Divide(histos["before"])
+            result.SetMarkerStyle(20)
+            result.SetStats(False)
+            if result.ClassName()[2]=="1" :
+                result.GetYaxis().SetRangeUser(0.0,0.35)
+                result.GetYaxis().SetTitle("efficiency")
+                result.Draw()
+            else :
+                result.GetZaxis().SetRangeUser(0.0,0.35)
+                result.GetZaxis().SetTitle("efficiency")
+                result.Draw("colz")
+                canvas.Print(psFileName,"Lanscape")
+                result.Write()
+        canvas.Print(psFileName+"]","Lanscape")
+        temp = psFileName.replace(".chr","_chr").replace(".ps",".pdf")
+        os.system("ps2pdf "+ psFileName +" "+ temp)
+        os.remove(psFileName)
+        file.Close()
                                     
                                     
