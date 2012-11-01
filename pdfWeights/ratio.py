@@ -35,8 +35,11 @@ for model in models :
             result.SetStats(False)
 
             if "T1bbbb" in model :
-                result.SetMaximum(1.15)
-                result.SetMinimum(0.65)
+                result.SetMaximum(1.2)
+                result.SetMinimum(0.5)
+                if "875" in ht :
+                    result.SetMaximum(1.2)
+                    result.SetMinimum(0.20)
                 line = r.TLine(300,125,2025,1850)
                 #line = r.TLine(300,125,1200,1025)
                 line2 = r.TLine(300,50,300,125)
@@ -45,8 +48,11 @@ for model in models :
             if "T2bb" in model :
                 result.GetXaxis().SetRangeUser(0,1200)
                 result.GetYaxis().SetRangeUser(0,1200)
-                result.SetMaximum(1.06)
-                result.SetMinimum(0.85)
+                result.SetMaximum(1.02)
+                result.SetMinimum(0.80)
+                if "875" in ht :
+                    result.SetMaximum(1.30)
+                    result.SetMinimum(0.5)
                 line = r.TLine(300,125,1225,1050)
                 #line = r.TLine(300,125,1200,1025)
                 line2 = r.TLine(300,50,300,125)
