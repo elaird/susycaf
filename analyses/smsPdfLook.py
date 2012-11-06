@@ -49,7 +49,7 @@ class smsPdfLook(supy.analysis) :
                  "highPtName" : "highPt",
                  "tanBeta" : [None, 3, 10, 50][0],
                  "signalScan" : True,
-                 "usePdfWeights" : self.vary(dict([ ("", (False,"")), ("gencteq66",(True,"gencteq66")), ("genMRST2006nnlo",(True,"genMRST2006nnlo"))][0:3])),
+                 "usePdfWeights" : self.vary(dict([ ("", False), ("wPdfWeights", True)])),
                  "thresholds": self.vary(dict( [("275",        (275.0, 325.0, 100.0, 50.0)),#0
                                                 ("325",        (325.0, 375.0, 100.0, 50.0)),#1
                                                 ("375",        (375.0, None,  100.0, 50.0)),#2
@@ -139,13 +139,13 @@ class smsPdfLook(supy.analysis) :
         _jet = params["objects"]["jet"]
         _et = "Et" if params["etRatherThanPt"] else "Pt"
         out = []
-        
+
         if params["signalScan"] :
             if "scanBefore" in label :
-                out = [supy.steps.filters.label("scanBefore"), steps.gen.scanHistogrammer(htVar = "", befOrAf = "Before", usePdfWeights = params["usePdfWeights"][0], pdfSet = params["usePdfWeights"][1])]
+                out = [supy.steps.filters.label("scanBefore"), steps.gen.scanHistogrammer(htVar = "", befOrAf = "Before", usePdfWeights = params["usePdfWeights"])]
                 
             elif "scanAfter" in label :
-                out = [supy.steps.filters.label("scanAfter"), steps.gen.scanHistogrammer(htVar = "%sSum%s%s"%(_jet[0], _et, _jet[1]), befOrAf = "After", usePdfWeights = params["usePdfWeights"][0], pdfSet = params["usePdfWeights"][1])]
+                out = [supy.steps.filters.label("scanAfter"), steps.gen.scanHistogrammer(htVar = "%sSum%s%s"%(_jet[0], _et, _jet[1]), befOrAf = "After", usePdfWeights = params["usePdfWeights"])]
                 
         return out
             
@@ -479,8 +479,8 @@ class smsPdfLook(supy.analysis) :
             #out += specify(names = "t2tt.job445")#, nFilesMax = 1, nEventsMax = 500)
             #out += specify(names = "t2.job446", nFilesMax = 1, nEventsMax = 500)
             #out += specify(names = "t2bb_500_skim")
-            out += specify(names = "T2bb")#, nFilesMax = 1, nEventsMax = 2000)
-            out += specify(names = "T1bbbb")#, nFilesMax = 1, nEventsMax = 20000)
+            #out += specify(names = "T2bb")#, nFilesMax = 1, nEventsMax = 2000)
+            out += specify(names = "T1bbbb", nFilesMax = 1, nEventsMax = 20000)
             #out += specify(names = "t1bbbb_250_skim")
             #out += specify(names = "t1bbbb_1500_skim")
 
@@ -686,8 +686,15 @@ class smsPdfLook(supy.analysis) :
         assert len(self.parameters()["objects"])==1
         for key,value in self.parameters()["objects"].iteritems() :
             jet = value["jet"]
-                
-        for variable in ["nEvents"] :
+
+        nWeights = 0
+        histList = ["nEvents"]
+        if "wPdfWeights" in org.tag :
+            cteqNWeights = 45
+            mrstNWeights = 31
+            histList = ["nEvents_gencteq66_%s"%i for i in range(cteqNWeights)]
+            histList +=["nEvents_genMRST2006nnlo_%s"%m for m in range(mrstNWeights)]
+        for variable in histList :
             histos = numerAndDenom(org, variable)
             if "before" not in histos or "after" not in histos : continue
             result = histos["after"].Clone(variable)
