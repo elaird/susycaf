@@ -40,12 +40,11 @@ class ParticleCountFilter(analysisStep) :
         return True
 #####################################
 class scanHistogrammer(analysisStep) :
-    def __init__(self, htVar = "", befOrAf = "", usePdfWeights = False, pdfWeightIndex = 0) :
+    def __init__(self, htVar = "", befOrAf = "", usePdfWeights = False) :
         self.tanBetaThreshold = 0.1
         for item in ["htVar"] :
             setattr(self, item, eval(item))
         self.moreName = self.htVar
-        self.pdfWeightIndex = pdfWeightIndex
         self.usePdfWeights = usePdfWeights
         self.m0Nbins =  81
         self.m0Lo =    0.0
@@ -80,22 +79,28 @@ class scanHistogrammer(analysisStep) :
         return True
 
     def uponAcceptance (self, eventVars) :
-        #if abs(eventVars["susyScantanbeta"]-self.tanBeta)>self.tanBetaThreshold : return
-
-        #xs = eventVars["susyScanCrossSection"]
         m0 = eventVars["susyScanmGL"]
         m12 = eventVars["susyScanmLSP"]
         title = ";m_{parent} (GeV);m_{LSP} (GeV)"
         pdfWeight =  1.0
+        pdfSets = ["gencteq66","genMRST2006nnlo"]
         if self.usePdfWeights :
-            pdfWeights = eventVars["gencteq66"]
-            pdfWeight = pdfWeights[self.pdfWeightIndex] 
-        self.book.fill( (m0, m12), "nEvents", self.bins, self.lo, self.hi, pdfWeight, title = "%s;%s"%(title,""))
-        if self.htVar :
-            ht = eventVars[self.htVar]
-            for name,pair in zip(self.htStrings, self.htBins) :
-                if not self.htIn(ht, *pair) : continue
-                self.book.fill( (m0, m12), name,  self.bins, self.lo, self.hi, pdfWeight, title = "%s;%s"%(title, name))            
+            for pdfSet in pdfSets : 
+                pdfWeights = eventVars[pdfSet]
+                for w,pdfWeight in enumerate(pdfWeights) :
+                   self.book.fill( (m0, m12), "nEvents_%s_%s"%(pdfSet,w), self.bins, self.lo, self.hi, pdfWeight, title = "%s;%s"%(title,""))
+                   if self.htVar :
+                       ht = eventVars[self.htVar]
+                       for name,pair in zip(self.htStrings, self.htBins) :
+                           if not self.htIn(ht, *pair) : continue
+                           self.book.fill( (m0, m12), name,  self.bins, self.lo, self.hi, pdfWeight, title = "%s;%s"%(title, name))            
+        else :
+            self.book.fill( (m0, m12), "nEvents", self.bins, self.lo, self.hi, pdfWeight, title = "%s;%s"%(title,""))
+            if self.htVar :
+                ht = eventVars[self.htVar]
+                for name,pair in zip(self.htStrings, self.htBins) :
+                    if not self.htIn(ht, *pair) : continue
+                    self.book.fill( (m0, m12), name,  self.bins, self.lo, self.hi, pdfWeight, title = "%s;%s"%(title, name))            
 #####################################
 class genParticleCountHistogrammer(analysisStep) :
 
