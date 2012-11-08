@@ -83,7 +83,7 @@ class scanHistogrammer(analysisStep) :
         m12 = eventVars["susyScanmLSP"]
         title = ";m_{parent} (GeV);m_{LSP} (GeV)"
         pdfWeight =  1.0
-        pdfSets = ["gencteq66","genMRST2006nnlo"]
+        pdfSets = ["gencteq66","genMSTW2008nlo68cl","genNNPDF20"]
         if self.usePdfWeights :
             for pdfSet in pdfSets : 
                 pdfWeights = eventVars[pdfSet]
