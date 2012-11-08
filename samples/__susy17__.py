@@ -19,5 +19,8 @@ susy17.add("t1.job444", '%s/yeshaq//ICF/automated/2012_10_04_23_04_08/")'%pnfs, 
 susy17.add("t2tt.job445", '%s/yeshaq//ICF/automated/2012_10_04_22_47_35/")'%pnfs, xs = {"LO":107.5}["LO"]) #dummy xs
 susy17.add("t2.job446", '%s/yeshaq//ICF/automated/2012_10_06_13_53_17/")'%pnfs, xs = {"LO":107.5}["LO"]) #dummy xs
 
-susy17.add("T2bb", '%s/yeshaq//ICF/automated/T2bb/")'%pnfs, xs = {"LO":107.5}["LO"]) #dummy xs
-susy17.add("T1bbbb", '%s/yeshaq//ICF/automated/t1bbbb/")'%pnfs, xs = {"LO":107.5}["LO"]) #dummy xs
+susy17.add("T2bb_mrst", '%s/yeshaq//ICF/automated/T2bb/")'%pnfs, xs = {"LO":107.5}["LO"]) #dummy xs
+susy17.add("T1bbbb_mrst", '%s/yeshaq//ICF/automated/t1bbbb/")'%pnfs, xs = {"LO":107.5}["LO"]) #dummy xs
+
+susy17.add("T2bb", '%s/yeshaq//ICF/automated/T2bb_mstw_2/")'%pnfs, xs = {"LO":107.5}["LO"]) #dummy xs
+susy17.add("T1bbbb", '%s/yeshaq//ICF/automated/t1bbbb_mstw_2/")'%pnfs, xs = {"LO":107.5}["LO"]) #dummy xs
