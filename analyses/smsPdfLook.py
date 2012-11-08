@@ -53,12 +53,11 @@ class smsPdfLook(supy.analysis) :
                  "thresholds": self.vary(dict( [("275",        (275.0, 325.0, 100.0, 50.0)),#0
                                                 ("325",        (325.0, 375.0, 100.0, 50.0)),#1
                                                 ("375",        (375.0, None,  100.0, 50.0)),#2
-                                                ("325_scaled", (325.0, 375.0,  86.7, 43.3)),#3
-                                                ("275_scaled", (275.0, 325.0,  73.3, 36.7)),#4
-                                                ("675",        (675.0, None,  100.0, 50.0)),#5
-                                                ("375",        (375.0, None,  100.0, 50.0)),#6
-                                                ("875",        (875.0, None,  100.0, 50.0)),#7
-                                                ][6:8] )),
+                                                ("275_scaled", (275.0, 325.0,  73.3, 36.7)),#3
+                                                ("325_scaled", (325.0, 375.0,  86.7, 43.3)),#4
+                                                ("375",        (375.0, None,  100.0, 50.0)),#5
+                                                ("875",        (875.0, None,  100.0, 50.0)),#6
+                                                ][3:6] )),
                  "triggerList": triggers_alphaT_2012, 
                  }
 
@@ -479,8 +478,10 @@ class smsPdfLook(supy.analysis) :
             #out += specify(names = "t2tt.job445")#, nFilesMax = 1, nEventsMax = 500)
             #out += specify(names = "t2.job446", nFilesMax = 1, nEventsMax = 500)
             #out += specify(names = "t2bb_500_skim")
-            #out += specify(names = "T2bb")#, nFilesMax = 1, nEventsMax = 2000)
-            out += specify(names = "T1bbbb", nFilesMax = 1, nEventsMax = 20000)
+            #out += specify(names = "T2bb_mrst")#, nFilesMax = 1, nEventsMax = 2000)
+            #out += specify(names = "T1bbbb_mrst", nFilesMax = 1, nEventsMax = 20000)
+            out += specify(names = "T2bb")#, nFilesMax = 1, nEventsMax = 20000)
+            #out += specify(names = "T1bbbb", nFilesMax = 1, nEventsMax = 20000)
             #out += specify(names = "t1bbbb_250_skim")
             #out += specify(names = "t1bbbb_1500_skim")
 
@@ -675,13 +676,14 @@ class smsPdfLook(supy.analysis) :
             return d
             
         keep = []
-        file = r.TFile("%s_%s.root"%(sampleName, org.tag), "RECREATE")
+        outputDir = "pdfWeights_2"
+        file = r.TFile("%s/%s_%s.root"%(outputDir,sampleName, org.tag), "RECREATE")
         canvas = r.TCanvas()
         canvas.SetRightMargin(0.2)
         canvas.SetTickx()
         canvas.SetTicky()
         psFileName = "%s_%s.ps"%(sampleName, org.tag)
-        canvas.Print(psFileName+"[","Lanscape")
+        canvas.Print(outputDir + "/" +psFileName+"[","Lanscape")
                     
         assert len(self.parameters()["objects"])==1
         for key,value in self.parameters()["objects"].iteritems() :
@@ -691,9 +693,11 @@ class smsPdfLook(supy.analysis) :
         histList = ["nEvents"]
         if "wPdfWeights" in org.tag :
             cteqNWeights = 45
-            mrstNWeights = 31
+            mstwNWeights = 41
+            nnPDFNWeights = 30 
             histList = ["nEvents_gencteq66_%s"%i for i in range(cteqNWeights)]
-            histList +=["nEvents_genMRST2006nnlo_%s"%m for m in range(mrstNWeights)]
+            histList +=["nEvents_genMSTW2008nlo68cl_%s"%m for m in range(mstwNWeights)]
+            histList +=["nEvents_genNNPDF20_%s"%m for m in range(nnPDFNWeights)]
         for variable in histList :
             histos = numerAndDenom(org, variable)
             if "before" not in histos or "after" not in histos : continue
@@ -709,12 +713,12 @@ class smsPdfLook(supy.analysis) :
                 result.GetZaxis().SetRangeUser(0.0,0.35)
                 result.GetZaxis().SetTitle("efficiency")
                 result.Draw("colz")
-                canvas.Print(psFileName,"Lanscape")
+                canvas.Print(outputDir + "/" + psFileName,"Lanscape")
                 result.Write()
-        canvas.Print(psFileName+"]","Lanscape")
+        canvas.Print(outputDir + "/" + psFileName+"]","Lanscape")
         temp = psFileName.replace(".chr","_chr").replace(".ps",".pdf")
-        os.system("ps2pdf "+ psFileName +" "+ temp)
-        os.remove(psFileName)
+        os.system("ps2pdf "+ outputDir + "/" + psFileName + " " + outputDir + "/" + temp)
+        os.remove(outputDir + "/" + psFileName)
         file.Close()
                                     
                                     
