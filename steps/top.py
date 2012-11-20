@@ -674,3 +674,68 @@ class mcQuestions2(analysisStep) :
 
         for ((v1,m1),(v2,m2)) in itertools.combinations(self.maxes.items(),2) :
             self.book.fill(ev[v1]*ev[v2], "product_%s_%s"%(v1,v2), 2, -m1*m2, m1*m2, title = ";%s . %s;events / bin"%(v1,v2))
+
+class fractions(calculables.secondary) :
+
+    def uponAcceptance(self,ev) :
+        abssum = ev['genTopAbsSumRapidities']
+        absdelta = ev['genTopDeltaAbsYttbar']
+        self.book.fill(  abssum,  'abssum', 100,  0, 8, w = 1)
+        self.book.fill(absdelta,'absdelta', 100, -3, 3, w = 1)
+
+    def reportCache(self) :
+        fileName = '/'.join(self.outputFileName.split('/')[:-1]+[self.name])
+        optstat = r.gStyle.GetOptStat()
+        r.gStyle.SetOptStat(0)
+        c = r.TCanvas()
+        c.Print(fileName+'.pdf[')
+
+        names = ['%s#rightarrow^{}t#bar{t} '%i for i in ['gg','qg','q#bar{q}','#bar{q}g']]
+        samples = ['ttj_ph.w%s.tw.pu'%s for s in ['GG','QG','QQ','AG']]
+        colors = [r.kBlack,r.kBlue,r.kRed,r.kGreen]
+        hists = self.fromCache(samples, ['abssum','absdelta'])
+
+        def arrange(name, rebin = 1) :
+            coll = [hists[s][name] for s in samples]
+            for h_ in coll : h_.Rebin(rebin)
+            h = coll[0].Clone();
+            h.Reset()
+            for h_ in coll : h.Add(h_)
+            return h,coll
+        abssum,abssumColl = arrange('abssum',4)
+        absdelta,absdeltaColl = arrange('absdelta',2)
+        leg = r.TLegend(0.72,0.55,0.87,0.80)
+        leg.SetTextFont(102)
+        for i,h in enumerate(abssumColl) :
+            leg.AddEntry(h,names[i],'l')
+            h.Divide(abssum)
+            h.SetTitle(';|y_{t}+y_{#bar{t}}|;fraction  t#bar{t}')
+            h.SetMinimum(0.01)
+            h.SetMaximum(1.1)
+            h.SetLineWidth(2)
+            h.SetLineColor(colors[i])
+            h.Draw('hist same'[:None if i else -4])
+        c.SetLogy(1)
+        leg.SetTextSize(0.04)
+        leg.Draw()
+        c.Print(fileName+'.pdf')
+        leg2 = r.TLegend(0.62,0.55,0.87,0.88)
+        leg2.SetTextSize(0.04)
+        leg2.SetHeader('(N^{+}-N^{-}) / (N^{+}+N^{-})  (%)')
+        #leg2.SetTextAlign(22)
+        leg2.SetTextFont(102)
+        for i,h in enumerate(absdeltaColl) :
+            h.SetTitle(';|y_{t}|-|y_{#bar{t}}|;Events / bin / pb^{-1}')
+            h.SetMinimum(0)
+            h.SetLineWidth(2)
+            h.SetLineColor(colors[i])
+            h.Draw('hist same'[:None if i else -4])
+            asymm = 100 * (h.Integral(h.FindFixBin(0.0001), h.GetNbinsX()+2) - h.Integral(0, h.FindFixBin(-0.0001))) / h.Integral(0,h.GetNbinsX()+2)
+            leg2.AddEntry(h, names[i]+'%+.1f'%asymm,'l')
+        c.SetLogy(0)
+        leg.Draw()
+        leg2.Draw()
+        c.Print(fileName+'.pdf')
+        c.Print(fileName+'.pdf]')
+        r.gStyle.SetOptStat(optstat)
+        print "Wrote file: %s.pdf"%fileName

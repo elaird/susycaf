@@ -237,7 +237,8 @@ class topAsymm(supy.analysis) :
              supy.calculables.other.SymmAnti(pars['sample'],"genTopDeltaBetazRel",1, inspect=True, weights = saWeights,
                                              funcEven = '++'.join(['(1-abs(x))']+['x**%d'%d for d in [0,2,4,6,8,10,12,14,16,18]]),
                                              funcOdd = '++'.join(['x**%d'%d for d in [1,3,5,7,9,11,13]])).disable(saDisable)
-             , ssteps.filters.label('symm anti')
+             , steps.top.fractions()
+             , ssteps.filters.label('symm anti').invert()
              , ssteps.histos.value('beamHaloCSCLooseHaloId',2,-0.5,1.5, w = 'pu').onlySim()
              , ssteps.filters.value('tw',min=1e-8)
              , ssteps.histos.symmAnti('genTopCosPhiBoost','genTopCosPhiBoost',100,-1,1).disable(saDisable)
@@ -339,9 +340,9 @@ class topAsymm(supy.analysis) :
              , ssteps.histos.symmAnti('genTopDeltaBetazRel','genTopDeltaBetazRel',100,-1,1).disable(saDisable)
              , ssteps.histos.symmAnti('genTopCosThetaBoostAlt','genTopCosThetaBoostAlt',100,-1,1).disable(saDisable)
 
-             , ssteps.histos.symmAnti('genTopCosPhiBoost','fitTopCosPhiBoost',100,-1,1)
-             , ssteps.histos.symmAnti('genTopCosThetaBoostAlt','fitTopCosThetaBoostAlt',100,-1,1)
-             , ssteps.histos.symmAnti('genTopDeltaBetazRel','fitTopDeltaBetazRel',100,-1,1)
+             , ssteps.histos.symmAnti('genTopCosPhiBoost','fitTopCosPhiBoost',100,-1,1, other = ('TridiscriminantWTopQCD',100,-1,1))
+             , ssteps.histos.symmAnti('genTopCosThetaBoostAlt','fitTopCosThetaBoostAlt',100,-1,1, other = ('TridiscriminantWTopQCD',100,-1,1))
+             , ssteps.histos.symmAnti('genTopDeltaBetazRel','fitTopDeltaBetazRel',100,-1,1, other = ('TridiscriminantWTopQCD',100,-1,1))
 
              ])
     ########################################################################################
@@ -453,7 +454,7 @@ class topAsymm(supy.analysis) :
         org.mergeSamples(targetSpec = {"name":"Single top", "color":r.kGray}, sources = ["%s.tw.%s"%(s,rw) for s in self.single_top()])
         org.mergeSamples(targetSpec = {"name":"Standard Model", "color":r.kGreen+2}, sources = ["t#bar{t}","W+jets","DY+jets","Single top"], keepSources = True)
 
-        self.skimStats(org)
+        #self.skimStats(org)
 
         org.scale( lumiToUseInAbsenceOfData = 5008 )
 
@@ -466,7 +467,7 @@ class topAsymm(supy.analysis) :
                   "detailedCalculables" : True,
                   "rowColors" : self.rowcolors,
                   "rowCycle" : 100,
-                  "omit2D" : True,
+                  "omit2D" : False,
                   }
         
         supy.plotter(org, pdfFileName = self.pdfFileName(org.tag+"_log"),  doLog = True, pegMinimum = 0.01, **kwargs ).plotAll()
