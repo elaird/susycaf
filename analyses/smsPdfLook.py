@@ -55,9 +55,8 @@ class smsPdfLook(supy.analysis) :
                                                 ("375",        (375.0, None,  100.0, 50.0)),#2
                                                 ("275_scaled", (275.0, 325.0,  73.3, 36.7)),#3
                                                 ("325_scaled", (325.0, 375.0,  86.7, 43.3)),#4
-                                                ("375",        (375.0, None,  100.0, 50.0)),#5
-                                                ("875",        (875.0, None,  100.0, 50.0)),#6
-                                                ][3:6] )),
+                                                ("875",        (875.0,  None,  100.0, 50.0)),#10
+                                                ][2:5] )),
                  "triggerList": triggers_alphaT_2012, 
                  }
 
@@ -91,7 +90,8 @@ class smsPdfLook(supy.analysis) :
                 calculables.jet.MhtOverMet((jet[0], highPtName+jet[1]), met),
                 calculables.jet.DeadEcalDR(jet, extraName = lowPtName, minNXtals = 10),
                 supy.calculables.other.fixedValue("%sFixedHtBin%s"%jet, htThreshold),
-                ]
+
+                  ]
             return outList+supy.calculables.fromCollections(calculables.jet, [jet])
 
         outList = calcList(obj["jet"], obj["met"], obj["photon"], obj["muon"], obj["electron"], obj["muonsInJets"], obj["jetId"])
@@ -108,10 +108,8 @@ class smsPdfLook(supy.analysis) :
             calculables.electron.Indices( obj["electron"], ptMin = 10, flag2012 = "Veto"),
             calculables.photon.Indices(obj["photon"], ptMin = 25, flagName = "photonIDRA3Pat"),
             calculables.photon.CombinedIsoDR03RhoCorrected(obj["photon"]),
-
             calculables.other.RecHitSumPt(obj["rechit"]),
             calculables.other.RecHitSumP4(obj["rechit"]),
-            
             calculables.vertex.ID(),
             calculables.vertex.Indices(),
             calculables.trigger.lowestUnPrescaledTrigger(triggers),
@@ -473,15 +471,17 @@ class smsPdfLook(supy.analysis) :
             out = []
             #out += specify(names = "t2bb.job418")#, nFilesMax = 1, nEventsMax = 500)
             #out += specify(names = "t1tttt.job442")#, nFilesMax = 1, nEventsMax = 500)
-            #out += specify(names = "t1bbbb.job443", nFilesMax = 1, nEventsMax = 500)
+            #out += specify(names = "t1bbbbB.job443", nFilesMax = 1, nEventsMax = 500)
             #out += specify(names = "t1.job444", nFilesMax = 1, nEventsMax = 500)
             #out += specify(names = "t2tt.job445")#, nFilesMax = 1, nEventsMax = 500)
             #out += specify(names = "t2.job446", nFilesMax = 1, nEventsMax = 500)
             #out += specify(names = "t2bb_500_skim")
             #out += specify(names = "T2bb_mrst")#, nFilesMax = 1, nEventsMax = 2000)
             #out += specify(names = "T1bbbb_mrst", nFilesMax = 1, nEventsMax = 20000)
-            out += specify(names = "T2bb")#, nFilesMax = 1, nEventsMax = 20000)
-            #out += specify(names = "T1bbbb", nFilesMax = 1, nEventsMax = 20000)
+            #out += specify(names = "T2bb")#, nFilesMax = 1, nEventsMax = 2000)
+            #out += specify(names = "T1bbbb", nFilesMax = 1, nEventsMax = 2000)
+            #out += specify(names = "T2bw", nFilesMax = 1, nEventsMax = 20)
+            out += specify(names = "T1bbbb_nnpdf_ct10")#, nFilesMax = 1 ,nEventsMax = 20000)
             #out += specify(names = "t1bbbb_250_skim")
             #out += specify(names = "t1bbbb_1500_skim")
 
@@ -547,7 +547,7 @@ class smsPdfLook(supy.analysis) :
         
         self.makeStandardPlots(org)
         #self.makeIndividualPlots(org)
-        self.makeEfficiencyPlots(org)
+        #self.makeEfficiencyPlots(org)
 
     def makeStandardPlots(self, org) :
         #plot
@@ -694,10 +694,12 @@ class smsPdfLook(supy.analysis) :
         if "wPdfWeights" in org.tag :
             cteqNWeights = 45
             mstwNWeights = 41
-            nnPDFNWeights = 30 
+            nnPDFNWeights = 101 
+            ct10NWeights = 52
             histList = ["nEvents_gencteq66_%s"%i for i in range(cteqNWeights)]
             histList +=["nEvents_genMSTW2008nlo68cl_%s"%m for m in range(mstwNWeights)]
             histList +=["nEvents_genNNPDF20_%s"%m for m in range(nnPDFNWeights)]
+            histList +=["nEvents_genct10_%s"%m for m in range(ct10NWeights)]
         for variable in histList :
             histos = numerAndDenom(org, variable)
             if "before" not in histos or "after" not in histos : continue
