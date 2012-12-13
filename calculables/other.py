@@ -216,3 +216,26 @@ class KarlsruheDiscriminant(wrappedChain.calculable) :
     def update(self,_) :
         met = self.source[self.met].pt()
         self.value = -8*met if met<40 else self.source[self.M3]
+######################################
+class RA1category(wrappedChain.calculable) :
+    def htBin(self, ht) :
+        htTag = ""
+        if ht >= 875.0 :  htTag = "875"
+        elif 775.0 <= ht < 875.0 : htTag = "775_875"
+        elif 675.0 <= ht < 775.0 : htTag = "675_775"
+        elif 575.0 <= ht < 675.0 : htTag = "575_675"
+        elif 475.0 <= ht < 575.0 : htTag = "475_575"
+        elif 375.0 <= ht < 475.0 : htTag = "375_475"
+        elif 325.0 <= ht < 375.0 : htTag = "325_375"
+        elif 275.0 <= ht < 325.0 : htTag = "275_325"
+        return htTag
+
+    def update(self,_) :
+        nJets = len(self.source["xcak5JetIndicesPat"])
+        nbJets = len(self.source["xcak5JetIndicesBtagged2Pat"])
+        ht = self.source["xcak5JetSumEtPat"]
+        tags = ["le3j" if nJets<4 else "ge4j",
+                "ge4b" if nbJets>=4 else "eq%db"%nbJets,
+                self.htBin(ht),
+                ]
+        self.value = "_".join(tags)
