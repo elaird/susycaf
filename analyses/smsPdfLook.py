@@ -476,15 +476,13 @@ class smsPdfLook(supy.analysis) :
             #out += specify(names = "t2tt.job445")#, nFilesMax = 1, nEventsMax = 500)
             #out += specify(names = "t2.job446", nFilesMax = 1, nEventsMax = 500)
             #out += specify(names = "t2bb_500_skim")
-            #out += specify(names = "T2bb_mrst")#, nFilesMax = 1, nEventsMax = 2000)
-            #out += specify(names = "T1bbbb_mrst", nFilesMax = 1, nEventsMax = 20000)
-            #out += specify(names = "T2bb")#, nFilesMax = 1, nEventsMax = 2000)
-            #out += specify(names = "T1bbbb", nFilesMax = 1, nEventsMax = 2000)
+            out += specify(names = "T2bb")#, nFilesMax = 1, nEventsMax = 500)
+            #out += specify(names = "T1bbbb", nFilesMax = 1, nEventsMax = 200)
+            out += specify(names = "T2bb_nnpdf_ct10")#, nFilesMax = 1, nEventsMax = 500)
+            #out += specify(names = "T1bbbb_nnpdf_ct10")#, nFilesMax = 1, nEventsMax = 2000)
+            #out += specify(names = "T2bb_nnpdf")#, nFilesMax = 1, nEventsMax = 2000)
+            #out += specify(names = "T1bbbb_nnpdf")#, nFilesMax = 1, nEventsMax = 200)
             #out += specify(names = "T2bw", nFilesMax = 1, nEventsMax = 20)
-            out += specify(names = "T1bbbb_nnpdf_ct10")#, nFilesMax = 1 ,nEventsMax = 20000)
-            #out += specify(names = "t1bbbb_250_skim")
-            #out += specify(names = "t1bbbb_1500_skim")
-
             return out
 
         return (
