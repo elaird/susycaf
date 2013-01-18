@@ -30,3 +30,4 @@ susy17.add("T1bbbb_nnpdf", '%s/yeshaq//ICF/automated/2012_11_27_14_24_14/")'%pnf
 
 susy17.add("T2bw", '%s/clucas//ICF/automated/2012_11_07_13_30_21/")'%pnfs, xs = {"LO":107.5}["LO"]) #dummy xs
 susy17.add("T1bbbb_nnpdf_ct10", '%s/yeshaq//ICF/automated/2012_12_03_10_43_11/")'%pnfs, xs = {"LO":107.5}["LO"]) #dummy xs
+susy17.add("T2bb_nnpdf_ct10", '%s/yeshaq//ICF/automated/2012_12_03_14_42_35/")'%pnfs, xs = {"LO":107.5}["LO"]) #dummy xs
