@@ -66,15 +66,16 @@ class scanHistogrammer(analysisStep) :
         xChi = "_%s"%eventVars["susyScanxCHI"] if ("susyScanxCHI" in eventVars) else ""
         title = ";m_{parent} (GeV);m_{LSP} (GeV)"
         pdfWeight =  1.0
-        pdfSets = ["gencteq66","genMSTW2008nlo68cl","genNNPDF21","genct10"][3:4]
+        pdfSets = ["gencteq66","genMSTW2008nlo68cl","genNNPDF21","genct10"]
         if self.usePdfWeights :
-            for pdfSet in pdfSets : 
-                pdfWeights = eventVars[pdfSet]
-                for w,pdfWeight in enumerate(pdfWeights) :
-                    if self.befOrAf == "Before" : self.book.fill( (m0, m12), "nEvents_%s_%s"%(pdfSet,w), self.bins, self.lo, self.hi, pdfWeight, title = "%s;%s"%(title,""))
-                    else :
-                        self.book.fill( (m0, m12), "nEvents_"+cat+"_%s_%s"%(pdfSet,w), self.bins, self.lo, self.hi, pdfWeight, title = "%s;%s"%(title,""))
-                        self.book.fill( (m0, m12), "nEvents_%s_%s"%(pdfSet,w), self.bins, self.lo, self.hi, pdfWeight, title = "%s;%s"%(title,""))
+            for pdfSet in pdfSets :
+                if pdfSet in eventVars :
+                	pdfWeights = eventVars[pdfSet]
+                	for w,pdfWeight in enumerate(pdfWeights) :
+                	    if self.befOrAf == "Before" : self.book.fill( (m0, m12), "nEvents_%s_%s"%(pdfSet,w), self.bins, self.lo, self.hi, pdfWeight, title = "%s;%s"%(title,""))
+                	    else :
+                	        self.book.fill( (m0, m12), "nEvents_"+cat+"_%s_%s"%(pdfSet,w), self.bins, self.lo, self.hi, pdfWeight, title = "%s;%s"%(title,""))
+                	        self.book.fill( (m0, m12), "nEvents_%s_%s"%(pdfSet,w), self.bins, self.lo, self.hi, pdfWeight, title = "%s;%s"%(title,""))
         else :
             if self.befOrAf == "Before" : self.book.fill( (m0, m12), "nEvents%s"%(xChi),  self.bins, self.lo, self.hi, pdfWeight, title = "%s;%s"%(title,""))
             else :
