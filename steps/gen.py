@@ -47,13 +47,24 @@ class scanHistogrammer(analysisStep) :
         self.moreName = self.htVar
         self.usePdfWeights = usePdfWeights
         self.befOrAf = befOrAf
-        self.m0Nbins = 81
-        self.m0Lo =      0.0
-        self.m0Hi =   2025.0
+#        self.m0Nbins = 81
+#        self.m0Lo =      0.0
+#        self.m0Hi =   2025.0
+#
+#        self.m12Nbins =  81
+#        self.m12Lo =       0.0
+#        self.m12Hi =    2025.0
+#
 
-        self.m12Nbins =  81
-        self.m12Lo =       0.0
-        self.m12Hi =    2025.0
+## FOR T2CC, hardcoded :( ####
+        self.m0Nbins = 34
+        self.m0Lo =    90.0
+        self.m0Hi =   260.0
+
+        self.m12Nbins =  50
+        self.m12Lo =     10.0
+        self.m12Hi =    260.0
+
 
         self.bins = (self.m0Nbins, self.m12Nbins)
         self.lo = (self.m0Lo, self.m12Lo)
