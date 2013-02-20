@@ -228,6 +228,7 @@ class RA1category(wrappedChain.calculable) :
         elif 375.0 <= ht < 475.0 : htTag = "375_475"
         elif 325.0 <= ht < 375.0 : htTag = "325_375"
         elif 275.0 <= ht < 325.0 : htTag = "275_325"
+        elif 225.0 <= ht < 275.0 : htTag = "225_275"
         return htTag
 
     def update(self,_) :
