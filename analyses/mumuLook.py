@@ -7,11 +7,11 @@ class mumuLook(supy.analysis) :
                                                                     "compJet",                "compJetId", "compMuonsInJets",        "compMet",
                                                                     "muon",                    "electron",          "photon",         "rechit"]
 
-        objects["caloAK5JetMet_recoLepPhot"]   = dict(zip(fields, [("xcak5Jet","Pat"),       "JetIDloose",             False, "metP4AK5TypeII",
+        objects["caloAK5JetMet_recoLepPhot"]   = dict(zip(fields, [("xcak5Jet","Pat"),       "JetIDloose",             False,   "metP4TypeIPF",
                                                                    ("xcak5JetPF","Pat"),     "JetIDtight",              True,        "metP4PF",
                                                                    ("muon","Pat"),     ("electron","Pat"),  ("photon","Pat"),           "Calo",
                                                                    ]))
-        
+
         #objects["pfAK5JetMet_recoLepPhot"]     = dict(zip(fields, [("xcak5JetPF","Pat"),     "JetIDtight",              True,        "metP4PF",
         #                                                           ("xcak5Jet","Pat"),       "JetIDloose",             False, "metP4AK5TypeII",
         #                                                           ("muon","Pat"),     ("electron","Pat"),  ("photon","Pat"),             "PF",
@@ -31,7 +31,6 @@ class mumuLook(supy.analysis) :
                                                 ("375",        (375.0, None,  100.0, 50.0)),#2
                                                 ("325_scaled", (325.0, 375.0,  86.7, 43.3)),#3
                                                 ("275_scaled", (275.0, 325.0,  73.3, 36.7)),#4
-                                                #("225_scaled", (225.0, 275.0,  60.0, 30.0)),#5
                                                 ][2:3] )),
 
                  "triggerList":tuple(["HLT_DoubleMu3_v%d" %i for i in [3,4,5,7,9,10,13,14]]+
@@ -81,9 +80,14 @@ class mumuLook(supy.analysis) :
             calculables.xclean.IndicesUnmatched(collection = obj["photon"], xcjets = obj["jet"], DR = 0.5),
             calculables.xclean.IndicesUnmatched(collection = obj["electron"], xcjets = obj["jet"], DR = 0.5),
 
-            calculables.muon.Indices( obj["muon"], ptMin = 10, combinedRelIsoMax = 0.15),
-            calculables.electron.Indices( obj["electron"], ptMin = 10, simpleEleID = "95", useCombinedIso = True),
-            calculables.photon.Indices(obj["photon"],  ptMin = 25, flagName = "photonIDLooseFromTwikiPat"),
+            calculables.muon.Indices( obj["muon"], ptMin = 10, isoMax = 0.20, ISO = "PfIsolationR04DeltaBCorrected", ID = "IdPog2012Tight"),
+            calculables.electron.Indices( obj["electron"], ptMin = 10, flag2012 = "Veto"),
+            calculables.photon.Indices(obj["photon"], ptMin = 25, flagName = "photonIDRA3Pat"),
+            calculables.photon.CombinedIsoDR03RhoCorrected(obj["photon"]),
+
+#            calculables.muon.Indices( obj["muon"], ptMin = 10, combinedRelIsoMax = 0.15),
+#            calculables.electron.Indices( obj["electron"], ptMin = 10, simpleEleID = "95", useCombinedIso = True),
+#            calculables.photon.Indices(obj["photon"],  ptMin = 25, flagName = "photonIDLooseFromTwikiPat"),
             #calculables.photon.Indices(obj["photon"],  ptMin = 25, flagName = "photonIDTightFromTwikiPat"),
 
             calculables.other.metPlusParticles(met = obj["met"], particles = obj["muon"]),
@@ -120,7 +124,6 @@ class mumuLook(supy.analysis) :
             supy.steps.printer.progressPrinter(),
             steps.trigger.lowestUnPrescaledTriggerFilter().onlyData(),
             steps.trigger.l1Filter("L1Tech_BPTX_plus_AND_minus.v0").onlyData(),
-            
             steps.trigger.physicsDeclaredFilter().onlyData(),
             steps.filters.monster(),
             steps.filters.hbheNoise().onlyData(),
@@ -238,7 +241,7 @@ class mumuLook(supy.analysis) :
             ] + [supy.steps.filters.value("%sSumEt%s"%_jet, min = 375.0+100*iBin) for iBin in range(1,6)]
     
     def listOfSampleDictionaries(self) :
-        return [samples.mc, samples.muon, samples.mumu]
+        return [samples.mc, samples.muon, samples.mumu, samples.mumu17]
 
     def listOfSamples(self,params) :
         from supy.samples import specify
@@ -253,29 +256,26 @@ class mumuLook(supy.analysis) :
 
         def dataDoubleMu() :
             out = []
-            out += specify(names = "DoubleMu.Run2011A-05Aug2011-v1.AOD.job663_mumuHtskim"  )
-            out += specify(names = "DoubleMu.Run2011A-May10ReReco-v1.AOD.job662_mumuHtskim")
-            out += specify(names = "DoubleMu.Run2011A-PromptReco-v4.AOD.job664_mumuHtskim" )
-            out += specify(names = "DoubleMu.Run2011A-PromptReco-v6.AOD.job665_mumuHtskim" )
-            out += specify(names = "DoubleMu.Run2011B-PromptReco-v1.AOD.job666_mumuHtskim" )
-            
+            out += specify(names = "DoubleMu.Run2012A-13Jul2012-v1.AOD.job375",nFilesMax =1 , nEventsMax = 100)
+#            out += specify(names = "DoubleMu.Run2012A-recover-06Aug2012-v1.AOD.job389")
+#            out += specify(names = "DoubleMu.Run2012B-13Jul2012-v4.AOD.job408")
+#            out += specify(names = "DoubleMu.Run2012C-24Aug2012-v1.AOD.job401")
+#            out += specify(names = "DoubleMu.Run2012C-PromptReco-v2.AOD.job395")
+#            out += specify(names = "DoubleMu.Run2012D-PromptReco-v1.AOD.job508")
+#            out += specify(names = "DoubleMu.Run2012D-PromptReco-v1.AOD.job529")
             return out
 
-        def data() :
-            return dataDoubleMu()
-
         phw = calculables.photon.photonWeight(var = "vertexIndices")
-        out = []
-        out += data()
-        out += specify(names = "dyll_jets_mg_summer11_mumuHtSkim", weights = phw)
-        out += specify(names = "tt_jets_mg_tauola_summer11_mumuHtSkim", weights = phw)
-        return out
+        return (
+            dataDoubleMu() +
+            []
+            )
     
     def conclude(self, conf) :
         org = self.organizer(conf)
 
         lineWidth = 3; goptions = "hist"
-        org.mergeSamples(targetSpec = {"name":"2011 Data", "color":r.kBlack, "markerStyle":20}, allWithPrefix="DoubleMu.Run2011")
+        org.mergeSamples(targetSpec = {"name":"2012 Data", "color":r.kBlack, "markerStyle":20}, allWithPrefix="DoubleMu.Run2012")
         org.mergeSamples(targetSpec = {"name":"t#bar{t}",  "color":r.kOrange, "lineWidth":lineWidth, "goptions":goptions}, allWithPrefix="tt")
         org.mergeSamples(targetSpec = {"name":"DY->ll",    "color":r.kBlue,   "lineWidth":lineWidth, "goptions":goptions}, allWithPrefix="dyll")
         org.mergeSamples(targetSpec = {"name":"W + jets",  "color":r.kRed,    "lineWidth":lineWidth, "goptions":goptions}, allWithPrefix="w_jets")
@@ -285,7 +285,7 @@ class mumuLook(supy.analysis) :
         org.scale()
         supy.plotter(org,
                      pdfFileName = self.pdfFileName(org.tag),
-                     samplesForRatios = ("2011 Data","s.m."),
+                     samplesForRatios = ("2012 Data","s.m."),
                      sampleLabelsForRatios = ("data","s.m."),
                      showStatBox = True,
                      printRatios = True,

@@ -15,6 +15,8 @@ class ra1Displays(supy.analysis) :
                                             ("muon","Pat"),     ("electron","Pat"),  ("photon","Pat")]))
 
         return { "objects": objects,
+                 "nJetsMinMax" :      self.vary(dict([ ("ge2",(2,None)),  ("2",(2,2)),  ("ge3",(3,None)),  ("3",(3,3)), ("e23",(2,3)), ("ge4",(4,None))][4:5] )),
+                 "nBTagJets":         self.vary(dict([ ("nbe0",(0,0)),  ("nbe1",(1,1)),  ("nbe2",(2,2)),  ("nbe3",(3,3)),  ("nbge4",(4,None)) ][0:1] )),
                  "etRatherThanPt" : True,
                  "lowPtThreshold" : 30.0,
                  "lowPtName" : "lowPt",
@@ -23,7 +25,8 @@ class ra1Displays(supy.analysis) :
                  "thresholds": self.vary(dict( [("375",        (375.0, None,  100.0, 50.0)),#0
                                                 ("325_scaled", (325.0, 375.0,  86.7, 43.3)),#1
                                                 ("275_scaled", (275.0, 325.0,  73.3, 36.7)),#2
-                                                ] )),
+                                                ("875", (875.0, None,  100.0, 50.0)),#3
+                                                ][3:4] )),
                  }
 
     def calcListJet(self, obj, etRatherThanPt, ptMin, lowPtThreshold, lowPtName, highPtThreshold, highPtName, htThreshold) :
@@ -42,12 +45,14 @@ class ra1Displays(supy.analysis) :
                 calculables.jet.Indices( jet, ptMin = ptMin,           etaMax = 3.0, flagName = jetIdFlag),
                 calculables.jet.Indices( jet, ptMin = lowPtThreshold,  etaMax = 3.0, flagName = jetIdFlag, extraName = lowPtName),
                 calculables.jet.Indices( jet, ptMin = highPtThreshold, etaMax = 3.0, flagName = jetIdFlag, extraName = highPtName),
-                                
+                calculables.jet.IndicesBtagged2(jet, tag = "CombinedSecondaryVertexBJetTags", threshold = 0.679),
                 calculables.jet.SumP4(jet),
                 calculables.jet.SumP4(jet, extraName = lowPtName),
                 calculables.jet.SumP4(jet, extraName = highPtName),
+                calculables.jet.SumP4(jet, extraName = "Btagged2"),
                 calculables.jet.DeltaPhiStar(jet, extraName = lowPtName),
                 calculables.jet.DeltaPseudoJet(jet, etRatherThanPt),
+                calculables.jet.MaxEmEnergyFraction(jet),
                 calculables.jet.AlphaT(jet, etRatherThanPt),
                 calculables.jet.AlphaTMet(jet, etRatherThanPt, met),
                 calculables.jet.MhtOverMet((jet[0], highPtName+jet[1]), met),
@@ -98,6 +103,10 @@ class ra1Displays(supy.analysis) :
             supy.steps.printer.progressPrinter(),
             supy.steps.filters.value("%sSumEt%s"%params["objects"]["jet"], min = params["thresholds"][0]),
             supy.steps.filters.value("%sSumEt%s"%params["objects"]["jet"], max = params["thresholds"][1]),
+            supy.steps.filters.multiplicity("%sIndicesBtagged2%s"%params["objects"]["jet"], min = params["nBTagJets"][0], max = params["nBTagJets"][1]),
+            supy.steps.filters.multiplicity("%sIndices%s"%params["objects"]["jet"], min = params["nJetsMinMax"][0], max = params["nJetsMinMax"][1]),
+            supy.steps.filters.value("%sRecHitSumPt"%params["objects"]["rechit"], max = 30.0),
+            #supy.steps.filters.value("%sMaxEmEnergyFraction%s"%params["objects"]["jet"], min = .1),
             steps.displayer.displayer(jets      = params["objects"]["jet"],
                                       muons     = params["objects"]["muon"],
                                       met       = params["objects"]["met"],
@@ -138,7 +147,10 @@ class ra1Displays(supy.analysis) :
         sampleDict.add("MC_4bJets3", '["/uscms/home/yeshaq/work/susycaf/4bjets/MC/TTJets/SusyCAF_Tree_3.root"]', lumi = 1.1e3)
         sampleDict.add("MC_4bJets4", '["/uscms/home/yeshaq/work/susycaf/4bjets/MC/Zinv/SusyCAF_Tree.root"]', lumi = 1.1e3)        
         sampleDict.add("Data_High_HT", '["~/nobackup/supy-output/hadronicLook/375_ge2_caloAK5JetMet_recoLepPhot_pythia6/High_HT_skim.root"]', lumi = 1.1e3)
+        sampleDict.add("Data_375_ge2", '["~/nobackup/supy-output/hadronicLook/375_calo_ge2/HadronicRegion.root"]', lumi = 1.1e3)
+        sampleDict.add("Data_875_ge2_Darren", '["~/nobackup/supy-output/hadronicLook/375_calo_ge2/Had_875_Skim_fromDarren.root"]', lumi = 1.1e3)
         return [sampleDict]
     
     def listOfSamples(self,params) :
-        return supy.samples.specify(names = ["Data_4bJets"])
+        #return supy.samples.specify(names = ["Data_875_ge2_Darren"])
+        return supy.samples.specify(names = ["Data_375_ge2"])

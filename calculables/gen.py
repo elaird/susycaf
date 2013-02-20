@@ -35,6 +35,17 @@ class genStatus1P4(wrappedChain.calculable) :
             if self.source["genStatus"].at(i)!=1 : continue
             self.value.append(self.source["genP4"][i])
 ##############################
+class varAbs(wrappedChain.calculable) :
+    @property
+    def name(self) : return "%sAbs"%(self.var)
+    
+    def __init__(self, var = "") :
+        self.var = var
+
+    def update(self,_) :
+        v = self.source[self.var]
+        self.value = abs(v)
+##############################
 class genIndices(wrappedChain.calculable) :
     @property
     def name(self) : return "genIndices" + self.label
@@ -129,6 +140,37 @@ class susyIniIndices(wrappedChain.calculable) :
                 continue
             self.value.append(iParticle)
 ##############################
+class susyFinIndices(wrappedChain.calculable) :
+    def __init__(self) :
+        self.moreName = "status 3; SUSY; SUSY parents"
+
+    def update(self,_) :
+        self.value = []
+        if not self.source["genHandleValid"] : return
+        nParticles = len(self.source["genPdgId"])
+        for iParticle in range(nParticles) :
+            if self.source["genStatus"].at(iParticle)!=3 : #consider only status 3 particles
+                continue
+            if not utils.isSusy(self.source["genPdgId"].at(iParticle)) : #which are SUSY particles
+                continue
+            if not utils.isSusy(self.source["genMotherPdgId"].at(iParticle)) : #whose mothers are SUSY particles
+                continue
+            self.value.append(iParticle)
+##############################
+class DPhi(wrappedChain.calculable) :
+    @property
+    def name(self) :
+        return "DPhi" + self.label
+    
+    def __init__(self, label = "") :
+        self.label =  label
+
+    def update(self,_) :
+        indices = self.source["genIndices" + self.label]
+        assert len(indices)==2,indices
+        self.value = r.Math.VectorUtil.DeltaPhi(self.source["genP4"].at(indices[0]),self.source["genP4"].at(indices[1]))
+        self.value = abs(self.value)
+##############################
 class genIndicesStatus3Status3SusyMother(wrappedChain.calculable) :
     def __init__(self) :
         self.moreName = "status 3; non-SUSY; SUSY parents"
@@ -146,14 +188,13 @@ class genIndicesStatus3Status3SusyMother(wrappedChain.calculable) :
                 continue
             self.value.append(iParticle)
 ##############################
-#class nonSusyFromSusySumEt(wrappedChain.calculable) :
-#    def __init__(self) : #, collection = None) :
-##        self.fixes = collection
-#        self.stash(["genIndicesStatus3Status3SusyMother","P4"])
-#    def update(self, ignored) :
-#        p4s = self.source[self.P4]
-#        indices = self.source["genIndicesStatus3Status3SusyMother"]
-#        self.value = reduce( lambda x,i: x+p4s.at(i).Et(), indices , 0)
+class nonSusyFromSusySumEt(wrappedChain.calculable) :
+    def update(self, ignored) :
+        indices = self.source["genIndicesStatus3Status3SusyMother"]
+        assert len(indices)==4,indces
+        self.value = 0
+        for i in indices :
+            self.value += self.source["genP4"].at(i).Et()
 ###############################
 class nonSusyFromSusySumP4(wrappedChain.calculable) :
     def update(self,_) :
@@ -170,7 +211,22 @@ class susyIniSumP4(wrappedChain.calculable) :
         self.value = utils.LorentzV()
         for i in indices :
             self.value += self.source["genP4"].at(i)
-##############################
+
+#####################################
+class Var1PtOverVar2(wrappedChain.calculable) :
+    @property
+    def name(self) : return "%sPtOver%s" %(self.var1, self.var2)
+    
+    def __init__(self, var1 = "", var2 = "") :
+        self.var1 = var1
+        self.var2 = var2
+
+    def update(self,_) :
+        v1 = self.source[self.var1].pt()
+        v2 = self.source[self.var2]
+
+        self.value = v1/v2 if (v1!=None and v2!=None) else None 
+###############################
 class genIndicesB(wrappedChain.calculable) :
     def update(self,_) :
         ids = self.source['genPdgId']
