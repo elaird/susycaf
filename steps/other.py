@@ -429,5 +429,15 @@ class muIsoStudy(analysisStep) :
             if p4_.pt() < 20 : continue
             self.book.fill( (min(0.9,iso[iMu]), min(3.9,mu[iMu].pt() / p4_.pt())), "6iso_v_ptr", (100,50), (0,0), (1,4), title = ";iso_{mu}; pT_{mu} / (pT_{jet}-pT_{mu});jets / bin"  )
             self.book.fill(  min(3.9,mu[iMu].pt() / p4_.pt()), "7ptr-"+label, 50, 0, 4, title = ";(%s) pT_{mu} / (pT_{jet}-pT_{mu});jets / bin"%label  )
-
+#####################################
             
+class eventHistogrammer(analysisStep) :
+    def __init__(self, htVar = "", befOrAf = "") :
+        for item in ["htVar"] :
+            setattr(self, item, eval(item))
+
+    def uponAcceptance (self, eventVars) :
+        cat = eventVars["RA1category"]
+        title = "RA1 Category"
+        binning = (1, 0.0, 1.0)
+        self.book.fill(0.5, cat, *binning)
