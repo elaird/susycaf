@@ -156,20 +156,24 @@ class genParticleCountHistogrammer(analysisStep) :
 #####################################
 class particlePrinter(analysisStep) :
 
-    def __init__(self,minPt=-1.0,minStatus=-1):
-        self.oneP4=utils.LorentzV()
-        self.sumP4=utils.LorentzV()
-        self.zeroP4=utils.LorentzV()
-        self.minPt=minPt
-        self.minStatus=minStatus
+    def __init__(self, minPt = -1.0, minStatus = -1, extra = False):
+        self.oneP4 = utils.LorentzV()
+        self.sumP4 = utils.LorentzV()
+        self.zeroP4 = utils.LorentzV()
+        self.minPt = minPt
+        self.minStatus = minStatus
+        self.extra = extra
         
     def uponAcceptance (self,eventVars) :
+        if self.quietMode : return
 
         self.sumP4.SetCoordinates(0.0,0.0,0.0,0.0)
 
-        mothers=set(eventVars["genMotherIndex"])
-        print "pthat: ",eventVars["genpthat"]
-        print "mothers: ",mothers
+        if self.extra :
+            print "pthat: ",eventVars["genpthat"]
+            mothers = set(eventVars["genMotherIndex"])
+            print "mothers: ",mothers
+
         print "-----------------------------------------------------------------------------------"
         print " i  st    mo         id            name        E        pt       eta    phi    mass"
         print "-----------------------------------------------------------------------------------"
@@ -200,24 +204,25 @@ class particlePrinter(analysisStep) :
             outString+="  %#6.1f"%p4.mass()
             #outString+="  %#5.1f"%p4.mass()
         
-            if not (iGen in mothers) :
+            if self.extra and not (iGen in mothers) :
                 outString+="   non-mo"
-        #        self.sumP4+=self.oneP4
-        #        #outString2="non-mo P4 sum".ljust(37)
-        #        #outString2+="  %#7.1f"%self.sumP4.E()
-        #        #outString2+="  %#8.1f"%self.sumP4.eta()
-        #        #outString2+="  %#8.1f"%self.sumP4.pt()
-        #        #outString2+="  %#5.1f"%self.sumP4.phi()
-        #        #print outString2
-        #
+                self.sumP4+=self.oneP4
+                #outString2="non-mo P4 sum".ljust(37)
+                #outString2+="  %#7.1f"%self.sumP4.E()
+                #outString2+="  %#8.1f"%self.sumP4.eta()
+                #outString2+="  %#8.1f"%self.sumP4.pt()
+                #outString2+="  %#5.1f"%self.sumP4.phi()
+                #print outString2
+
             print outString
-        #
-        #outString="non-mo P4 sum".ljust(37)
-        #outString+="  %#7.1f"%self.sumP4.E()
-        #outString+="  %#8.1f"%self.sumP4.eta()
-        #outString+="  %#8.1f"%self.sumP4.pt()
-        #outString+="  %#5.1f"%self.sumP4.phi()
-        #print outString
+
+        if self.extra :
+            outString ="non-mo P4 sum".ljust(37)
+            outString+="  %#7.1f"%self.sumP4.E()
+            outString+="  %#8.1f"%self.sumP4.eta()
+            outString+="  %#8.1f"%self.sumP4.pt()
+            outString+="  %#5.1f"%self.sumP4.phi()
+            print outString
         print
 #####################################
 #####################################

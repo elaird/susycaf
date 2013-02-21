@@ -37,7 +37,8 @@ class genStatus1P4(wrappedChain.calculable) :
 ##############################
 class varAbs(wrappedChain.calculable) :
     @property
-    def name(self) : return "%sAbs"%(self.var)
+    def name(self) :
+        return "%sAbs"%(self.var)
     
     def __init__(self, var = "") :
         self.var = var
@@ -46,40 +47,54 @@ class varAbs(wrappedChain.calculable) :
         v = self.source[self.var]
         self.value = abs(v)
 ##############################
-class genIndices(wrappedChain.calculable) :
+class Indices(wrappedChain.calculable) :
     @property
-    def name(self) : return "genIndices" + self.label
+    def name(self) : return "Indices" + self.label
 
-    def __init__(self, pdgs = [], label = None, status = [], motherPdgs = []) :
+    def __init__(self, pdgs = [], label = None, status = [], motherPdgs = [], motherIndices = "") :
         self.label = label
         self.PDGs = frozenset(pdgs)
         self.status = frozenset(status)
         self.motherPdgs = frozenset(motherPdgs)
-        self.moreName = "; ".join(["pdgId in %s" %str(list(self.PDGs)),
-                                   "status in %s"%str(list(self.status)),
-                                   "motherPdg in %s"%str(list(self.motherPdgs))
-                                   ])
+        self.motherIndices = motherIndices
+        self.moreName = "; ".join(filter(lambda x:x,
+                                         ["pdgId in %s" %str(list(self.PDGs)) if self.PDGs else "",
+                                          "status in %s"%str(list(self.status)) if self.status else "",
+                                          "motherPdg in %s"%str(list(self.motherPdgs)) if self.motherPdgs else "",
+                                          "motherIndices = %s"%self.motherIndices if self.motherIndices else ""
+                                          ])
+                                  )
 
     def update(self,_) :
         pdg = self.source["genPdgId"]
         status = self.source["genStatus"]
         motherPdg = self.source["genMotherPdgId"]
+        motherIndex = self.source["genMotherIndex"]
+        motherIndices = self.source[self.motherIndices] if self.motherIndices else []
         self.value = filter( lambda i: ( (not self.PDGs) or (pdg.at(i) in self.PDGs) ) and \
                                  ( (not self.status) or (status.at(i) in self.status) ) and \
-                                 ( (not self.motherPdgs) or (motherPdg.at(i) in self.motherPdgs) ),
+                                 ( (not self.motherPdgs) or (motherPdg.at(i) in self.motherPdgs) ) and \
+                                 ( (not self.motherIndices) or (motherIndex.at(i) in motherIndices) ),
                              range(pdg.size()) )
 
-class genIndicesPtSorted(wrappedChain.calculable) :
+class genIndices(Indices) :
+    @property
+    def name(self) : return "genIndices" + self.label
+
+class IndicesPtSorted(wrappedChain.calculable) :
     @property
     def name(self) :
         return "%sPtSorted"%self.label
 
     def __init__(self, label = "") :
-        self.label = "genIndices"+label
+        self.label = "Indices"+label
 
     def update(self,_) :
         p4 = self.source["genP4"]
         self.value = sorted(self.source[self.label], key = lambda i:p4.at(i).pt(), reverse = True)
+
+class genIndicesPtSorted(IndicesPtSorted) :
+    pass
 
 class genRootSHat(wrappedChain.calculable) :
     def update(self,_) :
@@ -93,18 +108,39 @@ class genSumPt(wrappedChain.calculable) :
         return "_".join(["genSumPt"]+self.indexLabels)
 
     def __init__(self, indexLabels = []) :
-        self.indexLabels = map(lambda s:s.replace("genIndices",""), indexLabels)
+        self.indexLabels = map(lambda s:s.replace("Indices",""), indexLabels)
 
     def update(self,_) :
         indices = []
         for label in self.indexLabels :
-            indices += self.source["genIndices"+label]
+            indices += self.source["Indices"+label]
         indices = set(indices)
 
         self.value = 0.0
         p4 = self.source["genP4"]
         for i in indices :
             self.value += p4.at(i).pt()
+
+class DeltaR(wrappedChain.calculable) :
+    def __init__(self, indices = "") :
+        self.fixes = (indices,"")
+
+    def update(self,_) :
+        p4 = self.source["genP4"]
+        indices = self.source[self.fixes[0]]
+        self.value = None
+        if len(indices)==2 :
+            self.value = r.Math.VectorUtil.DeltaR(p4.at(indices[0]), p4.at(indices[1]))
+
+class MinDeltaPhiMet(wrappedChain.calculable) :
+    def __init__(self, indices = "", met = "") :
+        self.fixes = (indices, met)
+
+    def update(self,_) :
+        p4 = self.source["genP4"]
+        indices = self.source[self.fixes[0]]
+        met = self.source[self.fixes[1]]
+        self.value = min([abs(r.Math.VectorUtil.DeltaPhi(met, p4.at(i))) for i in indices]) if indices else 100.0
 
 class JetIndices(wrappedChain.calculable) :
     def __init__(self, collection = None, ptMin = None, etaMax = None) :
@@ -121,6 +157,25 @@ class JetIndices(wrappedChain.calculable) :
             jet = p4.at(i)
             if jet.pt()<self.ptMin : continue
             if abs(jet.eta())>self.etaMax : continue
+            self.value.append(i)
+
+class KineIndices(wrappedChain.calculable) :
+    @property
+    def name(self) : return self.indices.replace("Indices","KineIndices")
+
+    def __init__(self, indices = None, ptMin = None, etaMax = None) :
+        self.indices = indices
+        self.ptMin = ptMin
+        self.etaMax = etaMax
+        self.moreName = "pT>%g GeV; |eta|<%g; %s"%(self.ptMin, self.etaMax, self.indices)
+
+    def update(self,_) :
+        p4 = self.source["genP4"]
+        self.value = []
+        for i in self.source[self.indices] :
+            particle = p4.at(i)
+            if particle.pt()<self.ptMin : continue
+            if abs(particle.eta())>self.etaMax : continue
             self.value.append(i)
 ##############################
 class susyIniIndices(wrappedChain.calculable) :
@@ -211,8 +266,16 @@ class susyIniSumP4(wrappedChain.calculable) :
         self.value = utils.LorentzV()
         for i in indices :
             self.value += self.source["genP4"].at(i)
+##############################
+class SumP4(wrappedChain.calculable) :
+    def __init__(self, indices = "") :
+        self.fixes = ("", indices)
 
-#####################################
+    def update(self,_) :
+        self.value = utils.LorentzV()
+        for i in self.source[self.fixes[1]] :
+            self.value += self.source["genP4"].at(i)
+##############################
 class Var1PtOverVar2(wrappedChain.calculable) :
     @property
     def name(self) : return "%sPtOver%s" %(self.var1, self.var2)

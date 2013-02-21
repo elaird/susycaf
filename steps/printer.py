@@ -2,18 +2,15 @@ import time, ROOT as r
 from supy import analysisStep,utils
 #####################################
 class eventPrinter(analysisStep) :
+    def uponAcceptance(self, eventVars) :
+        if self.quietMode : return
 
-    def __init__(self) :
-        self.nHyphens=56
-
-    def uponAcceptance(self,eventVars) :
         print
-        print "".ljust(self.nHyphens,"-")
-        outString ="run %7d"%eventVars["run"]
-        outString+="  event %10d"%eventVars["event"]
-        outString+="  ls %#5d"%eventVars["lumiSection"]
-        outString+="  bx %4d"%eventVars["bunch"]
-        print outString
+        s = "run %7d  event %10d  ls %#5d"%(eventVars["run"], eventVars["event"], eventVars["lumiSection"])
+        if eventVars["isRealData"] :
+            s += "  (bx %4d)"%eventVars["bunch"]
+        print s
+        print "-"*len(s)
 #####################################
 class muons(analysisStep) :
     def __init__(self,cs) :
@@ -173,21 +170,16 @@ class particleP4Printer(analysisStep) :
 #####################################
 class metPrinter(analysisStep) :
 
-    def __init__(self,collections) :
-        self.collections=collections
+    def __init__(self, collections = []) :
+        self.collections = collections
         self.moreName = str(self.collections)
-        self.nHyphens=56
+        self.nSpaces = max(map(lambda x:len(x), self.collections))
 
-    def select (self,eventVars) :
-        print
+    def uponAcceptance(self, eventVars) :
+        if self.quietMode : return
         for met in self.collections :
-            metVector=eventVars[met]
-            outString=met.ljust(15)
-            outString+=" pT %#6.1f GeV"%metVector.pt()
-            outString+="; phi %#4.1f"  %metVector.phi()
-            print outString
-        print
-        return True
+            p4 = eventVars[met]
+            print "%s pT=%#6.1f GeV; phi=%#4.1f"%(met.ljust(self.nSpaces), p4.pt(), p4.phi())
 #####################################
 class nFlaggedRecHitFilter(analysisStep) :
 
