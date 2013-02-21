@@ -677,3 +677,14 @@ class longHistogrammer(analysisStep) :
         ("PartialSumP4AreaOverHt2",100,0,1)
         ("MHT",100,0,800)
         ("DeltaPseudoJetPt")
+#####################################
+class RA1categoryHistogrammer(analysisStep) :
+    def __init__(self, htVar = "", befOrAf = "") :
+        for item in ["htVar"] :
+            setattr(self, item, eval(item))
+
+    def uponAcceptance (self, eventVars) :
+        cat = eventVars["RA1category"]
+        title = "RA1 Category"
+        binning = (1, 0.0, 1.0)
+        self.book.fill(0.5, cat, *binning)

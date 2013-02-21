@@ -29,4 +29,5 @@ for module in [
     "top17",
     "ewk17",
     "susy17",
+    "dyll17",
     ] : exec("from __%s__ import %s"%(module,module))

@@ -23,3 +23,19 @@ ewk17.add("zz_py.job188", '%s/ZZ_TuneZ2star_8TeV_pythia6_tauola.Summer12-PU_S7_S
 
 #https://twiki.cern.ch/twiki/bin/view/CMS/HiggsMCProductionSummer12#VBF_H_bb_POWHEG
 ewk17.add("zinv_hbb_125_powheg.job342", '%s/yeshaq//ICF/automated/2012_08_31_15_26_30/")'%pnfs, xs = 0.0361)
+
+S10_incl = "WJetsToLNu_TuneZ2Star_8TeV-madgraph-tarball.Summer12_DR53X-PU_S10_START53_V7A-v1.AODSIM"
+S10_excl = "/WJetsToLNu_HT-%s_8TeV-madgraph_v2.Summer12_DR53X-PU_S10_START53_V7A-v1.AODSIM"
+
+ewk17.add("wj_lv_mg_ht_250_300.job498", '%s/karage//ICF/automated/2012_11_29_20_11_51/%s")'%(pnfs, S10_excl)%"250To300", xs = {"LO":48.01, "NLO":57.26}["NLO"])
+ewk17.add("wj_lv_mg_ht_300_400.job498", '%s/karage//ICF/automated/2012_11_29_20_11_51/%s")'%(pnfs, S10_excl)%"300To400", xs = {"LO":38.30, "NLO":45.68}["NLO"])
+ewk17.add("wj_lv_mg_ht_400_inf.job498", '%s/karage//ICF/automated/2012_11_29_20_11_51/%s")'%(pnfs, S10_excl)%"400ToInf", xs = {"LO":25.22, "NLO":30.08}["NLO"])
+ewk17.add("wj_lv_mg_ht_incl.job363",    '%s/clucas/ICF//automated/2012_09_21_09_36_56/%s")'%(pnfs, S10_incl), xs = {"LO":30400.0, "NLO":36257.2}["NLO"])
+
+Zinv_S10_excl = "ZJetsToNuNu_%s_HT_%s_TuneZ2Star_8TeV_madgraph.Summer12_DR53X-PU_S10_START53_V7A-v1.AODSIM"
+
+ewk17.add("zinv_mg_ht_50_100.job407", '%s/clucas//ICF/automated/2012_09_23_19_53_51/")'%pnfs, xs = {"NNLO":452.75, "LO":381.2}["NNLO"])
+ewk17.add("zinv_mg_ht_100_200.job365", '%s/clucas//ICF/automated/2012_09_21_10_32_59/%s")'%(pnfs, Zinv_S10_excl)%(100,200), xs = {"NNLO":190.39, "LO":160.3}["NNLO"])
+ewk17.add("zinv_mg_ht_200_400.job365", '%s/clucas//ICF/automated/2012_09_21_10_32_59/%s")'%(pnfs, Zinv_S10_excl)%(200,400), xs = {"NNLO":49.2776, "LO":41.49}["NNLO"])
+ewk17.add("zinv_mg_ht_400_inf.job365", '%s/clucas//ICF/automated/2012_09_21_10_32_59/%s")'%(pnfs, Zinv_S10_excl)%(400,"inf"), xs = {"NNLO":6.2639, "LO":5.274}["NNLO"])
+

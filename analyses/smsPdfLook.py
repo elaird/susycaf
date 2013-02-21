@@ -1,4 +1,4 @@
-import supy,steps,calculables,samples,os, ROOT as r
+import supy,steps,calculables,samples,os,math, ROOT as r
 
 def triggerTuple(l = [], keys = []) :
     out = []
@@ -26,7 +26,7 @@ triggers_alphaT_2012 = triggerTuple(l  = [{"HT":250, "AlphaT": 0.55, "v":range(1
                                           ], keys = ("HT", "AlphaT"))
 
 
-class hadronicLook(supy.analysis) :
+class smsPdfLook(supy.analysis) :
     def parameters(self) :
         objects = self.vary()
         fields =                           [ "jet",                        "jetId",     "muonsInJets",           "met",
@@ -39,8 +39,9 @@ class hadronicLook(supy.analysis) :
                                             ]))
         
         return { "objects": objects,
-                 "nJetsMinMax" :      self.vary(dict([ ("ge2",(2,None)),  ("2",(2,2)),  ("ge3",(3,None)),  ("3",(3,3)), ("e23",(2,3)), ("ge4",(4,None))][4:5] )),
-                 "nBTagJets":         self.vary(dict([ ("nbe0",(0,0)),  ("nbe1",(1,1)),  ("nbe2",(2,2)),  ("nbe3",(3,3)),  ("nbge4",(4,None)) ][0:1] )),
+                 "nJetsMinMax" :      self.vary(dict([ ("ge2",(2,None)),  ("2",(2,2)),  ("ge3",(3,None)),  ("3",(3,3)), ("e23",(2,3)), ("ge4",(4,None))][0:1] )),
+                 #"genPdfIds" :           self.vary(dict([("00",(0,0)),("11",(1,1)),("22",(2,2)), ("33",(3,3)), ("44",(4,4))][0:2])),
+                 #"nBTagJets":         self.vary(dict([ ("nbe0",(0,0)),  ("nbe1",(1,1)),  ("nbe2",(2,2)),  ("nbe3",(3,3)),  ("nbge4",(4,None)) ][0:1] )),
                  "etRatherThanPt" : [True,False][0],
                  "lowPtThreshold" : 30.0,
                  "lowPtName" : "lowPt",
@@ -48,14 +49,14 @@ class hadronicLook(supy.analysis) :
                  "highPtName" : "highPt",
                  "tanBeta" : [None, 3, 10, 50][0],
                  "signalScan" : True,
+                 "usePdfWeights" : self.vary(dict([ ("", False), ("wPdfWeights", True)])),
                  "thresholds": self.vary(dict( [("275",        (275.0, 325.0, 100.0, 50.0)),#0
                                                 ("325",        (325.0, 375.0, 100.0, 50.0)),#1
                                                 ("375",        (375.0, None,  100.0, 50.0)),#2
-                                                ("325_scaled", (325.0, 375.0,  86.7, 43.3)),#3
-                                                ("275_scaled", (275.0, 325.0,  73.3, 36.7)),#4
-                                                ("675",        (675.0, None,  100.0, 50.0)),#5
-                                                ("875",        (875.0, None,  100.0, 50.0)),#6
-                                                ][6:7] )),
+                                                ("275_scaled", (275.0, 325.0,  73.3, 36.7)),#3
+                                                ("325_scaled", (325.0, 375.0,  86.7, 43.3)),#4
+                                                ("875",        (875.0,  None,  100.0, 50.0)),#10
+                                                ][2:5] )),
                  "triggerList": triggers_alphaT_2012, 
                  }
 
@@ -89,7 +90,8 @@ class hadronicLook(supy.analysis) :
                 calculables.jet.MhtOverMet((jet[0], highPtName+jet[1]), met),
                 calculables.jet.DeadEcalDR(jet, extraName = lowPtName, minNXtals = 10),
                 supy.calculables.other.fixedValue("%sFixedHtBin%s"%jet, htThreshold),
-                ]
+
+                  ]
             return outList+supy.calculables.fromCollections(calculables.jet, [jet])
 
         outList = calcList(obj["jet"], obj["met"], obj["photon"], obj["muon"], obj["electron"], obj["muonsInJets"], obj["jetId"])
@@ -106,10 +108,8 @@ class hadronicLook(supy.analysis) :
             calculables.electron.Indices( obj["electron"], ptMin = 10, flag2012 = "Veto"),
             calculables.photon.Indices(obj["photon"], ptMin = 25, flagName = "photonIDRA3Pat"),
             calculables.photon.CombinedIsoDR03RhoCorrected(obj["photon"]),
-
             calculables.other.RecHitSumPt(obj["rechit"]),
             calculables.other.RecHitSumP4(obj["rechit"]),
-            
             calculables.vertex.ID(),
             calculables.vertex.Indices(),
             calculables.trigger.lowestUnPrescaledTrigger(triggers),
@@ -128,6 +128,7 @@ class hadronicLook(supy.analysis) :
 
         outList += [calculables.gen.genIndices( pdgs = [-5,5], label = "Status3b", status = [3]),
                     calculables.gen.genIndices( pdgs = [-5,5], label = "Status3bZDaughters", status = [3], motherPdgs = [23]),
+                    calculables.gen.varAbs("genid1"), calculables.gen.varAbs("genid2")
                     ]
         return outList
 
@@ -135,13 +136,13 @@ class hadronicLook(supy.analysis) :
         _jet = params["objects"]["jet"]
         _et = "Et" if params["etRatherThanPt"] else "Pt"
         out = []
-        
+
         if params["signalScan"] :
             if "scanBefore" in label :
-                out = [supy.steps.filters.label("scanBefore"), steps.gen.scanHistogrammer(htVar = "", befOrAf = "Before")]
+                out = [supy.steps.filters.label("scanBefore"), steps.gen.scanHistogrammer(htVar = "", befOrAf = "Before", usePdfWeights = params["usePdfWeights"])]
                 
             elif "scanAfter" in label :
-                out = [supy.steps.filters.label("scanAfter"), steps.gen.scanHistogrammer(htVar = "%sSum%s%s"%(_jet[0], _et, _jet[1]), befOrAf = "After")]
+                out = [supy.steps.filters.label("scanAfter"), steps.gen.scanHistogrammer(htVar = "%sSum%s%s"%(_jet[0], _et, _jet[1]), befOrAf = "After", usePdfWeights = params["usePdfWeights"])]
                 
         return out
             
@@ -153,8 +154,16 @@ class hadronicLook(supy.analysis) :
             steps.trigger.physicsDeclaredFilter().onlyData(),
             ]+([] if params["thresholds"][1]!=325.0 else [steps.trigger.lowestUnPrescaledTriggerFilter().onlyData()]) #apply trigger in lowest HT bin
 
-    def stepsGenValidation(self) :
+    def stepsGenValidation(self,params) :
         return [supy.steps.histos.histogrammer("genpthat",200,0,2000,title=";#hat{p_{T}} (GeV);events / bin").onlySim(),
+                supy.steps.filters.value("susyScanmGL", min = 1500, max = 1500).onlySim(),
+                supy.steps.filters.value("susyScanmLSP", min = 500, max = 1000).onlySim(),
+                #supy.steps.other.skimmer(),
+                supy.steps.histos.histogrammer("susyScanmGL",40,200,1200,title=";susyScanmGL (GeV);events / bin").onlySim(),
+                #supy.steps.histos.histogrammer(("genid1","genid2"), "Events", (5, 5), (0, 0), (5, 5), title =";id1;id2;Events").onlySim(),
+                supy.steps.filters.value("genid1Abs", min = params["genPdfIds"][0], max = params["genPdfIds"][0]).onlySim(),
+                supy.steps.filters.value("genid2Abs", min = params["genPdfIds"][0], max = params["genPdfIds"][0]).onlySim(),
+                supy.steps.histos.pdfWeightHistogrammer("gencteq66").onlySim(),
                 #supy.steps.histos.histogrammer("genPartonHT",200,0,1000,title=";parton H_{T} (GeV);events / bin").onlySim(),
                 ]
 
@@ -340,27 +349,32 @@ class hadronicLook(supy.analysis) :
         _et = "Et" if _etRatherThanPt else "Pt"
 
         return ([supy.steps.printer.progressPrinter()] +
-                #self.stepsEventCount(params, label = "scanBefore") +
-                #self.stepsGenValidation() +
+                self.stepsEventCount(params, label = "scanBefore") +
+                #self.stepsGenValidation(params) +
                 self.stepsEvent() +
                 self.stepsTrigger(params) +
                 self.stepsHtLeadingJets(params) +
                 self.stepsXclean(params) +
-                self.stepsBtagJets(params) +
+                #self.stepsBtagJets(params) +
                 #self.stepsPlotsOne(params) +
                 self.stepsQcdRejection(params) +
                 self.stepsPlotsTwo(params) +
                 #self.stepsMbb(params) +
                 #self.stepsDisplayer(params) +
-                self.stepsOptional(params) +
+                #self.stepsOptional(params) +
                 #self.stepsHtBins(params) +
-                #self.stepsEventCount(params, label = "scanAfter") +
+                self.stepsEventCount(params, label = "scanAfter") +
                 [])
 
     def listOfSampleDictionaries(self) :
         sh = supy.samples.SampleHolder()
         sh.add("275_ge2b", '["/uscms/home/elaird/08_mbb/02_skim/2012_5fb_275_ge2b.root"]', lumi = 5.0e3)
         sh.add("375_ge2b", '["/uscms/home/yeshaq/nobackup/supy-output/hadronicLook/375_calo_ge2/HadronicRegion.root"]', lumi = 5.0e3)
+        sh.add("t1tttt_skim", '["/uscms/home/yeshaq/nobackup/samples/t1tttt_skim.root"]', xs=1.0)
+        sh.add("t2bb_500_skim", '["/uscms_data/d2/yeshaq/supy-output//smsPdfLook/375_calo_ge2/t2bb.pdfWeights_skim.root"]', xs=1.0)
+        sh.add("t1bbbb_250_skim", '["/uscms_data/d2/yeshaq/supy-output//smsPdfLook/375_calo_ge2/t1bbbb_250_skim.root"]', xs=1.0)
+        sh.add("t1bbbb_1500_skim", '["/uscms_data/d2/yeshaq/supy-output//smsPdfLook/375_calo_ge2/t1bbbb_1500_skim.root"]', xs=1.0)
+        sh.add("tt_pdfWeight", '["/uscms_data/d2/yeshaq/samples/ttbar_skim.root"]', xs=1.0)
         return [samples.ht17, samples.top17, samples.ewk17, samples.qcd17, sh, samples.susy17]
     
     def listOfSamples(self,params) :
@@ -437,15 +451,16 @@ class hadronicLook(supy.analysis) :
 
         def top() :
             out = []
+            out += specify(names = "tt_pdfWeight")
             #out += specify(names = "tt_8_mg.job188")
-            out += specify(names = "tt_8_mg.job315")
-            out += specify(names = "ttz_8_mg.job269", nFilesMax = 1)
+            #out += specify(names = "tt_8_mg.job315")
+            #out += specify(names = "ttz_8_mg.job269", nFilesMax = 1)
 
-            out += specify("t_s_powheg.job200"    )
+            #out += specify("t_s_powheg.job200"    )
             #out += specify("t_t_powheg.job187"    ) #low MC stats
-            out += specify("t_tw_powheg.job187"   )
-            out += specify("tbar_t_powheg.job194" )
-            out += specify("tbar_tw_powheg.job187")
+            #out += specify("t_tw_powheg.job187"   )
+            #out += specify("tbar_t_powheg.job194" )
+            #out += specify("tbar_tw_powheg.job187")
             
             return out
 
@@ -455,15 +470,25 @@ class hadronicLook(supy.analysis) :
         def sms() :
             out = []
             #out += specify(names = "t2bb.job418")#, nFilesMax = 1, nEventsMax = 500)
-            out += specify(names = "t1tttt.job442")#, nFilesMax = 1, nEventsMax = 500)
-            #out += specify(names = "t1bbbb.job443", nFilesMax = 1, nEventsMax = 500)
+            #out += specify(names = "t1tttt.job442")#, nFilesMax = 1, nEventsMax = 500)
+            #out += specify(names = "t1bbbbB.job443", nFilesMax = 1, nEventsMax = 500)
             #out += specify(names = "t1.job444", nFilesMax = 1, nEventsMax = 500)
             #out += specify(names = "t2tt.job445")#, nFilesMax = 1, nEventsMax = 500)
             #out += specify(names = "t2.job446", nFilesMax = 1, nEventsMax = 500)
+            #out += specify(names = "t2bb_500_skim")
+            #out += specify(names = "T2bb")#, nFilesMax = 1, nEventsMax = 500)
+            #out += specify(names = "T1bbbb", nFilesMax = 1, nEventsMax = 200)
+            #out += specify(names = "T2bb_nnpdf_ct10")#, nFilesMax = 1, nEventsMax = 500)
+            out += specify(names = "T2cc_nnpdf_ct10_2J")#, nFilesMax = 1, nEventsMax = 20000)
+            out += specify(names = "T2cc_nnpdf_ct10")#, nFilesMax = 1, nEventsMax = 20000)
+            #out += specify(names = "T1bbbb_nnpdf_ct10")#, nFilesMax = 1, nEventsMax = 2000)
+            #out += specify(names = "T2bb_nnpdf")#, nFilesMax = 1, nEventsMax = 2000)
+            #out += specify(names = "T1bbbb_nnpdf")#, nFilesMax = 1, nEventsMax = 200)
+            #out += specify(names = "T2bw", nFilesMax = 1, nEventsMax = 20)
             return out
 
         return (
-            data_53X() +
+            #data_53X() +
             #data_52X() +
             #data_52X_2b_skim() +
             #w_binned() +
@@ -473,7 +498,7 @@ class hadronicLook(supy.analysis) :
             #qcd_py6(30.0e3) +
             #qcd_b_py6(30.0e3) +
             ##w_inclusive() +
-            #sms() +
+            sms() +
             []
             )
 
@@ -522,7 +547,7 @@ class hadronicLook(supy.analysis) :
         
         self.makeStandardPlots(org)
         #self.makeIndividualPlots(org)
-        self.makeEfficiencyPlots(org)
+        #self.makeEfficiencyPlots(org)
 
     def makeStandardPlots(self, org) :
         #plot
@@ -651,19 +676,31 @@ class hadronicLook(supy.analysis) :
             return d
             
         keep = []
-        file = r.TFile("%s_%s.root"%(sampleName, org.tag), "RECREATE")
+        outputDir = "pdfWeights_2"
+        file = r.TFile("%s/%s_%s.root"%(outputDir,sampleName, org.tag), "RECREATE")
         canvas = r.TCanvas()
         canvas.SetRightMargin(0.2)
         canvas.SetTickx()
         canvas.SetTicky()
         psFileName = "%s_%s.ps"%(sampleName, org.tag)
-        canvas.Print(psFileName+"[","Lanscape")
+        canvas.Print(outputDir + "/" +psFileName+"[","Lanscape")
                     
         assert len(self.parameters()["objects"])==1
         for key,value in self.parameters()["objects"].iteritems() :
             jet = value["jet"]
-                
-        for variable in ["nEvents"] :
+
+        nWeights = 0
+        histList = ["nEvents"]
+        if "wPdfWeights" in org.tag :
+            cteqNWeights = 45
+            mstwNWeights = 41
+            nnPDFNWeights = 101 
+            ct10NWeights = 52
+            histList = ["nEvents_gencteq66_%s"%i for i in range(cteqNWeights)]
+            histList +=["nEvents_genMSTW2008nlo68cl_%s"%m for m in range(mstwNWeights)]
+            histList +=["nEvents_genNNPDF20_%s"%m for m in range(nnPDFNWeights)]
+            histList +=["nEvents_genct10_%s"%m for m in range(ct10NWeights)]
+        for variable in histList :
             histos = numerAndDenom(org, variable)
             if "before" not in histos or "after" not in histos : continue
             result = histos["after"].Clone(variable)
@@ -678,12 +715,12 @@ class hadronicLook(supy.analysis) :
                 result.GetZaxis().SetRangeUser(0.0,0.35)
                 result.GetZaxis().SetTitle("efficiency")
                 result.Draw("colz")
-                canvas.Print(psFileName,"Lanscape")
+                canvas.Print(outputDir + "/" + psFileName,"Lanscape")
                 result.Write()
-        canvas.Print(psFileName+"]","Lanscape")
+        canvas.Print(outputDir + "/" + psFileName+"]","Lanscape")
         temp = psFileName.replace(".chr","_chr").replace(".ps",".pdf")
-        os.system("ps2pdf "+ psFileName +" "+ temp)
-        os.remove(psFileName)
+        os.system("ps2pdf "+ outputDir + "/" + psFileName + " " + outputDir + "/" + temp)
+        os.remove(outputDir + "/" + psFileName)
         file.Close()
                                     
                                     

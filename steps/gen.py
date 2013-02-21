@@ -40,60 +40,58 @@ class ParticleCountFilter(analysisStep) :
         return True
 #####################################
 class scanHistogrammer(analysisStep) :
-    def __init__(self, htVar = "", befOrAf = "") :
+    def __init__(self, htVar = "", befOrAf = "", usePdfWeights = False) :
         self.tanBetaThreshold = 0.1
         for item in ["htVar"] :
             setattr(self, item, eval(item))
         self.moreName = self.htVar
+        self.usePdfWeights = usePdfWeights
+        self.befOrAf = befOrAf
+#        self.m0Nbins = 81
+#        self.m0Lo =      0.0
+#        self.m0Hi =   2025.0
+#
+#        self.m12Nbins =  81
+#        self.m12Lo =       0.0
+#        self.m12Hi =    2025.0
+#
 
-        self.m0Nbins =  44
-        self.m0Lo =    100
-        self.m0Hi = 1200.0
+## FOR T2CC, hardcoded :( ####
+        self.m0Nbins = 34
+        self.m0Lo =    90.0
+        self.m0Hi =   260.0
 
-        self.m12Nbins =  44
-        self.m12Lo =     50
-        self.m12Hi = 1150.0
+        self.m12Nbins =  50
+        self.m12Lo =     10.0
+        self.m12Hi =    260.0
+
 
         self.bins = (self.m0Nbins, self.m12Nbins)
         self.lo = (self.m0Lo, self.m12Lo)
         self.hi = (self.m0Hi, self.m12Hi)
 
-        self.htBins = self.pairs([275, 325] + [375+100*i for i in range(6)]) + self.pairs([375])
-        self.htStrings = self.strings(self.htBins, befOrAf)
-        
-    def pairs(self, l) :
-        out = []
-        for lower,upper in zip(l, l[1:]+[None]) :
-            out.append( (lower, upper) )
-        return out
-
-    def strings(self, pairs, befOrAf) :
-        out = []
-        for lower,upper in pairs :
-            out.append("ht_%d%s%s"%(lower, "_%d"%upper if upper else "", "_%s"%befOrAf))
-        return out
-
-    def htIn(self, ht, lower, upper) :
-        if lower!=None and ht<lower : return False
-        if upper!=None and upper<ht : return False
-        return True
-
     def uponAcceptance (self, eventVars) :
-        #if abs(eventVars["susyScantanbeta"]-self.tanBeta)>self.tanBetaThreshold : return
-
-        #xs = eventVars["susyScanCrossSection"]
+        cat = eventVars["RA1category"]
         m0 = eventVars["susyScanmGL"]
         m12 = eventVars["susyScanmLSP"]
-
-        #title = ";m_{0} (GeV);m_{1/2} (GeV)"
-        title = ";m_{gluino} (GeV);m_{LSP} (GeV)"
-
-        self.book.fill( (m0, m12), "nEvents", self.bins, self.lo, self.hi,         title = "%s;%s"%(title,"nEvents"))
-        if self.htVar :
-            ht = eventVars[self.htVar]
-            for name,pair in zip(self.htStrings, self.htBins) :
-                if not self.htIn(ht, *pair) : continue
-                self.book.fill( (m0, m12), name,  self.bins, self.lo, self.hi,         title = "%s;%s"%(title, name))
+        xChi = "_%s"%eventVars["susyScanxCHI"] if ("susyScanxCHI" in eventVars) else ""
+        title = ";m_{parent} (GeV);m_{LSP} (GeV)"
+        pdfWeight =  1.0
+        pdfSets = ["gencteq66","genMSTW2008nlo68cl","genNNPDF21","genct10"]
+        if self.usePdfWeights :
+            for pdfSet in pdfSets :
+                if pdfSet in eventVars :
+                	pdfWeights = eventVars[pdfSet]
+                	for w,pdfWeight in enumerate(pdfWeights) :
+                	    if self.befOrAf == "Before" : self.book.fill( (m0, m12), "nEvents_%s_%s"%(pdfSet,w), self.bins, self.lo, self.hi, pdfWeight, title = "%s;%s"%(title,""))
+                	    else :
+                	        self.book.fill( (m0, m12), "nEvents_"+cat+"_%s_%s"%(pdfSet,w), self.bins, self.lo, self.hi, pdfWeight, title = "%s;%s"%(title,""))
+                	        self.book.fill( (m0, m12), "nEvents_%s_%s"%(pdfSet,w), self.bins, self.lo, self.hi, pdfWeight, title = "%s;%s"%(title,""))
+        else :
+            if self.befOrAf == "Before" : self.book.fill( (m0, m12), "nEvents%s"%(xChi),  self.bins, self.lo, self.hi, pdfWeight, title = "%s;%s"%(title,""))
+            else :
+                self.book.fill( (m0, m12), "nEvents_"+cat+"%s"%(xChi),  self.bins, self.lo, self.hi, pdfWeight, title = "%s;%s"%(title,""))
+                self.book.fill( (m0, m12), "nEvents%s"%(xChi),  self.bins, self.lo, self.hi, pdfWeight, title = "%s;%s"%(title,""))
 #####################################
 class genParticleCountHistogrammer(analysisStep) :
 
@@ -482,7 +480,48 @@ class zHistogrammer(analysisStep) :
                            100, -20.0, 20.0,
                            title=";( photon%s p_{T} - MHT ) / sqrt( H_{T} + MHT )    [ %s%s ] ;events / bin"%(photonLabel,self.jetCs[0],self.jetCs[1])
                            )
+#####################################
+class DPhiHistogrammer(analysisStep) :
+    
+    def uponAcceptance(self,e) :
+        mhtoverht = e["nonSusyFromSusySumP4PtOvernonSusyFromSusySumEt"]
+        mht = e["nonSusyFromSusySumP4"].pt()
+        ht = e["nonSusyFromSusySumEt"]
+        dphiLsp = e["DPhiNeutralino"]
+        p4 = e["genP4"]
 
+        for iDaughter in  e["genIndicesNeutralino"] :
+            iMother = e["genMotherIndex"].at(iDaughter)
+            if iMother < 0 : continue
+            dphi = abs(r.Math.VectorUtil.DeltaPhi(p4.at(iDaughter),p4.at(iMother)))
+            self.book.fill(dphi, "DphiNeutralinoMother", 20, 0.0, r.TMath.Pi(),title=";#Delta#Phi between lsp and mother;lsp / bin")
+
+            self.book.fill((dphi,mhtoverht), "MHT_HT_v_Dphilsp-mother",
+                           (20, 50), (0.0, 0.0), (r.TMath.Pi(), 1.0),
+                           title=";#Delta#Phi between LSP and mother;MHT/H_{T} from Gen Jets; LSP / bin"
+                           )
+
+#            self.book.fill((mhtoverht,dphi), "Dphilsp-mother_v_MHT_HT",
+#                           (50,20), (0.0, 0.0), (1.0, r.TMath.Pi()),
+#                           title=";MHT/H_{T} from Gen Jets;#Delta#Phi between LSP and mother; LSP / bin"
+#                           )
+
+            self.book.fill((dphi,mht), "MHT_v_DphiLSP-mother",
+                           (20, 50), (0.0, 0.0), (r.TMath.Pi(), 1000),
+                           title=";#Delta#Phi between LSP and mother;MHT (GeV) from Gen Jets; LSP / bin"
+                           )
+
+            self.book.fill((dphi,ht), "HT_v_DphiLSP-mother",
+                           (20, 100), (0.0, 0.0), (r.TMath.Pi(), 2000),
+                           title=";#Delta#Phi between LSP and mother;HT (GeV) from Gen Jets; LSP / bin"
+                           )
+
+            self.book.fill((dphiLsp,dphi), "DphiLSP-mother_v_DphiLsp",
+                           (20, 20), (0.0, 0.0), (r.TMath.Pi(), r.TMath.Pi()),
+                           title=";#Delta#Phi between LSP and mother;#Delta#Phi between LSPs; LSP / bin"
+                           )
+
+#####################################
 class bqDotHistogrammer(analysisStep) :
     def f(self, x) :
         return x/5901.2 - 1.0

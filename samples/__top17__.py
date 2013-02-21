@@ -26,3 +26,6 @@ top17.add("t_tw_powheg.job187", '%s/T_tW-channel-DR_TuneZ2star_8TeV-powheg-tauol
 
 top17.add("tbar_t_powheg.job194", '%s/clucas//ICF/automated/2012_06_06_11_53_47/")'%pnfs, xs = {"NNLO":30.7, "LO":25.0}["NNLO"])
 top17.add("tbar_tw_powheg.job187", '%s/Tbar_tW-channel-DR_TuneZ2star_8TeV-powheg-tauola.Summer12-PU_S7_START52_V9-v1.AODSIM")'%y, xs = {"NNLO":11.1, "LO":10.7}["NNLO"])
+
+top17.add("ttbar_powheg_v1.job410", '%s/clucas//ICF/automated/2012_09_26_14_02_42/")'%pnfs, xs = 211.)
+top17.add("ttbar_powheg_v2.job404", '%s/zmeng//ICF/automated/2012_09_21_17_07_53/")'%pnfs, xs = 211.)
