@@ -290,7 +290,6 @@ class Var1PtOverVar2(wrappedChain.calculable) :
 
         self.value = v1/v2 if (v1!=None and v2!=None) else None 
 ###############################
->>>>>>> master
 class genIndicesB(wrappedChain.calculable) :
     def update(self,_) :
         ids = self.source['genPdgId']
