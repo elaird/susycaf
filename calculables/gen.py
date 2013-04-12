@@ -46,7 +46,22 @@ class varAbs(wrappedChain.calculable) :
     def update(self,_) :
         v = self.source[self.var]
         self.value = abs(v)
-##############################
+
+
+class IndicesFiltered(wrappedChain.calculable):
+    @property
+    def name(self):
+        return self.label
+
+    def __init__(self, label="", accept="", reject=""):
+        for item in ["label", "accept", "reject"]:
+            setattr(self, item, eval(item))
+
+    def update(self,_):
+        self.value = filter(lambda x:x not in self.source[self.reject],
+                            self.source[self.accept])
+
+
 class Indices(wrappedChain.calculable) :
     @property
     def name(self) : return "Indices" + self.label
