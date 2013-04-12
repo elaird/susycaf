@@ -13,6 +13,9 @@ except ImportError:
     pdgLookupExists = False
 
 
+def jetsRaw(jets):
+    return (jets[0].replace("xc",""), jets[1])
+
 class displayer(supy.steps.displayer):
     def __init__(self,
                  # objects
@@ -87,7 +90,7 @@ class displayer(supy.steps.displayer):
             self.jetRadius = 0.7 if "ak7Jet" in self.jets[0] else 0.5
             self.deltaHtName = "%sDeltaPseudoJetEt%s" % self.jets
             if not self.genJets:
-                self.genJets = "gen%sGenJetsP4" % (self.jets[0].replace("xc", "")[:3])
+                self.genJets = "gen%sGenJetsP4" % jetsRaw(self.jets)[0][:3]
                 self.genJetRadius = 0.7 if "ak7Jet" in self.genJets[0] else 0.5
 
         if self.doGenJets:
@@ -301,7 +304,7 @@ class displayer(supy.steps.displayer):
             return " "
 
         self.prepareText(params, coords)
-        jets2 = (jets[0].replace("xc",""),jets[1])
+        jets2 = jetsRaw(jets)
         isPf = "PF" in jets[0]
         
         p4Vector         = eventVars['%sCorrectedP4%s'%jets]
@@ -705,6 +708,9 @@ class displayer(supy.steps.displayer):
         self.line.DrawLine( self.etaBE, etaPhiPlot.GetYaxis().GetXmin(),  self.etaBE, etaPhiPlot.GetYaxis().GetXmax() )
         suspiciousJetColor = r.kRed
         suspiciousJetStyle = 2
+
+        bJetColor = r.kGreen+2
+        bJetStyle = 7
         
         def drawEcalBox(fourVector, nBadXtals, maxStatus) :
             value = (0.087/2) * nBadXtals / 25
@@ -747,19 +753,31 @@ class displayer(supy.steps.displayer):
         if self.doGenJets and not eventVars["isRealData"]:
             genJets = eventVars[self.genJets]
             for index in range(genJets.size()) :
-                self.drawCircle(genJets.at(index), r.kBlack, lineWidth = 2, circleRadius = self.genJetRadius, lineStyle = suspiciousJetStyle)
+                self.drawCircle(genJets.at(index), r.kBlack, lineWidth=2,
+                                circleRadius=self.genJetRadius,
+                                lineStyle=suspiciousJetStyle)
 
         if self.jets:
-            jets = eventVars["%sCorrectedP4%s"%self.jets]
-            if "%sIndices%s" % self.jets in eventVars:
-                for index in range(jets.size()):
-                    jet = jets.at(index)
-                    if index in eventVars["%sIndices%s"%self.jets]:
-                        self.drawCircle(jet, r.kBlue, lineWidth=1, circleRadius=self.jetRadius)
+            rawJets = eventVars["%sCorrectedP4%s" % jetsRaw(self.jets)]
+            csvs = eventVars['%sCombinedSecondaryVertexBJetTags%s' % jetsRaw(self.jets)]
+            for index in range(rawJets.size()):
+                rawJet = rawJets.at(index)
+                csv = csvs.at(index)
+                if "%sIndices%s" % self.jets in eventVars:
+                    if index in eventVars["%sIndices%s" % self.jets]:
+                        self.drawCircle(rawJet, r.kBlue, lineWidth=1,
+                                        circleRadius=self.jetRadius)
                     else:
-                        self.drawCircle(jet, r.kCyan, lineWidth=1, circleRadius=self.jetRadius)
+                        self.drawCircle(rawJet, r.kCyan, lineWidth=1,
+                                        circleRadius=self.jetRadius)
+
+                    if self.bThresholds["CombinedSecondaryVertexBJetTags"]["L"] < csv:
+                        self.drawCircle(rawJet, bJetColor, lineWidth=1,
+                                        lineStyle=bJetStyle,
+                                        circleRadius=self.jetRadius)
+
                     if self.ra1Mode and (index in suspiciousJetIndices):
-                        self.drawCircle(jet, suspiciousJetColor, lineWidth=1,
+                        self.drawCircle(rawJet, suspiciousJetColor, lineWidth=1,
                                         circleRadius=self.deltaPhiStarDR,
                                         lineStyle=suspiciousJetStyle)
                         suspiciousJetLegendEntry = True
