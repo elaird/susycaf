@@ -19,7 +19,9 @@ def jetsRaw(jets):
 class displayer(supy.steps.displayer):
     def __init__(self,
                  # objects
-                 jets=None, met=None, muons=None, electrons=None,
+                 jets=None,
+                 jetIndices=[],
+                 met=None, muons=None, electrons=None,
                  photons=None, taus=None, recHits=None, recHitPtThreshold=-100,
                  jetsOtherAlgo=None, metOtherAlgo=None, recHitsOtherAlgo=None,
                  # https://twiki.cern.ch/twiki/bin/viewauth/CMS/BTagPerformanceOP
@@ -58,7 +60,8 @@ class displayer(supy.steps.displayer):
 
         self.moreName = "(see below)"
 
-        for item in ["jets", "met", "muons", "electrons", "photons", "taus",
+        for item in ["jets", "jetIndices",
+                     "met", "muons", "electrons", "photons", "taus",
                      "recHits", "recHitPtThreshold", "jetsOtherAlgo",
                      "metOtherAlgo", "recHitsOtherAlgo", "bThresholds",
                      "genMet", "genJets", "genParticleIndices",
@@ -87,20 +90,33 @@ class displayer(supy.steps.displayer):
             self.subdetectors[rh] = configuration.detectorSpecs()["cms"]["%sSubdetectors" % rh]
 
         if self.jets:
-            self.jetRadius = 0.7 if "ak7Jet" in self.jets[0] else 0.5
             self.deltaHtName = "%sDeltaPseudoJetEt%s" % self.jets
             if not self.genJets:
                 self.genJets = "gen%sGenJetsP4" % jetsRaw(self.jets)[0][:3]
                 self.genJetRadius = 0.7 if "ak7Jet" in self.genJets[0] else 0.5
+            if not self.jetIndices:
+                radius = 0.7 if "ak7Jet" in self.jets[0] else 0.5
+                self.jetIndices = [(self.jets, "%sIndices%s" % self.jets, r.kBlue, 1, radius),
+                                   #(self.jets, "%sIndicesOther%s" % self.jets, r.kBrown, 1, radius),
+                                   # FIXME: restore ignored jets in eta-phi
+                                   ]
+                #jpt = (self.jets[0].replace("xc","")+"JPT", self.jets[1])
+                #pf =  (self.jets[0].replace("xc","")+"PF", self.jets[1])
+                #self.jetIndices.append((jpt, "%sIndices%s" % jpt, 896, 1))
+                #self.jetIndices.append((pf, "%sIndices%s" % pf, 38, 1))
 
         if self.doGenJets:
             assert self.genJets
 
         self.prettyReName = {
-            "clean jets (xcak5JetPat)": "jets (AK5 Calo)",
-            "clean jets (xcak5JetPFPat)": "jets (AK5 PF)",
+            "ak5JetIndicesPat": "AK5 Calo Jets",
+            "ak5JetPFIndicesPat": "AK5 PF Jets",
+            "xcak5JetPat": "AK5 Calo Jets",
+            "xcak5JetPFPat": "AK5 PF Jets",
+
             "ignored jets (xcak5JetPat)": "ignored jets (AK5 Calo)",
             "ignored jets (xcak5JetPFPat)": "ignored jets (AK5 PF)",
+
             "MHT (xcak5JetPat)": "MHT",
             "MHT (xcak5JetPFPat)": "MHT",
             "MET (metP4AK5TypeII)": "MET (Calo Type II)",
@@ -109,8 +125,6 @@ class displayer(supy.steps.displayer):
             "muons (muonPat)": "muons",
             "electrons (electronPat)": "electrons",
             "photons (photonPat)": "photons",
-            "xcak5JetPat": "AK5 Calo Jets",
-            "xcak5JetPFPat": "AK5 PF Jets",
             "muonPat": "muons",
             "electronPat": "electrons",
             "photonPat": "photons",
@@ -520,7 +534,7 @@ class displayer(supy.steps.displayer):
         self.arrow.SetFillColor(color)
         self.arrow.DrawArrow(x0,y0,x1,y1)
         
-    def drawCircle(self, p4, color, lineWidth, circleRadius, lineStyle = 1) :
+    def drawCircle(self, p4=None, color=None, lineWidth=1, circleRadius=None, lineStyle=1):
         self.ellipse.SetLineColor(color)
         self.ellipse.SetLineWidth(lineWidth)
         self.ellipse.SetLineStyle(lineStyle)
@@ -563,31 +577,24 @@ class displayer(supy.steps.displayer):
             else :
                 self.drawCircle(particle, color, lineWidth, circleRadius)
             
-    def drawCleanJets(self, eventVars, coords, jets, color, lineWidth, arrowSize) :
-        self.legendFunc(color, name = "%scleanJet%s"%jets, desc = "clean jets (%s%s)"%jets)
+    def drawJets(self, eventVars=None, jets=None, indices="",
+                 coords=None, color=None, lineWidth=1, lineStyle=1,
+                 arrowSize=-1.0):
+        self.legendFunc(color, name=indices, desc=indices)
 
-        p4s = eventVars['%sCorrectedP4%s'%jets]
+        p4s = eventVars['%sP4%s' % jets] if "gen" in jets[0] else eventVars['%sCorrectedP4%s' % jets]
         if self.tipToTail :
-            phiOrder = eventVars["%sIndicesPhi%s"%self.jets]
-            partials = eventVars["%sPartialSumP4%s"%self.jets]
+            phiOrder = eventVars["%sIndicesPhi%s" % jets]
+            partials = eventVars["%sPartialSumP4%s" % jets]
             mean = supy.utils.partialSumP4Centroid(partials)
             for i in range(len(phiOrder)) :
                 self.drawP4( coords, p4s.at(phiOrder[i]), color, lineWidth, 0.3*arrowSize, partials[i]-mean)
             return
 
-        cleanJetIndices = eventVars["%sIndices%s"%jets]
-        for iJet in cleanJetIndices :
+        for iJet in eventVars[indices]:
             self.drawP4(coords, p4s.at(iJet), color, lineWidth, arrowSize)
             
-    def drawOtherJets(self, eventVars, coords, color, lineWidth, arrowSize) :
-        self.legendFunc(color, name = "%sotherJet%s"%self.jets, desc = "\"other\" jets (%s%s)"%self.jets)
-
-        p4Vector = eventVars["%sCorrectedP4%s"%self.jets]
-        otherJetIndices = eventVars["%sIndicesOther%s"%self.jets]
-        for index in otherJetIndices :
-            self.drawP4(coords, p4Vector.at(index), color, lineWidth, arrowSize)
-            
-    def drawIgnoredJets(self, eventVars, coords, color, lineWidth, arrowSize) :
+    def drawIgnoredJets(self, eventVars=None, coords=None, color=r.kCyan, lineWidth=1, arrowSize=-1.0):
         self.legendFunc(color, name = "%signoredJet%s"%self.jets, desc = "ignored jets (%s%s)"%self.jets)
 
         p4s = eventVars["%sCorrectedP4%s"%self.jets]
@@ -708,9 +715,6 @@ class displayer(supy.steps.displayer):
         self.line.DrawLine( self.etaBE, etaPhiPlot.GetYaxis().GetXmin(),  self.etaBE, etaPhiPlot.GetYaxis().GetXmax() )
         suspiciousJetColor = r.kRed
         suspiciousJetStyle = 2
-
-        bJetColor = r.kGreen+2
-        bJetStyle = 7
         
         def drawEcalBox(fourVector, nBadXtals, maxStatus) :
             value = (0.087/2) * nBadXtals / 25
@@ -741,7 +745,7 @@ class displayer(supy.steps.displayer):
 
 
         for indices, color, printList in self.genParticleIndices:
-            self.drawGenParticles(eventVars, indices=indices, color=color, circleRadius=0.15)
+            self.drawGenParticles(eventVars=eventVars, indices=indices, color=color, circleRadius=0.15)
 
         etaPhiPlot.SetTitle("")
         if self.ra1Mode:
@@ -757,30 +761,20 @@ class displayer(supy.steps.displayer):
                                 circleRadius=self.genJetRadius,
                                 lineStyle=suspiciousJetStyle)
 
-        if self.jets:
-            rawJets = eventVars["%sCorrectedP4%s" % jetsRaw(self.jets)]
-            csvs = eventVars['%sCombinedSecondaryVertexBJetTags%s' % jetsRaw(self.jets)]
-            for index in range(rawJets.size()):
-                rawJet = rawJets.at(index)
-                csv = csvs.at(index)
-                if "%sIndices%s" % self.jets in eventVars:
-                    if index in eventVars["%sIndices%s" % self.jets]:
-                        self.drawCircle(rawJet, r.kBlue, lineWidth=1,
-                                        circleRadius=self.jetRadius)
-                    else:
-                        self.drawCircle(rawJet, r.kCyan, lineWidth=1,
-                                        circleRadius=self.jetRadius)
+        for jets, indices, color, style, radius in self.jetIndices:
+            p4s = eventVars['%sP4%s' % jets] if "gen" in jets[0] else eventVars['%sCorrectedP4%s' % jets]
+            for index in range(p4s.size()):
+                if index not in eventVars[indices]:
+                    continue
+                self.drawCircle(p4=p4s.at(index), color=color,
+                                circleRadius=radius, lineStyle=style)
 
-                    if self.bThresholds["CombinedSecondaryVertexBJetTags"]["L"] < csv:
-                        self.drawCircle(rawJet, bJetColor, lineWidth=1,
-                                        lineStyle=bJetStyle,
-                                        circleRadius=self.jetRadius)
-
-                    if self.ra1Mode and (index in suspiciousJetIndices):
-                        self.drawCircle(rawJet, suspiciousJetColor, lineWidth=1,
-                                        circleRadius=self.deltaPhiStarDR,
-                                        lineStyle=suspiciousJetStyle)
-                        suspiciousJetLegendEntry = True
+                if self.ra1Mode and (index in suspiciousJetIndices):
+                    self.drawCircle(p4=p4s.at(index),
+                                    color=suspiciousJetColor,
+                                    circleRadius=self.deltaPhiStarDR,
+                                    lineStyle=suspiciousJetStyle)
+                    suspiciousJetLegendEntry = True
 
         legend1 = r.TLegend(0.02, 0.9, 0.72, 1.0)
         legend1.SetFillStyle(0)
@@ -934,25 +928,27 @@ class displayer(supy.steps.displayer):
         if not eventVars["isRealData"]:
             arrowSize = defArrowSize
             for indices, color, printList in self.genParticleIndices:
-                self.drawGenParticles(eventVars,
+                self.drawGenParticles(eventVars=eventVars,
                                       indices=indices,
                                       coords=coords,
                                       color=color,
                                       arrowSize=arrowSize)
                 arrowSize *= 0.8
             
+        arrowSize = defArrowSize
+        for jets, indices, color, style, radius in self.jetIndices:
+            self.drawJets(eventVars=eventVars,
+                          jets=jets,
+                          indices=indices,
+                          coords=coords,
+                          color=color,
+                          lineStyle=style,
+                          arrowSize=arrowSize)
+            arrowSize *= 0.8
+
         if self.jets:
-            #self.drawP4(eventVars["%sLongP4%s"%self.jets],r.kGray,defWidth,defArrowSize*1/100.0)
-            #self.drawP4(-eventVars["%sLongP4%s"%self.jets],r.kGray,defWidth,defArrowSize*1/100.0)
-            self.drawCleanJets      (eventVars, coords, self.jets, r.kBlue    , defWidth, defArrowSize)
-                                     
-            #self.drawCleanJets      (eventVars, coords,
-            #                         (self.jets[0].replace("xc","")+"JPT","Pat"),896,defWidth, defArrowSize*3/4.0)
-            #self.drawCleanJets      (eventVars, coords,
-            #                         (self.jets[0].replace("xc","")+"PF","Pat"), 38,defWidth, defArrowSize*1/2.0)
-            
-            self.drawIgnoredJets    (eventVars, coords,r.kCyan    , defWidth, defArrowSize*1/6.0)
-            #self.drawOtherJets      (eventVars, coords,r.kBlack  )
+            self.drawIgnoredJets(eventVars=eventVars, coords=coords, arrowSize=arrowSize)
+
             if self.ra1Mode and not self.prettyMode :
                 self.drawHt         (eventVars, coords,r.kBlue+3  , defWidth, defArrowSize*1/6.0)
                 self.drawNJetDeltaHt(eventVars, coords,r.kBlue-9  , defWidth, defArrowSize*1/6.0)
