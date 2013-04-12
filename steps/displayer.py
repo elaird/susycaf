@@ -1,57 +1,91 @@
-import os,collections,copy,ROOT as r
-from supy import utils
-import supy
+import collections
+import copy
+import os
+
+import ROOT as r
 import configuration
-#####################################
-pdgLookupExists = False
+import supy
+
 try:
     import pdgLookup
     pdgLookupExists = True
 except ImportError:
-    pass
-#####################################
-from displayer_ttbar import ttbar
-#####################################
-class displayer(supy.steps.displayer) :
-    def __init__(self, jets = None, met = None, muons = None, electrons = None, photons = None, taus = None,
-                 recHits = None, recHitPtThreshold = -100.0, scale = 200.0, etRatherThanPt = False, doGenParticles = False, doGenJets = False,
-                 doEtaPhiPlot = True, deltaPhiStarExtraName = "", deltaPhiStarCut = None, deltaPhiStarDR = None, mhtOverMetName = "",
-                 showAlphaTMet = True, jetsOtherAlgo = None, metOtherAlgo = None, recHitsOtherAlgo = None, printExtraText = True, j2Factor = None,
-                 ra1Mode = True, ra1CutBits = True, prettyMode = False, tipToTail = False, triggersToPrint = [],
-                 flagsToPrint = ["logErrorTooManyClusters","logErrorTooManySeeds",
-                                 #"beamHaloCSCLooseHaloId","beamHaloCSCTightHaloId","beamHaloEcalLooseHaloId","beamHaloEcalTightHaloId",
-                                 #"beamHaloGlobalLooseHaloId","beamHaloGlobalTightHaloId","beamHaloHcalLooseHaloId","beamHaloHcalTightHaloId"
-                                 ],
-                 bThresholds = {"JetProbabilityBJetTags":         {"L":0.275, "M":0.545, "T":0.790},
-                                "CombinedSecondaryVertexBJetTags":{"L":0.244, "M":0.679, "T":0.898},
-                                },#https://twiki.cern.ch/twiki/bin/viewauth/CMS/BTagPerformanceOP
-                 ) :
+    pdgLookupExists = False
+
+
+class displayer(supy.steps.displayer):
+    def __init__(self,
+                 # objects
+                 jets="", met=None, muons=None, electrons=None,
+                 photons=None, taus=None, recHits=None, recHitPtThreshold=-100,
+                 jetsOtherAlgo=None, metOtherAlgo=None, recHitsOtherAlgo=None,
+                 # https://twiki.cern.ch/twiki/bin/viewauth/CMS/BTagPerformanceOP
+                 bThresholds={"JetProbabilityBJetTags":         {"L":0.275,
+                                                                 "M":0.545,
+                                                                 "T":0.790},
+                              "CombinedSecondaryVertexBJetTags":{"L":0.244,
+                                                                 "M":0.679,
+                                                                 "T":0.898},
+                              },
+                 genMet="genmetP4True",
+                 genParticleIndices=[],
+                 triggersToPrint=[],
+                 flagsToPrint=[#"logErrorTooManyClusters",
+                               #"logErrorTooManySeeds",
+                               #"beamHaloCSCLooseHaloId",
+                               #"beamHaloCSCTightHaloId",
+                               #"beamHaloEcalLooseHaloId",
+                               #"beamHaloEcalTightHaloId",
+                               #"beamHaloGlobalLooseHaloId",
+                               #"beamHaloGlobalTightHaloId",
+                               #"beamHaloHcalLooseHaloId",
+                               #"beamHaloHcalTightHaloId"
+                               ],
+
+                 # options
+                 scale=200.0, doGenJets=False, doEtaPhiPlot=True,
+                 prettyMode=False, tipToTail=False, printExtraText=True,
+
+                 # RA1
+                 ra1Mode=True, ra1CutBits=True, j2Factor=None,
+                 mhtOverMetName="", showAlphaTMet=True,
+                 deltaPhiStarExtraName="", deltaPhiStarCut=None, deltaPhiStarDR=None,
+                 ):
 
         self.moreName = "(see below)"
 
-        for item in ["scale","jets","met","muons","electrons","photons","taus","recHits","recHitPtThreshold","doGenParticles", "doGenJets",
-                     "doEtaPhiPlot","deltaPhiStarExtraName", "deltaPhiStarCut", "deltaPhiStarDR", "mhtOverMetName", "showAlphaTMet",
-                     "jetsOtherAlgo", "metOtherAlgo", "recHitsOtherAlgo", "printExtraText", "j2Factor", "ra1Mode", "ra1CutBits", "prettyMode",
-                     "tipToTail", "triggersToPrint", "flagsToPrint", "bThresholds"] :
-            setattr(self,item,eval(item))
+        for item in ["jets", "met", "muons", "electrons", "photons", "taus",
+                     "recHits", "recHitPtThreshold", "jetsOtherAlgo",
+                     "metOtherAlgo", "recHitsOtherAlgo", "bThresholds",
+                     "genMet", "genParticleIndices", "triggersToPrint", "flagsToPrint",
 
-        if len(self.flagsToPrint)>3 : print "WARNING: More than three flags specified in the displayer.  The list will run off the page."
+                     "scale", "doGenJets", "doEtaPhiPlot",
+                     "prettyMode", "tipToTail", "printExtraText",
+
+                     "ra1Mode", "ra1CutBits", "j2Factor",
+                     "mhtOverMetName", "showAlphaTMet",
+                     "deltaPhiStarExtraName", "deltaPhiStarCut", "deltaPhiStarDR",
+                     ]:
+            setattr(self, item, eval(item))
+
+        if len(self.flagsToPrint) > 3:
+            print "WARNING: More than three flags specified in the displayer."+\
+                  "  The list will run off the page."
+
         self.etaBE = configuration.detectorSpecs()["cms"]["etaBE"]
         self.subdetectors = {None: []}
         self.recHitCollections = {None: []}
-        for rh in [self.recHits, self.recHitsOtherAlgo] :
-            if not rh : continue
-            self.recHitCollections[rh] = configuration.detectorSpecs()["cms"]["%sRecHitCollections"%rh]
-            self.subdetectors[rh] = configuration.detectorSpecs()["cms"]["%sSubdetectors"%rh]
+        for rh in [self.recHits, self.recHitsOtherAlgo]:
+            if not rh:
+                continue
+            self.recHitCollections[rh] = configuration.detectorSpecs()["cms"]["%sRecHitCollections" % rh]
+            self.subdetectors[rh] = configuration.detectorSpecs()["cms"]["%sSubdetectors" % rh]
 
+        assert jets
+        self.genJets = "gen%sGenJetsP4" % (self.jets[0].replace("xc", "")[:3])
         self.jetRadius = 0.7 if "ak7Jet" in self.jets[0] else 0.5
-        self.genJets = "gen%sGenJetsP4"%(self.jets[0].replace("xc","")[:3])
-        self.genMet  = "genmetP4True"
-        self.deltaHtName = "%sDeltaPseudoJetEt%s"%self.jets if etRatherThanPt else "%sDeltaPseudoJetPt%s"%self.jets
+        self.deltaHtName = "%sDeltaPseudoJetEt%s" % self.jets
         
-        self.doReco = not self.doGenParticles
-        #self.helper = r.displayHelper()
-
         self.prettyReName = {
             "clean jets (xcak5JetPat)": "jets (AK5 Calo)",
             "clean jets (xcak5JetPFPat)": "jets (AK5 PF)",
@@ -132,7 +166,9 @@ class displayer(supy.steps.displayer) :
         for item in self.triggersToPrint :
             self.printText("%s"%(item if eventVars["triggered"][item] else ""))
         
-    def printVertices(self, eventVars, params, coords, nMax) :
+    def printVertices(self, eventVars, params, coords, nMax):
+        if "vertexIndices" not in eventVars:
+            return
         self.prepareText(params, coords)
         self.printText("Vertices")
         self.printText("ID   Z(cm)%s"%(" sumPt(GeV)" if not self.prettyMode else ""))
@@ -495,23 +531,24 @@ class displayer(supy.steps.displayer) :
 
         p4s = eventVars[self.genJets]
         if self.tipToTail :
-            phiOrder = utils.phiOrder(p4s, range(len(p4s)))
-            partials = utils.partialSumP4(p4s, phiOrder)
-            mean = utils.partialSumP4Centroid(partials)
+            phiOrder = supy.utils.phiOrder(p4s, range(len(p4s)))
+            partials = supy.utils.partialSumP4(p4s, phiOrder)
+            mean = supy.utils.partialSumP4Centroid(partials)
             for i in range(len(phiOrder)) :
                 self.drawP4( coords, p4s.at(phiOrder[i]), color, lineWidth, 0.3*arrowSize, partials[i]-mean)
             return
         for iJet in range(len(p4s)) :
             self.drawP4(coords, p4s.at(iJet), color, lineWidth, arrowSize)
             
-    def drawGenParticles(self, eventVars, coords, color, lineWidth, arrowSize, statusList = None, pdgIdList = None, motherList = None, label = "", circleRadius = None) :
-        self.legendFunc(color, name = "genParticle"+label, desc = label)
+    def drawGenParticles(self, eventVars=None, indices="",
+                         coords=None, color=None, lineWidth=1,
+                         arrowSize=-1.0, circleRadius=None):
 
-        for iParticle,particle in enumerate(eventVars["genP4"]) :
-            if statusList!=None and eventVars["genStatus"].at(iParticle) not in statusList : continue
-            if pdgIdList!=None and eventVars["genPdgId"].at(iParticle) not in pdgIdList : continue
-            if motherList!=None and eventVars["genMotherPdgId"][iParticle] not in motherList : continue
-            if circleRadius==None :
+        self.legendFunc(color, name=indices, desc=indices)
+
+        for iParticle in eventVars[indices]:
+            particle = eventVars["genP4"].at(iParticle)
+            if circleRadius is None:
                 self.drawP4(coords, particle, color, lineWidth, arrowSize)
             else :
                 self.drawCircle(particle, color, lineWidth, circleRadius)
@@ -523,7 +560,7 @@ class displayer(supy.steps.displayer) :
         if self.tipToTail :
             phiOrder = eventVars["%sIndicesPhi%s"%self.jets]
             partials = eventVars["%sPartialSumP4%s"%self.jets]
-            mean = utils.partialSumP4Centroid(partials)
+            mean = supy.utils.partialSumP4Centroid(partials)
             for i in range(len(phiOrder)) :
                 self.drawP4( coords, p4s.at(phiOrder[i]), color, lineWidth, 0.3*arrowSize, partials[i]-mean)
             return
@@ -548,8 +585,8 @@ class displayer(supy.steps.displayer) :
                             - set(eventVars["%sIndices%s"%self.jets]) \
                             - set(eventVars["%sIndicesOther%s"%self.jets])
         if self.tipToTail :
-            phiOrder = utils.phiOrder(p4s, ignoredJetIndices)
-            partials = utils.partialSumP4(p4s, phiOrder)
+            phiOrder = supy.utils.phiOrder(p4s, ignoredJetIndices)
+            partials = supy.utils.partialSumP4(p4s, phiOrder)
             goodPartials = eventVars["%sPartialSumP4%s"%self.jets]
             offset = goodPartials[-1] - eventVars["%sPartialSumP4Centroid%s"%self.jets]
             for i in range(len(phiOrder)) :
@@ -689,33 +726,35 @@ class displayer(supy.steps.displayer) :
             for iChannel in range(nBadHcalChannels) :
                 drawHcalBox(fourVector = eventVars["hcalDeadChannelP4"].at(iChannel))
 
-        if self.doGenParticles :
-            self.drawGenParticles(eventVars,r.kMagenta, lineWidth = 1, arrowSize = -1.0, statusList = [1], pdgIdList = [22],
-                                  motherList = [1,2,3,4,5,6,-1,-2,-3,-4,-5,-6], label = "status 1 photon w/quark as mother", circleRadius = 0.15)
-            self.drawGenParticles(eventVars,r.kOrange, lineWidth = 1, arrowSize = -1.0, statusList = [1], pdgIdList = [22],
-                                  motherList = [22], label = "status 1 photon w/photon as mother", circleRadius = 0.15)
-        else :
+
+        for indices, color, printList in self.genParticleIndices:
+            self.drawGenParticles(eventVars, indices=indices, color=color, circleRadius=0.15)
+
+        if True:
             etaPhiPlot.SetTitle("")
-            if self.ra1Mode :
+            if self.ra1Mode:
                 suspiciousJetIndices = []
                 for dPhiStar,iJet in eventVars["%sDeltaPhiStar%s%s"%(self.jets[0],self.deltaPhiStarExtraName,self.jets[1])] :
                     if dPhiStar < self.deltaPhiStarCut : suspiciousJetIndices.append(iJet)
 
             suspiciousJetLegendEntry = False
-            if not eventVars["isRealData"] :
+            if self.doGenJets and not eventVars["isRealData"]:
                 genJets = eventVars[self.genJets]
                 for index in range(genJets.size()) :
                     self.drawCircle(genJets.at(index), r.kBlack, lineWidth = 2, circleRadius = self.jetRadius, lineStyle = suspiciousJetStyle)
             jets = eventVars["%sCorrectedP4%s"%self.jets]
-            for index in range(jets.size()) :
-                jet = jets.at(index)
-                if index in eventVars["%sIndices%s"%self.jets] :
-                    self.drawCircle(jet, r.kBlue, lineWidth = 1, circleRadius = self.jetRadius)
-                else :
-                    self.drawCircle(jet, r.kCyan, lineWidth = 1, circleRadius = self.jetRadius)
-                if self.ra1Mode and (index in suspiciousJetIndices) :
-                    self.drawCircle(jet, suspiciousJetColor, lineWidth = 1, circleRadius = self.deltaPhiStarDR, lineStyle = suspiciousJetStyle)
-                    suspiciousJetLegendEntry = True
+            if "%sIndices%s" % self.jets in eventVars:
+                for index in range(jets.size()):
+                    jet = jets.at(index)
+                    if index in eventVars["%sIndices%s"%self.jets] :
+                        self.drawCircle(jet, r.kBlue, lineWidth = 1, circleRadius = self.jetRadius)
+                    else :
+                        self.drawCircle(jet, r.kCyan, lineWidth = 1, circleRadius = self.jetRadius)
+                    if self.ra1Mode and (index in suspiciousJetIndices) :
+                        self.drawCircle(jet, suspiciousJetColor, lineWidth=1,
+                                        circleRadius=self.deltaPhiStarDR,
+                                        lineStyle=suspiciousJetStyle)
+                        suspiciousJetLegendEntry = True
 
             legend1 = r.TLegend(0.02, 0.9, 0.72, 1.0)
             legend1.SetFillStyle(0)
@@ -860,21 +899,23 @@ class displayer(supy.steps.displayer) :
 
         defArrowSize=0.5*self.arrow.GetDefaultArrowSize()
         defWidth=1
-        #                                  color      , width   , arrow size
-        if not eventVars["isRealData"] :
-            if self.doGenParticles :
-                self.drawGenParticles(eventVars, coords,r.kBlack  , defWidth, defArrowSize,       label = "all GEN particles")
-                self.drawGenParticles(eventVars, coords,r.kBlue   , defWidth, defArrowSize*4/6.0, statusList = [1], label = "status 1")
-                self.drawGenParticles(eventVars, coords,r.kGreen  , defWidth, defArrowSize*2/6.0, statusList = [1], pdgIdList = [22], label = "status 1 photon")
-                self.drawGenParticles(eventVars, coords,r.kMagenta, defWidth, defArrowSize*1/6.0, statusList = [1], pdgIdList = [22],
-                                      motherList = [1,2,3,4,5,6,-1,-2,-3,-4,-5,-6], label = "status 1 photon w/quark as mother")
-                self.drawGenParticles(eventVars, coords,r.kOrange, defWidth, defArrowSize*1/6.0, statusList = [1], pdgIdList = [22],
-                                      motherList = [22], label = "status 1 photon w/photon as mother")
-            else :
-                self.drawGenJets    (eventVars, coords,r.kBlack   , defWidth, defArrowSize)
-                self.drawGenMet     (eventVars, coords,r.kMagenta , defWidth, defArrowSize*2/6.0)
+
+        if self.doGenJets and not eventVars["isRealData"]:
+            self.drawGenJets(eventVars, coords, r.kBlack, defWidth, defArrowSize)
+        if self.genMet and not eventVars["isRealData"]:
+            self.drawGenMet(eventVars, coords, r.kMagenta, defWidth, defArrowSize*2/6.0)
+
+        if not eventVars["isRealData"]:
+            arrowSize = defArrowSize
+            for indices, color, printList in self.genParticleIndices:
+                self.drawGenParticles(eventVars,
+                                      indices=indices,
+                                      coords=coords,
+                                      color=color,
+                                      arrowSize=arrowSize)
+                arrowSize *= 0.8
             
-        if self.doReco : 
+        if self.jets:
             #self.drawP4(eventVars["%sLongP4%s"%self.jets],r.kGray,defWidth,defArrowSize*1/100.0)
             #self.drawP4(-eventVars["%sLongP4%s"%self.jets],r.kGray,defWidth,defArrowSize*1/100.0)
             self.drawCleanJets      (eventVars, coords, self.jets, r.kBlue    , defWidth, defArrowSize)
@@ -895,14 +936,18 @@ class displayer(supy.steps.displayer) :
             if self.met :
                 self.drawMet        (eventVars, coords,r.kGreen   , defWidth, defArrowSize*2/6.0)
             
-            if self.muons :     self.drawMuons    (eventVars, coords,r.kYellow  , defWidth, defArrowSize*2/6.0)
-            if self.electrons : self.drawElectrons(eventVars, coords,r.kOrange+7, defWidth, defArrowSize*2.5/6.0)
-            if self.photons :   self.drawPhotons  (eventVars, coords,r.kOrange  , defWidth, defArrowSize*1.8/6.0)
-            if not self.prettyMode :
-                if self.taus :      self.drawTaus     (eventVars, coords,r.kYellow  , defWidth, defArrowSize*2/6.0)
-                if self.recHits :
-                    #self.drawCleanedRecHits (eventVars, coords,r.kOrange-6, defWidth, defArrowSize*2/6.0)
-                    self.drawCleanedRecHitSumP4(eventVars, coords,r.kOrange-6, defWidth, defArrowSize*2/6.0)
+        if self.muons:
+            self.drawMuons(eventVars, coords,r.kYellow  , defWidth, defArrowSize*2/6.0)
+        if self.electrons:
+            self.drawElectrons(eventVars, coords,r.kOrange+7, defWidth, defArrowSize*2.5/6.0)
+        if self.photons:
+            self.drawPhotons(eventVars, coords,r.kOrange  , defWidth, defArrowSize*1.8/6.0)
+        if not self.prettyMode:
+            if self.taus:
+                self.drawTaus(eventVars, coords,r.kYellow  , defWidth, defArrowSize*2/6.0)
+            if self.recHits:
+                #self.drawCleanedRecHits(eventVars, coords,r.kOrange-6, defWidth, defArrowSize*2/6.0)
+                self.drawCleanedRecHitSumP4(eventVars, coords,r.kOrange-6, defWidth, defArrowSize*2/6.0)
 
         self.canvas.cd()
         pad.Draw()
@@ -944,7 +989,7 @@ class displayer(supy.steps.displayer) :
         if self.printExtraText :
             self.printJets(    eventVars, params = smaller, coords = {"x":x0, "y":yy-2*s}, jets = self.jets, nMax = 7)
 
-            if self.doGenJets :
+            if self.doGenJets:
                 self.printGenJets(  eventVars, params = defaults, coords = {"x":x0, "y":yy-13*s}, nMax = 7)
                 self.printGenParticles(eventVars,params=defaults, coords = {"x":x0+0.40, "y":yy-13*s}, nMax = 7)
             if self.jetsOtherAlgo :
@@ -987,14 +1032,13 @@ class displayer(supy.steps.displayer) :
         l = self.drawLegend(corners = {"x1":0.0, "y1":rhoPhiPadYSize, "x2":1.0-rhoPhiPadYSize, "y2":1.0})
 
         r.gStyle.SetOptStat(110011)        
-        if self.doGenParticles or self.doEtaPhiPlot :
+        if self.doEtaPhiPlot :
             gg = self.drawEtaPhiPlot(eventVars, corners = {"x1":rhoPhiPadXSize - 0.18,
                                                            "y1":rhoPhiPadYSize - 0.08*self.canvas.GetAspectRatio(),
                                                            "x2":rhoPhiPadXSize + 0.12,
                                                            "y2":rhoPhiPadYSize + 0.22*self.canvas.GetAspectRatio()})
             
-        if self.doReco :
-            if self.ra1Mode :
+        if self.ra1Mode:
                 g3 = self.drawAlphaPlot(eventVars, r.kBlack, showAlphaTMet = (self.showAlphaTMet and not self.prettyMode),
                                         corners = {"x1":rhoPhiPadXSize - 0.08,
                                                    "y1":0.0,
