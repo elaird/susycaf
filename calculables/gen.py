@@ -1,6 +1,12 @@
 from supy import wrappedChain,utils,calculables
 import ROOT as r
-##############################
+
+
+class SumP4(wrappedChain.calculable) :
+    def __init__(self, indices=""):
+        assert False, 'use supy.calculables.other.SumP4 with collection="genP4"'
+
+
 class genSumP4(wrappedChain.calculable) :
     def update(self,_) :
         genP4 = self.source['genP4']
@@ -46,20 +52,6 @@ class varAbs(wrappedChain.calculable) :
     def update(self,_) :
         v = self.source[self.var]
         self.value = abs(v)
-
-
-class IndicesFiltered(wrappedChain.calculable):
-    @property
-    def name(self):
-        return self.label
-
-    def __init__(self, label="", accept="", reject=""):
-        for item in ["label", "accept", "reject"]:
-            setattr(self, item, eval(item))
-
-    def update(self,_):
-        self.value = filter(lambda x:x not in self.source[self.reject],
-                            self.source[self.accept])
 
 
 class Indices(wrappedChain.calculable) :
@@ -281,16 +273,8 @@ class susyIniSumP4(wrappedChain.calculable) :
         self.value = utils.LorentzV()
         for i in indices :
             self.value += self.source["genP4"].at(i)
-##############################
-class SumP4(wrappedChain.calculable) :
-    def __init__(self, indices = "") :
-        self.fixes = ("", indices)
 
-    def update(self,_) :
-        self.value = utils.LorentzV()
-        for i in self.source[self.fixes[1]] :
-            self.value += self.source["genP4"].at(i)
-##############################
+
 class Var1PtOverVar2(wrappedChain.calculable) :
     @property
     def name(self) : return "%sPtOver%s" %(self.var1, self.var2)
