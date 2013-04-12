@@ -16,7 +16,7 @@ except ImportError:
 class displayer(supy.steps.displayer):
     def __init__(self,
                  # objects
-                 jets="", met=None, muons=None, electrons=None,
+                 jets=None, met=None, muons=None, electrons=None,
                  photons=None, taus=None, recHits=None, recHitPtThreshold=-100,
                  jetsOtherAlgo=None, metOtherAlgo=None, recHitsOtherAlgo=None,
                  # https://twiki.cern.ch/twiki/bin/viewauth/CMS/BTagPerformanceOP
@@ -28,6 +28,7 @@ class displayer(supy.steps.displayer):
                                                                  "T":0.898},
                               },
                  genMet="genmetP4True",
+                 genJets=None,
                  genParticleIndices=[],
                  triggersToPrint=[],
                  flagsToPrint=[#"logErrorTooManyClusters",
@@ -57,7 +58,8 @@ class displayer(supy.steps.displayer):
         for item in ["jets", "met", "muons", "electrons", "photons", "taus",
                      "recHits", "recHitPtThreshold", "jetsOtherAlgo",
                      "metOtherAlgo", "recHitsOtherAlgo", "bThresholds",
-                     "genMet", "genParticleIndices", "triggersToPrint", "flagsToPrint",
+                     "genMet", "genJets", "genParticleIndices",
+                     "triggersToPrint", "flagsToPrint",
 
                      "scale", "doGenJets", "doEtaPhiPlot",
                      "prettyMode", "tipToTail", "printExtraText",
@@ -81,11 +83,16 @@ class displayer(supy.steps.displayer):
             self.recHitCollections[rh] = configuration.detectorSpecs()["cms"]["%sRecHitCollections" % rh]
             self.subdetectors[rh] = configuration.detectorSpecs()["cms"]["%sSubdetectors" % rh]
 
-        assert jets
-        self.genJets = "gen%sGenJetsP4" % (self.jets[0].replace("xc", "")[:3])
-        self.jetRadius = 0.7 if "ak7Jet" in self.jets[0] else 0.5
-        self.deltaHtName = "%sDeltaPseudoJetEt%s" % self.jets
-        
+        if self.jets:
+            self.jetRadius = 0.7 if "ak7Jet" in self.jets[0] else 0.5
+            self.deltaHtName = "%sDeltaPseudoJetEt%s" % self.jets
+            if not self.genJets:
+                self.genJets = "gen%sGenJetsP4" % (self.jets[0].replace("xc", "")[:3])
+                self.genJetRadius = 0.7 if "ak7Jet" in self.genJets[0] else 0.5
+
+        if self.doGenJets:
+            assert self.genJets
+
         self.prettyReName = {
             "clean jets (xcak5JetPat)": "jets (AK5 Calo)",
             "clean jets (xcak5JetPFPat)": "jets (AK5 PF)",
@@ -730,51 +737,52 @@ class displayer(supy.steps.displayer):
         for indices, color, printList in self.genParticleIndices:
             self.drawGenParticles(eventVars, indices=indices, color=color, circleRadius=0.15)
 
-        if True:
-            etaPhiPlot.SetTitle("")
-            if self.ra1Mode:
-                suspiciousJetIndices = []
-                for dPhiStar,iJet in eventVars["%sDeltaPhiStar%s%s"%(self.jets[0],self.deltaPhiStarExtraName,self.jets[1])] :
-                    if dPhiStar < self.deltaPhiStarCut : suspiciousJetIndices.append(iJet)
+        etaPhiPlot.SetTitle("")
+        if self.ra1Mode:
+            suspiciousJetIndices = []
+            for dPhiStar,iJet in eventVars["%sDeltaPhiStar%s%s"%(self.jets[0],self.deltaPhiStarExtraName,self.jets[1])] :
+                if dPhiStar < self.deltaPhiStarCut : suspiciousJetIndices.append(iJet)
 
-            suspiciousJetLegendEntry = False
-            if self.doGenJets and not eventVars["isRealData"]:
-                genJets = eventVars[self.genJets]
-                for index in range(genJets.size()) :
-                    self.drawCircle(genJets.at(index), r.kBlack, lineWidth = 2, circleRadius = self.jetRadius, lineStyle = suspiciousJetStyle)
+        suspiciousJetLegendEntry = False
+        if self.doGenJets and not eventVars["isRealData"]:
+            genJets = eventVars[self.genJets]
+            for index in range(genJets.size()) :
+                self.drawCircle(genJets.at(index), r.kBlack, lineWidth = 2, circleRadius = self.genJetRadius, lineStyle = suspiciousJetStyle)
+
+        if self.jets:
             jets = eventVars["%sCorrectedP4%s"%self.jets]
             if "%sIndices%s" % self.jets in eventVars:
                 for index in range(jets.size()):
                     jet = jets.at(index)
-                    if index in eventVars["%sIndices%s"%self.jets] :
-                        self.drawCircle(jet, r.kBlue, lineWidth = 1, circleRadius = self.jetRadius)
-                    else :
-                        self.drawCircle(jet, r.kCyan, lineWidth = 1, circleRadius = self.jetRadius)
-                    if self.ra1Mode and (index in suspiciousJetIndices) :
+                    if index in eventVars["%sIndices%s"%self.jets]:
+                        self.drawCircle(jet, r.kBlue, lineWidth=1, circleRadius=self.jetRadius)
+                    else:
+                        self.drawCircle(jet, r.kCyan, lineWidth=1, circleRadius=self.jetRadius)
+                    if self.ra1Mode and (index in suspiciousJetIndices):
                         self.drawCircle(jet, suspiciousJetColor, lineWidth=1,
                                         circleRadius=self.deltaPhiStarDR,
                                         lineStyle=suspiciousJetStyle)
                         suspiciousJetLegendEntry = True
 
-            legend1 = r.TLegend(0.02, 0.9, 0.72, 1.0)
-            legend1.SetFillStyle(0)
-            legend1.SetBorderSize(0)
-            if self.ra1Mode : 
-                legend1.AddEntry(self.deadBox,"dead ECAL cells","f")
-                legend1.AddEntry(self.coldBox,"dead ECAL cells w/TP link","f")
-                legend1.AddEntry(self.hcalBox,"masked HCAL cells","f")
-                legend1.Draw()
+        legend1 = r.TLegend(0.02, 0.9, 0.72, 1.0)
+        legend1.SetFillStyle(0)
+        legend1.SetBorderSize(0)
+        if self.ra1Mode:
+            legend1.AddEntry(self.deadBox,"dead ECAL cells","f")
+            legend1.AddEntry(self.coldBox,"dead ECAL cells w/TP link","f")
+            legend1.AddEntry(self.hcalBox,"masked HCAL cells","f")
+            legend1.Draw()
 
-            legend2 = r.TLegend(0.48, 0.933, 0.98, 1.0)
-            legend2.SetFillStyle(0)
-            legend2.SetBorderSize(0)
+        legend2 = r.TLegend(0.48, 0.933, 0.98, 1.0)
+        legend2.SetFillStyle(0)
+        legend2.SetBorderSize(0)
 
-            if self.ra1Mode : 
-                self.ellipse.SetLineColor(suspiciousJetColor)
-                self.ellipse.SetLineStyle(suspiciousJetStyle)
-                if suspiciousJetLegendEntry :
-                    legend2.AddEntry(self.ellipse,"jet with min. #Delta#phi* < %3.1f"%self.deltaPhiStarCut,"l")
-                legend2.Draw()
+        if self.ra1Mode:
+            self.ellipse.SetLineColor(suspiciousJetColor)
+            self.ellipse.SetLineStyle(suspiciousJetStyle)
+            if suspiciousJetLegendEntry :
+                legend2.AddEntry(self.ellipse,"jet with min. #Delta#phi* < %3.1f"%self.deltaPhiStarCut,"l")
+            legend2.Draw()
 
         self.canvas.cd()
         pad.Draw()
@@ -987,7 +995,8 @@ class displayer(supy.steps.displayer):
         self.printEvent(   eventVars, params = defaults, coords = {"x":x0, "y":yy})
 
         if self.printExtraText :
-            self.printJets(    eventVars, params = smaller, coords = {"x":x0, "y":yy-2*s}, jets = self.jets, nMax = 7)
+            if self.jets:
+                self.printJets(eventVars, params = smaller, coords = {"x":x0, "y":yy-2*s}, jets = self.jets, nMax = 7)
 
             if self.doGenJets:
                 self.printGenJets(  eventVars, params = defaults, coords = {"x":x0, "y":yy-13*s}, nMax = 7)
