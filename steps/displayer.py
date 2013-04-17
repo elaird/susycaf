@@ -29,7 +29,6 @@ class displayer(supy.steps.displayer):
                                                                  "T":0.898},
                               },
                  genMet="genmetP4True",
-                 genJets=None,
                  genParticleIndices=[],
                  triggersToPrint=[],
                  flagsToPrint=[#"logErrorTooManyClusters",
@@ -45,8 +44,9 @@ class displayer(supy.steps.displayer):
                                ],
 
                  # options
-                 scale=200.0, doGenJets=False, doEtaPhiPlot=True,
-                 prettyMode=False, tipToTail=False, printExtraText=True,
+                 scale=200.0, doEtaPhiPlot=True,
+                 prettyMode=False, tipToTail=False,
+                 printExtraText=True, printGen=False,
 
                  # RA1
                  ra1Mode=True, ra1CutBits=True, j2Factor=None,
@@ -60,11 +60,12 @@ class displayer(supy.steps.displayer):
                      "met", "muons", "electrons", "photons", "taus",
                      "recHits", "recHitPtThreshold", "jetsOtherAlgo",
                      "metOtherAlgo", "recHitsOtherAlgo", "bThresholds",
-                     "genMet", "genJets", "genParticleIndices",
+                     "genMet", "genParticleIndices",
                      "triggersToPrint", "flagsToPrint",
 
-                     "scale", "doGenJets", "doEtaPhiPlot",
-                     "prettyMode", "tipToTail", "printExtraText",
+                     "scale", "doEtaPhiPlot",
+                     "prettyMode", "tipToTail",
+                     "printExtraText", "printGen",
 
                      "ra1Mode", "ra1CutBits", "j2Factor",
                      "mhtOverMetName", "showAlphaTMet",
@@ -86,13 +87,12 @@ class displayer(supy.steps.displayer):
             self.subdetectors[rh] = configuration.detectorSpecs()["cms"]["%sSubdetectors" % rh]
 
         if self.jets:
+            self.genJets = ("gen%sGenJets" % jetsRaw(self.jets)[0][:3], "")
             self.deltaHtName = "%sDeltaPseudoJetEt%s" % self.jets
-            if not self.genJets:
-                self.genJets = "gen%sGenJetsP4" % jetsRaw(self.jets)[0][:3]
-                self.genJetRadius = 0.7 if "ak7Jet" in self.genJets[0] else 0.5
             if not self.jetIndices:
                 radius = 0.7 if "ak7Jet" in self.jets[0] else 0.5
-                self.jetIndices = [(self.jets, "%sIndices%s" % self.jets, r.kBlue, 1, radius),
+                self.jetIndices = [(self.genJets, "", r.kBlack, 2, radius),
+                                   (self.jets, "%sIndices%s" % self.jets, r.kBlue, 1, radius),
                                    (self.jets, "%sIndicesOther%s" % self.jets, r.kOrange+3, 1, radius),
                                    (self.jets, "%sIndicesIgnored%s" % self.jets, r.kCyan, 1, radius),
                                    ]
@@ -100,13 +100,13 @@ class displayer(supy.steps.displayer):
                 #pf =  (self.jets[0].replace("xc","")+"PF", self.jets[1])
                 #self.jetIndices.append((jpt, "%sIndices%s" % jpt, 896, 1))
                 #self.jetIndices.append((pf, "%sIndices%s" % pf, 38, 1))
-
-        if self.doGenJets:
-            assert self.genJets
+        else:
+            self.genJets = None
 
         self.prettyReName = {
+            "genak5GenJetsP4": "AK5 Gen Jets",
             "ak5JetIndicesPat": "AK5 Calo Jets",
-            "ak5JetIndicesOtherPat": "AK5 Calo Jets (fail ID or eta)",
+            "ak5JetIndicesOtherPat": "AK5 Calo Jets (fail eta or ID)",
             "ak5JetIndicesIgnoredPat": "AK5 Calo Jets (fail pT or xc)",
             "ak5JetPFIndicesPat": "AK5 PF Jets",
             "ak5JetPFIndicesOtherPat": "AK5 PF Jets (fail ID or eta)",
@@ -382,19 +382,22 @@ class displayer(supy.steps.displayer):
             self.printText(outString)
 
     def printGenJets(self, eventVars, params, coords, nMax) :
-        self.prepareText(params, coords)
-        p4Vector = eventVars[self.genJets]
+        p4Key = "%sP4%s" % self.genJets
+        if p4Key not in eventVars:
+            return
+        p4Vector = eventVars[p4Key]
             
-        self.printText(self.renamedDesc(self.genJets))
+        self.prepareText(params, coords)
+        self.printText(self.renamedDesc(p4Key))
         self.printText("   pT  eta  phi")
         self.printText("---------------")
 
         nJets = p4Vector.size()
-        for iJet in range(nJets) :
-            if nMax<=iJet :
+        for iJet in range(nJets):
+            if nMax <= iJet:
                 self.printText("[%d more not listed]"%(nJets-nMax))
                 break
-            jet = p4Vector[iJet]
+            jet = p4Vector.at(iJet)
             self.printText("%5.0f %4.1f %4.1f"%(jet.pt(), jet.eta(), jet.phi()))
 
     def printGenParticles(self, eventVars, params, coords, nMax) :
@@ -535,31 +538,17 @@ class displayer(supy.steps.displayer):
         self.ellipse.SetLineStyle(lineStyle)
         self.ellipse.DrawEllipse(p4.eta(), p4.phi(), circleRadius, circleRadius, 0.0, 360.0, 0.0, "")
 
-    def renamedDesc(self, desc) :
-        if not self.prettyMode : return desc
-        elif desc in self.prettyReName : return self.prettyReName[desc]
-        else : return desc
-        
-    def legendFunc(self, color, name, desc) :
+    def renamedDesc(self, desc):
+        if not self.prettyMode:
+            return desc
+        desc = desc.replace("IndicesStatus3", "Status3")
+        return desc if desc not in self.prettyReName else self.prettyReName[desc]
+
+    def legendFunc(self, color, name, desc):
         if name not in self.legendDict:
             self.legendDict[name] = True
-            print desc, self.renamedDesc(desc)
-            self.legendList.append( (color, self.renamedDesc(desc), "l") )
+            self.legendList.append((color, self.renamedDesc(desc), "l"))
 
-    def drawGenJets(self, eventVars, coords, color, lineWidth, arrowSize) :
-        self.legendFunc(color, name = "genJet", desc = "GEN jets (%s)"%self.genJets)
-
-        p4s = eventVars[self.genJets]
-        if self.tipToTail :
-            phiOrder = supy.utils.phiOrder(p4s, range(len(p4s)))
-            partials = supy.utils.partialSumP4(p4s, phiOrder)
-            mean = supy.utils.partialSumP4Centroid(partials)
-            for i in range(len(phiOrder)) :
-                self.drawP4( coords, p4s.at(phiOrder[i]), color, lineWidth, 0.3*arrowSize, partials[i]-mean)
-            return
-        for iJet in range(len(p4s)) :
-            self.drawP4(coords, p4s.at(iJet), color, lineWidth, arrowSize)
-            
     def drawGenParticles(self, eventVars=None, indices="",
                          coords=None, color=None, lineWidth=1,
                          arrowSize=-1.0, circleRadius=None):
@@ -576,10 +565,14 @@ class displayer(supy.steps.displayer):
     def drawJets(self, eventVars=None, jets=None, indices="",
                  coords=None, color=None, lineWidth=1, lineStyle=1,
                  arrowSize=-1.0):
-        self.legendFunc(color, name=indices, desc=indices)
 
-        p4s = eventVars['%sP4%s' % jets] if "gen" in jets[0] else eventVars['%sCorrectedP4%s' % jets]
-        if self.tipToTail :
+        p4Key = '%s%sP4%s' % (jets[0], "" if "gen" in jets[0] else 'Corrected', jets[1])
+        if p4Key not in eventVars:
+            return
+
+        self.legendFunc(color, name=indices, desc=indices if indices else p4Key)
+        p4s = eventVars[p4Key]
+        if self.tipToTail:
             phiOrder = eventVars["%sIndicesPhi%s" % jets]
             partials = eventVars["%sPartialSumP4%s" % jets]
             mean = supy.utils.partialSumP4Centroid(partials)
@@ -587,7 +580,7 @@ class displayer(supy.steps.displayer):
                 self.drawP4( coords, p4s.at(phiOrder[i]), color, lineWidth, 0.3*arrowSize, partials[i]-mean)
             return
 
-        for iJet in eventVars[indices]:
+        for iJet in eventVars[indices] if indices else range(len(p4s)):
             self.drawP4(coords, p4s.at(iJet), color, lineWidth, arrowSize)
             
     def drawMht(self, eventVars, coords, color, lineWidth, arrowSize) :
@@ -732,17 +725,14 @@ class displayer(supy.steps.displayer):
                 if dPhiStar < self.deltaPhiStarCut : suspiciousJetIndices.append(iJet)
 
         suspiciousJetLegendEntry = False
-        if self.doGenJets and not eventVars["isRealData"]:
-            genJets = eventVars[self.genJets]
-            for index in range(genJets.size()) :
-                self.drawCircle(genJets.at(index), r.kBlack, lineWidth=2,
-                                circleRadius=self.genJetRadius,
-                                lineStyle=suspiciousJetStyle)
 
         for jets, indices, color, style, radius in self.jetIndices:
-            p4s = eventVars['%sP4%s' % jets] if "gen" in jets[0] else eventVars['%sCorrectedP4%s' % jets]
+            p4Key = "%s%sP4%s" % (jets[0], "" if "gen" in jets[0] else 'Corrected', jets[1])
+            if p4Key not in eventVars:
+                continue
+            p4s = eventVars[p4Key]
             for index in range(p4s.size()):
-                if index not in eventVars[indices]:
+                if indices and index not in eventVars[indices]:
                     continue
                 self.drawCircle(p4=p4s.at(index), color=color,
                                 circleRadius=radius, lineStyle=style)
@@ -898,13 +888,11 @@ class displayer(supy.steps.displayer):
         defArrowSize=0.5*self.arrow.GetDefaultArrowSize()
         defWidth=1
 
-        if self.doGenJets and not eventVars["isRealData"]:
-            self.drawGenJets(eventVars, coords, r.kBlack, defWidth, defArrowSize)
         if self.genMet and not eventVars["isRealData"]:
             self.drawGenMet(eventVars, coords, r.kMagenta, defWidth, defArrowSize*2/6.0)
 
+        arrowSize = defArrowSize
         if not eventVars["isRealData"]:
-            arrowSize = defArrowSize
             for indices, color, printList in self.genParticleIndices:
                 self.drawGenParticles(eventVars=eventVars,
                                       indices=indices,
@@ -913,7 +901,6 @@ class displayer(supy.steps.displayer):
                                       arrowSize=arrowSize)
                 arrowSize *= 0.8
             
-        arrowSize = defArrowSize
         for jets, indices, color, style, radius in self.jetIndices:
             self.drawJets(eventVars=eventVars,
                           jets=jets,
@@ -987,7 +974,7 @@ class displayer(supy.steps.displayer):
             if self.jets:
                 self.printJets(eventVars, params = smaller, coords = {"x":x0, "y":yy-2*s}, jets = self.jets, nMax = 7)
 
-            if self.doGenJets:
+            if self.printGen:
                 self.printGenJets(  eventVars, params = defaults, coords = {"x":x0, "y":yy-13*s}, nMax = 7)
                 self.printGenParticles(eventVars,params=defaults, coords = {"x":x0+0.40, "y":yy-13*s}, nMax = 7)
             if self.jetsOtherAlgo :
