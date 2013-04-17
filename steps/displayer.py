@@ -1,7 +1,3 @@
-import collections
-import copy
-import os
-
 import ROOT as r
 import configuration
 import supy
@@ -97,8 +93,8 @@ class displayer(supy.steps.displayer):
             if not self.jetIndices:
                 radius = 0.7 if "ak7Jet" in self.jets[0] else 0.5
                 self.jetIndices = [(self.jets, "%sIndices%s" % self.jets, r.kBlue, 1, radius),
-                                   #(self.jets, "%sIndicesOther%s" % self.jets, r.kBrown, 1, radius),
-                                   # FIXME: restore ignored jets in eta-phi
+                                   (self.jets, "%sIndicesOther%s" % self.jets, r.kOrange+3, 1, radius),
+                                   (self.jets, "%sIndicesIgnored%s" % self.jets, r.kCyan, 1, radius),
                                    ]
                 #jpt = (self.jets[0].replace("xc","")+"JPT", self.jets[1])
                 #pf =  (self.jets[0].replace("xc","")+"PF", self.jets[1])
@@ -110,12 +106,11 @@ class displayer(supy.steps.displayer):
 
         self.prettyReName = {
             "ak5JetIndicesPat": "AK5 Calo Jets",
+            "ak5JetIndicesOtherPat": "AK5 Calo Jets (fail ID or eta)",
+            "ak5JetIndicesIgnoredPat": "AK5 Calo Jets (fail pT or xc)",
             "ak5JetPFIndicesPat": "AK5 PF Jets",
-            "xcak5JetPat": "AK5 Calo Jets",
-            "xcak5JetPFPat": "AK5 PF Jets",
-
-            "ignored jets (xcak5JetPat)": "ignored jets (AK5 Calo)",
-            "ignored jets (xcak5JetPFPat)": "ignored jets (AK5 PF)",
+            "ak5JetPFIndicesOtherPat": "AK5 PF Jets (fail ID or eta)",
+            "ak5JetPFIndicesIgnoredPat": "AK5 PF Jets (fail pT or xc)",
 
             "MHT (xcak5JetPat)": "MHT",
             "MHT (xcak5JetPFPat)": "MHT",
@@ -132,7 +127,7 @@ class displayer(supy.steps.displayer):
 
         self.titleSizeFactor = 1.0
         
-        self.legendDict = collections.defaultdict(int)
+        self.legendDict = {}
         self.legendList = []
 
         self.ellipse = r.TEllipse()
@@ -546,8 +541,9 @@ class displayer(supy.steps.displayer):
         else : return desc
         
     def legendFunc(self, color, name, desc) :
-        if not self.legendDict[name] :
+        if name not in self.legendDict:
             self.legendDict[name] = True
+            print desc, self.renamedDesc(desc)
             self.legendList.append( (color, self.renamedDesc(desc), "l") )
 
     def drawGenJets(self, eventVars, coords, color, lineWidth, arrowSize) :
@@ -592,24 +588,6 @@ class displayer(supy.steps.displayer):
             return
 
         for iJet in eventVars[indices]:
-            self.drawP4(coords, p4s.at(iJet), color, lineWidth, arrowSize)
-            
-    def drawIgnoredJets(self, eventVars=None, coords=None, color=r.kCyan, lineWidth=1, arrowSize=-1.0):
-        self.legendFunc(color, name = "%signoredJet%s"%self.jets, desc = "ignored jets (%s%s)"%self.jets)
-
-        p4s = eventVars["%sCorrectedP4%s"%self.jets]
-        ignoredJetIndices = set(range(len(p4s))) \
-                            - set(eventVars["%sIndices%s"%self.jets]) \
-                            - set(eventVars["%sIndicesOther%s"%self.jets])
-        if self.tipToTail :
-            phiOrder = supy.utils.phiOrder(p4s, ignoredJetIndices)
-            partials = supy.utils.partialSumP4(p4s, phiOrder)
-            goodPartials = eventVars["%sPartialSumP4%s"%self.jets]
-            offset = goodPartials[-1] - eventVars["%sPartialSumP4Centroid%s"%self.jets]
-            for i in range(len(phiOrder)) :
-                self.drawP4( coords, p4s.at(phiOrder[i]), color, lineWidth, arrowSize, partials[i]+offset)
-            return
-        for iJet in ignoredJetIndices :
             self.drawP4(coords, p4s.at(iJet), color, lineWidth, arrowSize)
             
     def drawMht(self, eventVars, coords, color, lineWidth, arrowSize) :
@@ -946,18 +924,14 @@ class displayer(supy.steps.displayer):
                           arrowSize=arrowSize)
             arrowSize *= 0.8
 
-        if self.jets:
-            self.drawIgnoredJets(eventVars=eventVars, coords=coords, arrowSize=arrowSize)
-
-            if self.ra1Mode and not self.prettyMode :
+        if self.jets and self.ra1Mode:
+            if not self.prettyMode:
                 self.drawHt         (eventVars, coords,r.kBlue+3  , defWidth, defArrowSize*1/6.0)
                 self.drawNJetDeltaHt(eventVars, coords,r.kBlue-9  , defWidth, defArrowSize*1/6.0)
-            
-            if self.ra1Mode :
-                self.drawMht        (eventVars, coords,r.kRed     , defWidth, defArrowSize*3/6.0)
-            if self.met :
-                self.drawMet        (eventVars, coords,r.kGreen   , defWidth, defArrowSize*2/6.0)
-            
+            self.drawMht(eventVars, coords,r.kRed     , defWidth, defArrowSize*3/6.0)
+
+        if self.met:
+            self.drawMet(eventVars, coords,r.kGreen   , defWidth, defArrowSize*2/6.0)
         if self.muons:
             self.drawMuons(eventVars, coords,r.kYellow  , defWidth, defArrowSize*2/6.0)
         if self.electrons:
@@ -1000,7 +974,8 @@ class displayer(supy.steps.displayer):
         defaults["slope"] = 0.017
         s = defaults["slope"]
 
-        smaller = copy.copy(defaults)
+        smaller = {}
+        smaller.update(defaults)
         smaller["size"] = 0.034
         
         yy = 0.98
