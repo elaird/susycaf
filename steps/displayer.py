@@ -44,9 +44,10 @@ class displayer(supy.steps.displayer):
                                ],
 
                  # options
-                 scale=200.0, doEtaPhiPlot=True,
+                 scale=200.0,
                  prettyMode=False, tipToTail=False,
                  printExtraText=True, printGen=False,
+                 rename={},
 
                  # RA1
                  ra1Mode=True, ra1CutBits=True, j2Factor=None,
@@ -63,7 +64,7 @@ class displayer(supy.steps.displayer):
                      "genMet", "genParticleIndices",
                      "triggersToPrint", "flagsToPrint",
 
-                     "scale", "doEtaPhiPlot",
+                     "scale",
                      "prettyMode", "tipToTail",
                      "printExtraText", "printGen",
 
@@ -89,17 +90,19 @@ class displayer(supy.steps.displayer):
         if self.jets:
             self.genJets = ("gen%sGenJets" % jetsRaw(self.jets)[0][:3], "")
             self.deltaHtName = "%sDeltaPseudoJetEt%s" % self.jets
-            if not self.jetIndices:
-                radius = 0.7 if "ak7Jet" in self.jets[0] else 0.5
-                self.jetIndices = [(self.genJets, "", r.kBlack, 2, radius),
-                                   (self.jets, "%sIndices%s" % self.jets, r.kBlue, 1, radius),
-                                   (self.jets, "%sIndicesOther%s" % self.jets, r.kOrange+3, 1, radius),
-                                   (self.jets, "%sIndicesIgnored%s" % self.jets, r.kCyan, 1, radius),
-                                   ]
-                #jpt = (self.jets[0].replace("xc","")+"JPT", self.jets[1])
-                #pf =  (self.jets[0].replace("xc","")+"PF", self.jets[1])
-                #self.jetIndices.append((jpt, "%sIndices%s" % jpt, 896, 1))
-                #self.jetIndices.append((pf, "%sIndices%s" % pf, 38, 1))
+            self.deltaPhiStarName = "".join([self.jets[0], "DeltaPhiStar",
+                                             self.deltaPhiStarExtraName,
+                                             self.jets[1]])
+            radius = 0.7 if "ak7Jet" in self.jets[0] else 0.5
+            self.jetIndices = [(self.genJets, "", r.kBlack, 2, radius),
+                               (self.jets, "%sIndices%s" % self.jets, r.kBlue, 1, radius),
+                               (self.jets, "%sIndicesOther%s" % self.jets, r.kOrange+3, 1, radius),
+                               (self.jets, "%sIndicesIgnored%s" % self.jets, r.kCyan, 1, radius),
+                               ] + self.jetIndices
+            #jpt = (self.jets[0].replace("xc","")+"JPT", self.jets[1])
+            #pf =  (self.jets[0].replace("xc","")+"PF", self.jets[1])
+            #self.jetIndices.append((jpt, "%sIndices%s" % jpt, 896, 1))
+            #self.jetIndices.append((pf, "%sIndices%s" % pf, 38, 1))
         else:
             self.genJets = None
 
@@ -108,9 +111,12 @@ class displayer(supy.steps.displayer):
             "ak5JetIndicesPat": "AK5 Calo Jets",
             "ak5JetIndicesOtherPat": "AK5 Calo Jets (fail eta or ID)",
             "ak5JetIndicesIgnoredPat": "AK5 Calo Jets (fail pT or xc)",
+            "ak5JetIndicesBtagged2Pat": "AK5 Calo Jets (b-tagged)",
+
             "ak5JetPFIndicesPat": "AK5 PF Jets",
             "ak5JetPFIndicesOtherPat": "AK5 PF Jets (fail ID or eta)",
             "ak5JetPFIndicesIgnoredPat": "AK5 PF Jets (fail pT or xc)",
+            "ak5JetPFIndicesBtagged2Pat": "AK5 PF Jets (b-tagged)",
 
             "MHT (xcak5JetPat)": "MHT",
             "MHT (xcak5JetPFPat)": "MHT",
@@ -124,6 +130,7 @@ class displayer(supy.steps.displayer):
             "electronPat": "electrons",
             "photonPat": "photons",
             }
+        self.prettyReName.update(rename)
 
         self.titleSizeFactor = 1.0
         
@@ -155,12 +162,6 @@ class displayer(supy.steps.displayer):
             self.makeAlphaTFunc(0.50,r.kOrange+3),
             self.makeAlphaTFunc(0.45,r.kOrange+7)
             ]
-
-        epsilon=1.0e-6
-        self.mhtLlHisto=r.TH2D("mhtLlHisto",";log ( likelihood / likelihood0 ) / N varied jets;#slashH_{T};tries / bin",100,-20.0+epsilon,0.0+epsilon,100,0.0,300.0)
-        self.metLlHisto=r.TH2D("metLlHisto",";log ( likelihood / likelihood0 ) / N varied jets;#slashE_{T};tries / bin",100,-20.0+epsilon,0.0+epsilon,100,0.0,300.0)
-        self.mhtLlHisto.SetDirectory(0)
-        self.metLlHisto.SetDirectory(0)
 
     def prepareText(self, params, coords) :
         self.text.SetTextSize(params["size"])
@@ -427,7 +428,7 @@ class displayer(supy.steps.displayer):
         self.prepareText(params, coords)
         
         def go(j) :
-            dps = eventVars["%s%s%s%s"%(j[0], "DeltaPhiStar", self.deltaPhiStarExtraName, j[1])]
+            dps = eventVars[self.deltaPhiStarName]
             l = [eventVars["%sHtBin%s"%j],
                  eventVars["%s%s%s"  %(j[0], "SumEt",        j[1])],
                  eventVars["%s%s%s"  %(j[0], "SumP4",        j[1])].pt() if eventVars["%s%s%s"%(j[0], "SumP4",  j[1])] else 0,
@@ -671,19 +672,30 @@ class displayer(supy.steps.displayer):
         alphaTFunc.SetNpx(300)
         return alphaTFunc
 
-    def drawEtaPhiPlot (self, eventVars, corners) :
-        pad=r.TPad("etaPhiPad", "etaPhiPad", corners["x1"], corners["y1"], corners["x2"], corners["y2"])
+    def drawEtaPhiPad(self, eventVars, corners):
+        pad = r.TPad("etaPhiPad", "etaPhiPad",
+                     corners["x1"], corners["y1"],
+                     corners["x2"], corners["y2"])
         pad.cd()
         pad.SetTickx()
         pad.SetTicky()
 
-        etaPhiPlot = r.TH2D("etaPhi",";#eta;#phi;", 1, -r.TMath.Pi(), r.TMath.Pi(), 1, -r.TMath.Pi(), r.TMath.Pi() )
+        etaPhiPlot = r.TH2D("etaPhi", ";#eta;#phi;",
+                            1, -r.TMath.Pi(), r.TMath.Pi(),
+                            1, -r.TMath.Pi(), r.TMath.Pi())
         etaPhiPlot.SetStats(False)
         etaPhiPlot.Draw()
 
         self.line.SetLineColor(r.kBlack)
-        self.line.DrawLine(-self.etaBE, etaPhiPlot.GetYaxis().GetXmin(), -self.etaBE, etaPhiPlot.GetYaxis().GetXmax() )
-        self.line.DrawLine( self.etaBE, etaPhiPlot.GetYaxis().GetXmin(),  self.etaBE, etaPhiPlot.GetYaxis().GetXmax() )
+        self.line.DrawLine(-self.etaBE, etaPhiPlot.GetYaxis().GetXmin(),
+                           -self.etaBE, etaPhiPlot.GetYaxis().GetXmax())
+        self.line.DrawLine( self.etaBE, etaPhiPlot.GetYaxis().GetXmin(),
+                            self.etaBE, etaPhiPlot.GetYaxis().GetXmax())
+        return pad, etaPhiPlot
+
+    def ra1EtaPhi(self, eventVars):
+        assert False, "FIXME"
+        self.etaPhiPad.cd()
         suspiciousJetColor = r.kRed
         suspiciousJetStyle = 2
         
@@ -700,30 +712,24 @@ class displayer(supy.steps.displayer):
             args = (fourVector.eta()-value, fourVector.phi()-value, fourVector.eta()+value, fourVector.phi()+value)
             self.hcalBox.DrawBox(*args)
 
-        if self.ra1Mode :
-            #draw dead ECAL regions
-            nRegions = eventVars["ecalDeadTowerTrigPrimP4"].size()
-            for iRegion in range(nRegions) :
-                drawEcalBox(fourVector = eventVars["ecalDeadTowerTrigPrimP4"].at(iRegion),
-                            nBadXtals  = eventVars["ecalDeadTowerNBadXtals"].at(iRegion),
-                            maxStatus  = eventVars["ecalDeadTowerMaxStatus"].at(iRegion),
-                            )
+        #draw dead ECAL regions
+        nRegions = eventVars["ecalDeadTowerTrigPrimP4"].size()
+        for iRegion in range(nRegions):
+            drawEcalBox(fourVector=eventVars["ecalDeadTowerTrigPrimP4"].at(iRegion),
+                        nBadXtals=eventVars["ecalDeadTowerNBadXtals"].at(iRegion),
+                        maxStatus=eventVars["ecalDeadTowerMaxStatus"].at(iRegion),
+                        )
 
-            #draw masked HCAL regions
-            nBadHcalChannels = eventVars["hcalDeadChannelP4"].size()
-            for iChannel in range(nBadHcalChannels) :
-                drawHcalBox(fourVector = eventVars["hcalDeadChannelP4"].at(iChannel))
+        #draw masked HCAL regions
+        nBadHcalChannels = eventVars["hcalDeadChannelP4"].size()
+        for iChannel in range(nBadHcalChannels):
+            drawHcalBox(fourVector=eventVars["hcalDeadChannelP4"].at(iChannel))
 
-
-        for indices, color, printList in self.genParticleIndices:
-            self.drawGenParticles(eventVars=eventVars, indices=indices, color=color, circleRadius=0.15)
-
-        etaPhiPlot.SetTitle("")
-        if self.ra1Mode:
-            suspiciousJetIndices = []
-            for dPhiStar,iJet in eventVars["%sDeltaPhiStar%s%s"%(self.jets[0],self.deltaPhiStarExtraName,self.jets[1])] :
-                if dPhiStar < self.deltaPhiStarCut : suspiciousJetIndices.append(iJet)
-
+        # FIXME: make this a calculable
+        suspiciousJetIndices = []
+        for dPhiStar, iJet in eventVars[self.deltaPhiStarName]:
+            if dPhiStar < self.deltaPhiStarCut:
+                suspiciousJetIndices.append(iJet)
         suspiciousJetLegendEntry = False
 
         for jets, indices, color, style, radius in self.jetIndices:
@@ -747,26 +753,24 @@ class displayer(supy.steps.displayer):
         legend1 = r.TLegend(0.02, 0.9, 0.72, 1.0)
         legend1.SetFillStyle(0)
         legend1.SetBorderSize(0)
-        if self.ra1Mode:
-            legend1.AddEntry(self.deadBox,"dead ECAL cells","f")
-            legend1.AddEntry(self.coldBox,"dead ECAL cells w/TP link","f")
-            legend1.AddEntry(self.hcalBox,"masked HCAL cells","f")
-            legend1.Draw()
+        legend1.AddEntry(self.deadBox,"dead ECAL cells","f")
+        legend1.AddEntry(self.coldBox,"dead ECAL cells w/TP link","f")
+        legend1.AddEntry(self.hcalBox,"masked HCAL cells","f")
+        legend1.Draw()
 
         legend2 = r.TLegend(0.48, 0.933, 0.98, 1.0)
         legend2.SetFillStyle(0)
         legend2.SetBorderSize(0)
-
-        if self.ra1Mode:
-            self.ellipse.SetLineColor(suspiciousJetColor)
-            self.ellipse.SetLineStyle(suspiciousJetStyle)
-            if suspiciousJetLegendEntry :
-                legend2.AddEntry(self.ellipse,"jet with min. #Delta#phi* < %3.1f"%self.deltaPhiStarCut,"l")
-            legend2.Draw()
+        self.ellipse.SetLineColor(suspiciousJetColor)
+        self.ellipse.SetLineStyle(suspiciousJetStyle)
+        if suspiciousJetLegendEntry :
+            legend2.AddEntry(self.ellipse,"jet with min. #Delta#phi* < %3.1f"%self.deltaPhiStarCut,"l")
+        legend2.Draw()
 
         self.canvas.cd()
-        pad.Draw()
-        return [pad, etaPhiPlot, legend1, legend2]
+        self.etaPhiPad.Draw()
+        return [legend1, legend2]
+
 
     def drawAlphaPlot (self, eventVars, color, showAlphaTMet, corners) :
         pad = r.TPad("alphaTpad", "alphaTpad", corners["x1"], corners["y1"], corners["x2"], corners["y2"])
@@ -827,90 +831,66 @@ class displayer(supy.steps.displayer):
         pad.Draw()
         return [pad, alphaTHisto, alphaTMetHisto, legend1]
 
-    def fillHisto(self,histo,lls,mhts) :
-        for i in range(len(mhts)) :
-            histo.Fill(lls[i],mhts[i])
-        
-    def drawMhtLlPlot (self, eventVars, color, corners) :
-        stuffToKeep=[]
-        pad = r.TPad("mhtLlPad","mhtLlPad", corners["x1"], corners["y1"], corners["x2"], corners["y2"])
-        pad.cd()
-        pad.SetLeftMargin(0.3)
-        pad.SetRightMargin(0.15)
-
-        mets       =eventVars[self.jetCollection+"mets"+self.jetSuffix]
-        mhts       =eventVars[self.jetCollection+"mhts"+self.jetSuffix]
-        lls        =eventVars[self.jetCollection+"lls"+self.jetSuffix]
-        nVariedJets=eventVars[self.jetCollection+"nVariedJets"+self.jetSuffix]
-        
-        self.mhtLlHisto.Reset()
-        self.metLlHisto.Reset()
-        #self.helper.Fill(self.mhtLlHisto,lls,mhts,nVariedJets)
-        #self.helper.Fill(self.metLlHisto,lls,mets,nVariedJets)
-
-        histo=self.metLlHisto
-
-        #histo.SetStats(False)
-        histo.GetYaxis().SetTitleOffset(1.25)
-        histo.SetMarkerColor(r.kBlack)
-        histo.Draw("colz")
-
-        stats=histo.GetListOfFunctions().FindObject("stats")
-        if (stats!=None) :
-            stats.SetX1NDC(0.01);
-            stats.SetX2NDC(0.25);
-            stats.SetY1NDC(0.51);
-            stats.SetY2NDC(0.75);
-            pad.Modified()
-            pad.Update()
-            stuffToKeep.append(stats)
-
-        #legend=r.TLegend(0.1,0.9,0.6,0.6)
-        #legend.SetFillStyle(0)
-        #
-        #legend.AddEntry(mhtLlHisto,"this event","p")
-        #legend.Draw()
-        #stuffToKeep.append(legend)
-        #stuffToKeep.extend([pad,mhtLlHisto])
-        stuffToKeep.append(pad)
-        self.canvas.cd()
-        pad.Draw()
-        return stuffToKeep
-
-    def drawRhoPhiPlot(self, eventVars, coords, corners) :
+    def drawRhoPhiPad(self, eventVars, coords, corners):
         pad = r.TPad("rhoPhiPad", "rhoPhiPad", corners["x1"], corners["y1"], corners["x2"], corners["y2"])
         pad.cd()
 
         skeletonColor = r.kYellow+1
         self.drawSkeleton(coords, skeletonColor)
-        self.drawScale(color = skeletonColor, size = 0.03, scale = coords["scale"], point = {"x":0.0, "y":coords["radius"]+coords["y0"]+0.03})
+        self.drawScale(color=skeletonColor, size=0.03, scale=coords["scale"],
+                       point={"x":0.0, "y":coords["radius"]+coords["y0"]+0.03})
+        return pad
 
+    def drawObjects(self, eventVars=None, etaPhiPad=None, rhoPhiPad=None, rhoPhiCoords=None):
         defArrowSize=0.5*self.arrow.GetDefaultArrowSize()
         defWidth=1
 
         if self.genMet and not eventVars["isRealData"]:
-            self.drawGenMet(eventVars, coords, r.kMagenta, defWidth, defArrowSize*2/6.0)
+            rhoPhiPad.cd()
+            self.drawGenMet(eventVars, rhoPhiCoords, r.kMagenta, defWidth, defArrowSize*2/6.0)
 
         arrowSize = defArrowSize
         if not eventVars["isRealData"]:
             for indices, color, printList in self.genParticleIndices:
+                rhoPhiPad.cd()
                 self.drawGenParticles(eventVars=eventVars,
                                       indices=indices,
-                                      coords=coords,
+                                      coords=rhoPhiCoords,
                                       color=color,
                                       arrowSize=arrowSize)
                 arrowSize *= 0.8
-            
+
+                etaPhiPad.cd()
+                self.drawGenParticles(eventVars=eventVars,
+                                      indices=indices,
+                                      color=color,
+                                      circleRadius=0.15)
+
         for jets, indices, color, style, radius in self.jetIndices:
+            rhoPhiPad.cd()
             self.drawJets(eventVars=eventVars,
                           jets=jets,
                           indices=indices,
-                          coords=coords,
+                          coords=rhoPhiCoords,
                           color=color,
                           lineStyle=style,
                           arrowSize=arrowSize)
             arrowSize *= 0.8
 
+            # FIXME
+            etaPhiPad.cd()
+            p4Key = "%s%sP4%s" % (jets[0], "" if "gen" in jets[0] else 'Corrected', jets[1])
+            if p4Key not in eventVars:
+                continue
+            p4s = eventVars[p4Key]
+            for index in range(p4s.size()):
+                if indices and index not in eventVars[indices]:
+                    continue
+                self.drawCircle(p4=p4s.at(index), color=color,
+                                circleRadius=radius, lineStyle=style)
+
+        rhoPhiPad.cd()
+        coords = rhoPhiCoords
         if self.jets and self.ra1Mode:
             if not self.prettyMode:
                 self.drawHt         (eventVars, coords,r.kBlue+3  , defWidth, defArrowSize*1/6.0)
@@ -933,8 +913,9 @@ class displayer(supy.steps.displayer):
                 self.drawCleanedRecHitSumP4(eventVars, coords,r.kOrange-6, defWidth, defArrowSize*2/6.0)
 
         self.canvas.cd()
-        pad.Draw()
-        return [pad]
+        rhoPhiPad.Draw()
+        etaPhiPad.Draw()
+
 
     def drawLegend(self, corners) :
         pad = r.TPad("legendPad", "legendPad", corners["x1"], corners["y1"], corners["x2"], corners["y2"])
@@ -1010,31 +991,44 @@ class displayer(supy.steps.displayer):
         rhoPhiPadYSize = 0.50*self.canvas.GetAspectRatio()
         rhoPhiPadXSize = 0.50
         radius = 0.4
-        g1 = self.drawRhoPhiPlot(eventVars,
-                                 coords = {"scale":self.scale, "radius":radius, "x0":radius, "y0":radius+0.05},
-                                 corners = {"x1":0.0, "y1":0.0, "x2":rhoPhiPadXSize, "y2":rhoPhiPadYSize},
-                                 )
-        l = self.drawLegend(corners = {"x1":0.0, "y1":rhoPhiPadYSize, "x2":1.0-rhoPhiPadYSize, "y2":1.0})
 
-        r.gStyle.SetOptStat(110011)        
-        if self.doEtaPhiPlot :
-            gg = self.drawEtaPhiPlot(eventVars, corners = {"x1":rhoPhiPadXSize - 0.18,
-                                                           "y1":rhoPhiPadYSize - 0.08*self.canvas.GetAspectRatio(),
-                                                           "x2":rhoPhiPadXSize + 0.12,
-                                                           "y2":rhoPhiPadYSize + 0.22*self.canvas.GetAspectRatio()})
-            
-        if self.ra1Mode:
-                g3 = self.drawAlphaPlot(eventVars, r.kBlack, showAlphaTMet = (self.showAlphaTMet and not self.prettyMode),
-                                        corners = {"x1":rhoPhiPadXSize - 0.08,
-                                                   "y1":0.0,
-                                                   "x2":rhoPhiPadXSize + 0.12,
-                                                   "y2":0.55})
-            #g4 = self.drawMhtLlPlot(eventVars, r.kBlack, corners = {"x1":0.63, "y1":0.63, "x2":0.95, "y2":0.95})
-        
+        rhoPhiCoords = {"scale":self.scale, "radius":radius,
+                        "x0":radius, "y0":radius+0.05}
+
+        rhoPhiCorners = {"x1":0.0,
+                         "y1":0.0,
+                         "x2":rhoPhiPadXSize,
+                         "y2":rhoPhiPadYSize}
+
+        etaPhiCorners =  {"x1":rhoPhiPadXSize - 0.18,
+                          "y1":rhoPhiPadYSize - 0.08*self.canvas.GetAspectRatio(),
+                          "x2":rhoPhiPadXSize + 0.12,
+                          "y2":rhoPhiPadYSize + 0.22*self.canvas.GetAspectRatio()}
+
+        rhoPhiPad = self.drawRhoPhiPad(eventVars, rhoPhiCoords, rhoPhiCorners)
+        etaPhiPad, etaPhiPlot = self.drawEtaPhiPad(eventVars, etaPhiCorners)
+
+        self.drawObjects(eventVars, etaPhiPad, rhoPhiPad, rhoPhiCoords)
+
+        l = self.drawLegend(corners={"x1":0.0,
+                                     "y1":rhoPhiPadYSize,
+                                     "x2":1.0-rhoPhiPadYSize,
+                                     "y2":1.0})
+
         t = self.printAllText(eventVars,
                               corners = {"x1":rhoPhiPadXSize + 0.11,
                                          "y1":0.0,
                                          "x2":1.0,
                                          "y2":1.0})
-        
-        return locals()
+
+        g3 = None
+        if self.ra1Mode:
+            self.ra1EtaPhi(eventVars)
+            g3 = self.drawAlphaPlot(eventVars, r.kBlack,
+                                    showAlphaTMet=(self.showAlphaTMet and not self.prettyMode),
+                                    corners = {"x1":rhoPhiPadXSize - 0.08,
+                                               "y1":0.0,
+                                               "x2":rhoPhiPadXSize + 0.12,
+                                               "y2":0.55})
+
+        return [rhoPhiPad, etaPhiPad, etaPhiPlot, g3, l, t]
