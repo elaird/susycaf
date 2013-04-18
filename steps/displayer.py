@@ -108,10 +108,10 @@ class displayer(supy.steps.displayer):
 
         self.prettyReName = {
             "genak5GenJetsP4": "AK5 Gen Jets",
-            "ak5JetIndicesPat": "AK5 Calo Jets",
-            "ak5JetIndicesOtherPat": "AK5 Calo Jets (fail eta or ID)",
-            "ak5JetIndicesIgnoredPat": "AK5 Calo Jets (fail pT or xc)",
-            "ak5JetIndicesBtagged2Pat": "AK5 Calo Jets (b-tagged)",
+            "xcak5JetIndicesPat": "AK5 Calo Jets",
+            "xcak5JetIndicesOtherPat": "AK5 Calo Jets (fail eta or ID)",
+            "xcak5JetIndicesIgnoredPat": "AK5 Calo Jets (fail pT or xc)",
+            "xcak5JetIndicesBtagged2Pat": "AK5 Calo Jets (b-tagged)",
 
             "ak5JetPFIndicesPat": "AK5 PF Jets",
             "ak5JetPFIndicesOtherPat": "AK5 PF Jets (fail ID or eta)",
@@ -120,15 +120,12 @@ class displayer(supy.steps.displayer):
 
             "MHT (xcak5JetPat)": "MHT",
             "MHT (xcak5JetPFPat)": "MHT",
-            "MET (metP4AK5TypeII)": "MET (Calo Type II)",
-            "MET (metP4PF)": "MET (PF)",
-            "MET (metP4TypeIPF)": "MET (PF Type I)",
-            "muons (muonPat)": "muons",
-            "electrons (electronPat)": "electrons",
-            "photons (photonPat)": "photons",
-            "muonPat": "muons",
-            "electronPat": "electrons",
-            "photonPat": "photons",
+            "metP4AK5TypeII": "MET (Calo Type II)",
+            "metP4PF": "MET (PF)",
+            "metP4TypeIPF": "MET (PF Type I)",
+            "muonP4Pat": "muons",
+            "electronP4Pat": "electrons",
+            "photonP4Pat": "photons",
             }
         self.prettyReName.update(rename)
 
@@ -555,7 +552,7 @@ class displayer(supy.steps.displayer):
         desc = desc.replace("IndicesStatus3", "Status3")
         return desc if desc not in self.prettyReName else self.prettyReName[desc]
 
-    def legendFunc(self, lineColor=None, lineStyle=None, name="", desc=""):
+    def legendFunc(self, lineColor=None, lineStyle=1, name="", desc=""):
         if name not in self.legendDict:
             self.legendDict[name] = True
             self.legendList.append((lineColor, lineStyle, self.renamedDesc(desc), "l"))
@@ -663,50 +660,12 @@ class displayer(supy.steps.displayer):
         self.line.SetLineColor(color)
         self.line.DrawLine(coords["x0"]-l/2.0, y, coords["x0"]+l/2.0, y)
 
-    def drawMet(self, eventVars, coords, color, lineWidth, arrowSize) :
-        self.legendFunc(lineColor=color,
-                        name="met%s" % self.met,
-                        desc="MET (%s)" % self.met)
-        self.drawP4(coords, eventVars[self.met], color, lineWidth, arrowSize=arrowSize)
-            
     def drawGenMet(self, eventVars, coords, color, lineWidth, arrowSize) :
         if self.genMet==None : return
         self.legendFunc(lineColor=color,
                         name="genMet",
                         desc="GEN MET (%s)" % self.genMet)
         self.drawP4(coords, eventVars[self.genMet], color, lineWidth, arrowSize=arrowSize)
-            
-    def drawMuons(self, eventVars, coords, color, lineWidth, arrowSize) :
-        self.legendFunc(lineColor=color,
-                        name="%smuon%s" % self.muons,
-                        desc="muons (%s%s)" % self.muons)
-        p4Vector=eventVars["%sP4%s"%self.muons]
-        for i in range(len(p4Vector)) :
-            self.drawP4(coords, p4Vector.at(i), color, lineWidth, arrowSize=arrowSize)
-            
-    def drawElectrons(self, eventVars, coords, color, lineWidth, arrowSize) :
-        self.legendFunc(lineColor=color,
-                        name="%selectron%s" % self.electrons,
-                        desc="electrons (%s%s)"%self.electrons)
-        p4Vector=eventVars["%sP4%s"%self.electrons]
-        for i in range(len(p4Vector)) :
-            self.drawP4(coords, p4Vector.at(i), color, lineWidth, arrowSize=arrowSize)
-            
-    def drawPhotons(self, eventVars, coords, color, lineWidth, arrowSize) :
-        self.legendFunc(lineColor=color,
-                        name="%sphoton%s" % self.photons,
-                        desc="photons (%s%s)"%self.photons)
-        p4Vector=eventVars["%sP4%s"%self.photons]
-        for i in range(len(p4Vector)) :
-            self.drawP4(coords, p4Vector.at(i), color, lineWidth, arrowSize=arrowSize)
-            
-    def drawTaus(self, eventVars, coords, color, lineWidth, arrowSize) :
-        self.legendFunc(lineColor=color,
-                        name="%stau%s" % self.taus,
-                        desc="taus (%s%s)" % self.taus)
-        p4Vector=eventVars[self.tauCollection+'P4'+self.tauSuffix]
-        for i in range(len(p4Vector)) :
-            self.drawP4(coords, p4Vector.at(i), color, lineWidth, arrowSize=arrowSize)
             
     def drawCleanedRecHits(self, eventVars, coords, color, lineWidth, arrowSize) :
         self.legendFunc(lineColor=color,
@@ -950,20 +909,27 @@ class displayer(supy.steps.displayer):
                 self.drawNJetDeltaHt(eventVars, coords,r.kBlue-9  , defWidth, defArrowSize*1/6.0)
             self.drawMht(eventVars, coords,r.kRed     , defWidth, defArrowSize*3/6.0)
 
-        if self.met:
-            self.drawMet(eventVars, coords,r.kGreen   , defWidth, defArrowSize*2/6.0)
-        if self.muons:
-            self.drawMuons(eventVars, coords,r.kYellow  , defWidth, defArrowSize*2/6.0)
-        if self.electrons:
-            self.drawElectrons(eventVars, coords,r.kOrange+7, defWidth, defArrowSize*2.5/6.0)
-        if self.photons:
-            self.drawPhotons(eventVars, coords,r.kOrange  , defWidth, defArrowSize*1.8/6.0)
-        if not self.prettyMode:
-            if self.taus:
-                self.drawTaus(eventVars, coords,r.kYellow  , defWidth, defArrowSize*2/6.0)
-            if self.recHits:
-                #self.drawCleanedRecHits(eventVars, coords,r.kOrange-6, defWidth, defArrowSize*2/6.0)
-                self.drawCleanedRecHitSumP4(eventVars, coords,r.kOrange-6, defWidth, defArrowSize*2/6.0)
+        items = [("met", r.kGreen),
+                 ("muons", r.kYellow),
+                 ("electrons", r.kOrange+7),
+                 ("photons", r.kOrange),
+                 ] + ([] if self.prettyMode else [("taus", r.kYellow)])
+
+        for item, color in items:
+            fixes = getattr(self, item)
+            if type(fixes) is str:
+                self.legendFunc(lineColor=color, name=fixes, desc=fixes)
+                self.drawP4(coords, eventVars[fixes], color, defWidth, arrowSize=defArrowSize*2/6.0)
+            elif type(fixes) is tuple and len(fixes) == 2:
+                p4Name = "%sP4%s" % fixes
+                self.legendFunc(lineColor=color, name=p4Name, desc=p4Name)
+                p4Vector = eventVars[p4Name]
+                for i in range(len(p4Vector)):
+                    self.drawP4(coords, p4Vector.at(i), color, defWidth, arrowSize=defArrowSize*2/6.0)
+
+        if self.recHits and not self.prettyMode:
+            #self.drawCleanedRecHits(eventVars, coords,r.kOrange-6, defWidth, defArrowSize*2/6.0)
+            self.drawCleanedRecHitSumP4(eventVars, coords,r.kOrange-6, defWidth, defArrowSize*2/6.0)
 
 
     def drawLegend(self, corners) :
