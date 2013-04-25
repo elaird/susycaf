@@ -349,7 +349,7 @@ class displayer(supy.steps.displayer):
         left = "ID    pT  eta  phi"
         center = "   EMF  fHPD  fRBX N90" if not isPf else "   CHF  NHF  CEF  NEF CM"
         #right = " corr   CSV"
-        right = "   CSV     JP"
+        right = "  CSV     JP "
         self.printText(left+center+right)
         self.printText("-"*(len(left)+len(center)+len(right)))
 
@@ -371,7 +371,7 @@ class displayer(supy.steps.displayer):
             csvValue = csv.at(iJet)
             #outString += " %4.2f %7.3f"%(corrVector.at(iJet), csv.at(iJet))
 
-            if csvValue==-10. :
+            if csvValue < 0.:
                 outString += " %4.0f"%csvValue
             else :
                 outString += " %4.2f"%csvValue
@@ -952,8 +952,10 @@ class displayer(supy.steps.displayer):
         pad.Draw()
         return [pad,legend]
 
-    def printAllText(self, eventVars, corners) :
-        pad = r.TPad("textPad", "textPad", corners["x1"], corners["y1"], corners["x2"], corners["y2"])
+    def printAllText(self, eventVars, corners):
+        pad = r.TPad("textPad", "textPad",
+                     corners["x1"], corners["y1"],
+                     corners["x2"], corners["y2"])
         pad.cd()
 
         defaults = {}
@@ -970,13 +972,18 @@ class displayer(supy.steps.displayer):
         yy = 0.98
         x0 = 0.01
         x1 = 0.51
-        self.printEvent(   eventVars, params = defaults, coords = {"x":x0, "y":yy})
+        self.printEvent(eventVars,
+                        params=defaults,
+                        coords={"x": x0,
+                                "y": yy},
+                        )
 
         if self.printExtraText:
             if self.jets:
                 self.printJets(eventVars,
                                params=smaller,
-                               coords={"x": x0, "y": yy-2*s},
+                               coords={"x": x0,
+                                       "y": yy-2*s},
                                jets=self.jets,
                                nMax=self.nMaxJets)
 
@@ -985,7 +992,8 @@ class displayer(supy.steps.displayer):
                 if self.genJets:
                     self.printGenJets(eventVars,
                                       params=smaller,
-                                      coords={"x":x0, "y":yy-(6+self.nMaxJets)*s},
+                                      coords={"x": x0,
+                                              "y": yy-(6+self.nMaxJets)*s},
                                       nMax=nMaxGenJets)
                 nYR = 6 + self.nMaxJets
                 nYL = nYR + 4 + nMaxGenJets
@@ -1002,41 +1010,95 @@ class displayer(supy.steps.displayer):
                     else:
                         dx = 0.49
                         nY = nYR
-                    self.printGenParticles(eventVars, params=smaller,
-                                           indices=indices, color=color,
-                                           coords={"x":x0+dx, "y":yy-nY*s}, nMax=nMax)
+                    self.printGenParticles(eventVars,
+                                           params=smaller,
+                                           indices=indices,
+                                           color=color,
+                                           coords={"x": x0+dx,
+                                                   "y": yy-nY*s},
+                                           nMax=nMax)
                     if left:
                         nYL += 4+nMax
                     else:
                         nYR += 4+nMax
-            if self.jetsOtherAlgo :
-                self.printJets(     eventVars, params = smaller, coords = {"x":x0,  "y":yy-13*s}, jets = self.jetsOtherAlgo, nMax = 7)
+            if self.jetsOtherAlgo:
+                self.printJets(eventVars,
+                               params=smaller,
+                               coords={"x": x0,
+                                       "y": yy-(6+self.nMaxJets)*s},
+                               jets=self.jetsOtherAlgo,
+                               nMax=self.nMaxJets)
 
-            if self.muons :
-                self.printMuons(    eventVars, params = defaults, coords = {"x":x0, "y":yy-35*s}, muons = self.muons, nMax = 3)
-            self.printVertices(     eventVars, params = defaults, coords = {"x":x1, "y":yy-35*s}, nMax = 3)
+            if self.muons:
+                self.printMuons(eventVars,
+                                params=defaults,
+                                coords={"x": x0,
+                                        "y": yy-35*s},
+                                muons=self.muons,
+                                nMax=3)
+            self.printVertices(eventVars,
+                               params=defaults,
+                               coords={"x": x1,
+                                       "y": yy-35*s},
+                               nMax=3)
 
-            if self.photons :
-                self.printPhotons(  eventVars, params = defaults, coords = {"x":x0, "y":yy-42*s}, photons = self.photons, nMax = 3)
-            if self.electrons :
-                self.printElectrons(eventVars, params = defaults, coords = {"x":x1, "y":yy-42*s}, electrons = self.electrons, nMax = 3)
+            if self.photons:
+                self.printPhotons(eventVars,
+                                  params=defaults,
+                                  coords={"x": x0,
+                                          "y": yy-42*s},
+                                  photons=self.photons,
+                                  nMax=3)
+            if self.electrons:
+                self.printElectrons(eventVars,
+                                    params=defaults,
+                                    coords={"x": x1,
+                                            "y": yy-42*s},
+                                    electrons=self.electrons,
+                                    nMax=3)
 
-            if not self.prettyMode :
-                if self.recHits :
-                    self.printRecHits(eventVars,params = defaults,coords = {"x":x0, "y":yy-49*s}, recHits = self.recHits, nMax = 3)
-                if self.recHitsOtherAlgo :
-                    self.printRecHits(eventVars,params = defaults,coords = {"x":x1, "y":yy-49*s}, recHits = self.recHitsOtherAlgo, nMax = 3)
+            if not self.prettyMode:
+                if self.recHits:
+                    self.printRecHits(eventVars,
+                                      params=defaults,
+                                      coords={"x": x0,
+                                              "y": yy-49*s},
+                                      recHits=self.recHits,
+                                      nMax=3)
+                if self.recHitsOtherAlgo:
+                    self.printRecHits(eventVars,
+                                      params=defaults,
+                                      coords={"x": x1,
+                                              "y": yy-49*s},
+                                      recHits=self.recHitsOtherAlgo,
+                                      nMax=3)
 
-            #if self.flagsToPrint :
-            #    self.printFlags(    eventVars, params = defaults, coords = {"x":x0, "y":yy-49*s}, flags = self.flagsToPrint)
-            if self.ra1Mode :
-                self.printKinematicVariables(eventVars, params = defaults, coords = {"x":x0, "y":yy-25*s}, jets = self.jets, jets2 = self.jetsOtherAlgo)
-                if self.ra1CutBits :
-                    self.printCutBits(       eventVars, params = defaults, coords = {"x":x0, "y":yy-30*s}, jets = self.jets, jets2 = self.jetsOtherAlgo,
-                                         met = self.met, met2 = self.metOtherAlgo)
+            #if self.flagsToPrint:
+            #    self.printFlags(eventVars,
+            #                    params=defaults,
+            #                    coords={"x": x0,
+            #                            "y": yy-49*s},
+            #                    flags=self.flagsToPrint)
+            if self.ra1Mode:
+                self.printKinematicVariables(eventVars,
+                                             params=defaults,
+                                             coords={"x": x0,
+                                                     "y": yy-25*s},
+                                             jets=self.jets,
+                                             jets2=self.jetsOtherAlgo)
+                if self.ra1CutBits:
+                    self.printCutBits(eventVars,
+                                      params=defaults,
+                                      coords={"x": x0,
+                                              "y": yy-30*s},
+                                      jets=self.jets,
+                                      jets2=self.jetsOtherAlgo,
+                                      met=self.met,
+                                      met2=self.metOtherAlgo)
         self.canvas.cd()
         pad.Draw()
         return [pad]
+
 
     def display(self, eventVars) :
         rhoPhiPadYSize = 0.50*self.canvas.GetAspectRatio()
