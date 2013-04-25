@@ -304,7 +304,7 @@ class displayer(supy.steps.displayer):
             if recHits=="Calo" : outString +=" %2d"%hit[4]
             self.printText(outString)
         
-    def printJets(self, eventVars, params, coords, jets, nMax) :
+    def printJets(self, eventVars=None, params=None, coords=None, jets=None, nMax=None, highlight=False):
         def bCategory(key = "", value = None) :
             if key not in self.bThresholds :
                 return " "
@@ -354,8 +354,8 @@ class displayer(supy.steps.displayer):
         self.printText("-"*(len(left)+len(center)+len(right)))
 
         nJets = p4Vector.size()
-        for iJet in range(nJets) :
-            if nMax<=iJet :
+        for iJet in range(nJets):
+            if nMax <= iJet:
                 self.printText("[%d more not listed]"%(nJets-nMax))
                 break
             jet=p4Vector[iJet]
@@ -380,7 +380,16 @@ class displayer(supy.steps.displayer):
             jpValue = jp.at(iJet)
             outString += " %5.2f"%jpValue
             outString += bCategory("JetProbabilityBJetTags", jpValue)
-            self.printText(outString)
+
+            color = r.kBlack
+            if highlight:
+                for jetsHighlight, indicesHighlight, colorHighlight, _, _ in self.jetIndices:
+                    if jetsHighlight != jets:
+                        continue
+                    if (indicesHighlight in eventVars) and (iJet in eventVars[indicesHighlight]):
+                        color = colorHighlight
+
+            self.printText(outString, color)
 
     def printGenJets(self, eventVars, params, coords, nMax) :
         p4Key = "%sP4%s" % self.genJets
@@ -985,7 +994,8 @@ class displayer(supy.steps.displayer):
                                coords={"x": x0,
                                        "y": yy-2*s},
                                jets=self.jets,
-                               nMax=self.nMaxJets)
+                               nMax=self.nMaxJets,
+                               highlight=True)
 
             if self.printGen:
                 nMaxGenJets = self.nMaxJets
