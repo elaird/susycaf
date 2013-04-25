@@ -17,6 +17,7 @@ class displayer(supy.steps.displayer):
                  # objects
                  jets=None,
                  jetIndices=[],
+                 nMaxJets=7,
                  met=None, muons=None, electrons=None,
                  photons=None, taus=None, recHits=None, recHitPtThreshold=-100,
                  jetsOtherAlgo=None, metOtherAlgo=None, recHitsOtherAlgo=None,
@@ -57,7 +58,7 @@ class displayer(supy.steps.displayer):
 
         self.moreName = "(see below)"
 
-        for item in ["jets", "jetIndices",
+        for item in ["jets", "jetIndices", "nMaxJets",
                      "met", "muons", "electrons", "photons", "taus",
                      "recHits", "recHitPtThreshold", "jetsOtherAlgo",
                      "metOtherAlgo", "recHitsOtherAlgo", "bThresholds",
@@ -170,9 +171,11 @@ class displayer(supy.steps.displayer):
         self.textY = coords["y"]
         self.textCounter = 0
 
-    def printText(self, message) :
+    def printText(self, message, color=r.kBlack):
+        self.text.SetTextColor(color)
         self.text.DrawText(self.textX, self.textY - self.textCounter * self.textSlope, message)
         self.textCounter += 1
+        self.text.SetTextColor(r.kBlack)
 
     def printEvent(self, eventVars, params, coords) :
         self.prepareText(params, coords)
@@ -398,29 +401,31 @@ class displayer(supy.steps.displayer):
             jet = p4Vector.at(iJet)
             self.printText("%5.0f %4.1f %4.1f"%(jet.pt(), jet.eta(), jet.phi()))
 
-    def printGenParticles(self, eventVars, params, coords, nMax) :
+    def printGenParticles(self, eventVars=None, params=None, coords=None,
+                          nMax=None, indices=None, color=r.kBlack):
         self.prepareText(params, coords)
-        p4s    = eventVars["genP4"]
-        status = eventVars["genStatus"]
-        ids    = eventVars["genPdgId"]
+        p4s = eventVars["genP4"]
+        ids = eventVars["genPdgId"]
         
-        self.printText("Status 1 Gen Particles")
+        self.printText(indices.replace("Indices", ""))
         self.printText("  name  pdgId   pT  eta  phi")
         self.printText("----------------------------")
 
-        particles = reversed(sorted([(i, p4s[i]) for i in range(p4s.size())], key = lambda x:x[1].pt()))
-        nStatus1 = sum([status[i]==1 for i in range(status.size())])
+        nParticles = len(eventVars[indices])
         iPrint = 0
-        for iParticle,p4 in particles :
-            if status.at(iParticle)!=1 : continue
-            if nMax<=iPrint :
-                self.printText("[%d more not listed]"%(nStatus1-nMax))
+        for iParticle in eventVars[indices]:
+            if nMax <= iPrint:
+                self.printText("[%d more not listed]"%(nParticles-nMax))
                 break
             pdgId = ids.at(iParticle)
-            self.printText("%6s %6d%5.0f %4.1f %4.1f"%(pdgLookup.pdgid_to_name(pdgId) if pdgLookupExists else "", pdgId, p4.pt(), p4.eta(), p4.phi()))
+            p4 = p4s.at(iParticle)
+            name = pdgLookup.pdgid_to_name(pdgId) if pdgLookupExists else ""
+            self.printText("%6s %6d%5.0f %4.1f %4.1f" % (name[-6:], pdgId, p4.pt(), p4.eta(), p4.phi()),
+                           color=color)
             iPrint += 1
         return
-    
+
+
     def printKinematicVariables(self, eventVars, params, coords, jets, jets2) :
         self.prepareText(params, coords)
         
@@ -866,7 +871,7 @@ class displayer(supy.steps.displayer):
 
         arrowSize = defArrowSize
         if not eventVars["isRealData"]:
-            for indices, color, printList in self.genParticleIndices:
+            for indices, color, nMaxPrint in self.genParticleIndices:
                 rhoPhiPad.cd()
                 self.drawGenParticles(eventVars=eventVars,
                                       indices=indices,
@@ -967,13 +972,43 @@ class displayer(supy.steps.displayer):
         x1 = 0.51
         self.printEvent(   eventVars, params = defaults, coords = {"x":x0, "y":yy})
 
-        if self.printExtraText :
+        if self.printExtraText:
             if self.jets:
-                self.printJets(eventVars, params = smaller, coords = {"x":x0, "y":yy-2*s}, jets = self.jets, nMax = 7)
+                self.printJets(eventVars,
+                               params=smaller,
+                               coords={"x": x0, "y": yy-2*s},
+                               jets=self.jets,
+                               nMax=self.nMaxJets)
 
             if self.printGen:
-                self.printGenJets(  eventVars, params = defaults, coords = {"x":x0, "y":yy-13*s}, nMax = 7)
-                self.printGenParticles(eventVars,params=defaults, coords = {"x":x0+0.40, "y":yy-13*s}, nMax = 7)
+                nMaxGenJets = self.nMaxJets
+                if self.genJets:
+                    self.printGenJets(eventVars,
+                                      params=smaller,
+                                      coords={"x":x0, "y":yy-(6+self.nMaxJets)*s},
+                                      nMax=nMaxGenJets)
+                nYR = 6 + self.nMaxJets
+                nYL = nYR + 4 + nMaxGenJets
+                for i, (indices, color, nMax) in enumerate([("IndicesStatus1PtSorted",
+                                                             r.kBlack,
+                                                             nMaxGenJets),
+                                                            ]+self.genParticleIndices):
+                    if indices not in eventVars:
+                        continue
+                    left = i%2
+                    if left:
+                        dx = -0.01
+                        nY = nYL
+                    else:
+                        dx = 0.49
+                        nY = nYR
+                    self.printGenParticles(eventVars, params=smaller,
+                                           indices=indices, color=color,
+                                           coords={"x":x0+dx, "y":yy-nY*s}, nMax=nMax)
+                    if left:
+                        nYL += 4+nMax
+                    else:
+                        nYR += 4+nMax
             if self.jetsOtherAlgo :
                 self.printJets(     eventVars, params = smaller, coords = {"x":x0,  "y":yy-13*s}, jets = self.jetsOtherAlgo, nMax = 7)
 
