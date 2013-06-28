@@ -48,19 +48,20 @@ class hadronicLook(supy.analysis):
                                        "rechitComp": "PF",
                                        },
                                       }),
-                "nJetsMinMax": self.vary({#"ge2j": (2, None),
+                "nJetsMinMax": self.vary({"ge2j": (2, None),
                                           #"le3j": (2, 3),
-                                          "ge4j": (4, None),
+                                          #"ge4j": (4, None),
                                           }),
-                "nBTagJets": self.vary({#"eq0b": (0, 0),
+                #"nBTagJets": self.vary({#"eq0b": (0, 0),
                                         #"eq1b": (1, 1),
-                                        "eq2b": (2, 2),
+                                        #"eq2b": (2, 2),
                                         #"eq3b": (3, 3),
                                         #"ge4b": (4, None),
-                                        }),
-                "thresholds": self.vary({#"275s": (275.0, 325.0,  73.3, 36.7),
+                                        #}),
+                "thresholds": self.vary({"200s": (200.0, None,   73.3, 36.7),
+                                         #"275s": (275.0, 325.0,  73.3, 36.7),
                                          #"325s": (325.0, 375.0,  86.7, 43.3),
-                                         "375":  (375.0, None,  100.0, 50.0),
+                                         #"375":  (375.0, None,  100.0, 50.0),
                                          #"675":  (675.0, None,  100.0, 50.0),
                                          #"875":  (875.0, None,  100.0, 50.0),
                                          }),
@@ -225,8 +226,8 @@ class hadronicLook(supy.analysis):
             ]+([] if params["thresholds"][1]!=325.0 else [steps.trigger.lowestUnPrescaledTriggerFilter().onlyData()]) #apply trigger in lowest HT bin
 
     def stepsGenValidation(self) :
-        return [supy.steps.histos.histogrammer("genpthat",200,0,2000,title=";#hat{p_{T}} (GeV);events / bin").onlySim(),
-                #supy.steps.histos.histogrammer("genPartonHT",200,0,1000,title=";parton H_{T} (GeV);events / bin").onlySim(),
+        return [#supy.steps.histos.histogrammer("genpthat",200,0,2000,title=";#hat{p_{T}} (GeV);events / bin").onlySim(),
+                supy.steps.histos.histogrammer("genPartonHT",200,0,1000,title=";parton H_{T} (GeV);events / bin").onlySim(),
                 ]
 
     def stepsEvent(self) :
@@ -412,18 +413,18 @@ class hadronicLook(supy.analysis):
 
         return ([supy.steps.printer.progressPrinter()] +
                 #self.stepsEventCount(params, label = "scanBefore") +
-                #self.stepsGenValidation() +
+                self.stepsGenValidation() +
                 self.stepsEvent() +
-                self.stepsTrigger(params) +
+                #self.stepsTrigger(params) +
                 self.stepsHtLeadingJets(params) +
-                self.stepsXclean(params) +
-                self.stepsBtagJets(params) +
+                #self.stepsXclean(params) +
+                #self.stepsBtagJets(params) +
                 #self.stepsPlotsOne(params) +
                 self.stepsQcdRejection(params) +
                 self.stepsPlotsTwo(params) +
                 #self.stepsMbb(params) +
                 #self.stepsDisplayer(params) +
-                self.stepsOptional(params) +
+                #self.stepsOptional(params) +
                 #self.stepsHtBins(params) +
                 #self.stepsEventCount(params, label = "scanAfter") +
                 [])
@@ -481,10 +482,12 @@ class hadronicLook(supy.analysis):
 
         def w_binned() :
             out = []
-            #out += specify(names = "wj_lv_mg_ht_0_250_other_reqs", nFilesMax = 1, nEventsMax = 20000, color = r.kRed)
-            out += specify(names = "wj_lv_mg_ht_250_300", color = r.kBlue)
-            out += specify(names = "wj_lv_mg_ht_300_400", color = r.kGreen)
-            out += specify(names = "wj_lv_mg_ht_400_inf", color = r.kCyan)
+            #out += specify(names = "wj_lv_mg_ht_10_150", color = r.kBlue, nFilesMax = 1, nEventsMax = 20000)
+            out += specify(names = "wj_lv_mg_ht_150_200.job663", color = r.kGreen, nFilesMax = 1, nEventsMax = 20000)
+            out += specify(names = "wj_lv_mg_ht_200_250.job672", color = r.kCyan, nFilesMax = 1, nEventsMax = 20000)
+            out += specify(names = "wj_lv_mg_ht_250_300.job498", color = r.kOrange, nFilesMax = 1, nEventsMax = 20000)
+            out += specify(names = "wj_lv_mg_ht_300_400.job498", color = r.kViolet, nFilesMax = 1, nEventsMax = 20000)
+            out += specify(names = "wj_lv_mg_ht_400_inf.job498", color = r.kAzure, nFilesMax = 1, nEventsMax = 20000)
             return out
 
         def z_binned() :
@@ -535,10 +538,10 @@ class hadronicLook(supy.analysis):
             return out
 
         return (
-            data_53X() +
+            #data_53X() +
             #data_52X() +
             #data_52X_2b_skim() +
-            #w_binned() +
+            w_binned() +
             #z_binned() +
             #top() +
             #vv() +
@@ -576,7 +579,7 @@ class hadronicLook(supy.analysis):
             "tt_8_mg.job315", "ttz_8_mg.job269",
             "t_s_powheg.job200", "t_t_powheg.job187", "t_tw_powheg.job187", "tbar_t_powheg.job194", "tbar_tw_powheg.job187"])
         org.mergeSamples(targetSpec = md({"name":"Z + jets", "color": r.kBlue}, mcOps), allWithPrefix = "zinv_mg_ht")
-        org.mergeSamples(targetSpec = md({"name":"W + jets", "color": r.kOrange-3}, mcOps), allWithPrefix = "wj_lv_mg_ht_")
+        #org.mergeSamples(targetSpec = md({"name":"W + jets", "color": r.kOrange-3}, mcOps), allWithPrefix = "wj_lv_mg_ht_")
         org.mergeSamples(targetSpec = md({"name":"VV", "color": r.kOrange+3}, mcOps), sources = ["ww_py.job188", "wz_py.job188", "zz_py.job188"])
         org.mergeSamples(targetSpec = md({"name":"ZH", "color":r.kMagenta}, mcOps), sources = ["zinv_hbb_125_powheg.job342"])
         org.mergeSamples(targetSpec = md({"name":"LM6", "color":r.kMagenta}, mcOps), allWithPrefix = "lm6")
