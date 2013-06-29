@@ -9,7 +9,7 @@ ewk17.add("wj_lv_mg_ht_0_250_other_reqs",   '%s/dburton/WJet_Skim_v2/")'%pnfs, x
 
 S10_incl = "WJetsToLNu_TuneZ2Star_8TeV-madgraph-tarball.Summer12_DR53X-PU_S10_START53_V7A-v1.AODSIM"
 S10_excl = "/WJetsToLNu_HT-%s_8TeV-madgraph_v2.Summer12_DR53X-PU_S10_START53_V7A-v1.AODSIM"
-ewk17.add("wj_lv_mg_ht_10_150", '%s/yeshaq/ICF/supy-output/wj_skim_v2")'%pnfs, xs = {"NLO":9090.43}["NLO"])
+ewk17.add("wj_lv_mg_ht_10_150", '%s/yeshaq/ICF/supy-output/wj_skim_v2", pruneList = False)'%pnfs, xs = {"NLO":9090.43}["NLO"])
 ewk17.add("wj_lv_mg_ht_150_200.job663", '%s/agapitos//ICF/automated/2013_05_15_18_11_50/")'%pnfs, xs = 290.69475) # see comment 1
 ewk17.add("wj_lv_mg_ht_200_250.job672", '%s/agapitos//ICF/automated/2013_05_15_17_18_45/")'%pnfs, xs = 123.3417) # see comment 2
 ewk17.add("wj_lv_mg_ht_250_300.job498", '%s/karage//ICF/automated/2012_11_29_20_11_51/%s")'%(pnfs, S10_excl)%"250To300", xs = {"LO":48.01, "NLO":57.26}["NLO"])
