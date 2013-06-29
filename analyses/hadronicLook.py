@@ -439,24 +439,12 @@ class hadronicLook(supy.analysis):
         from supy.samples import specify
 
         def data_53X() :
-            jw2012 = calculables.other.jsonWeight("cert/Cert_190456-203002_8TeV_PromptReco_Collisions12_JSON.txt")
+            jw2012 = calculables.other.jsonWeight("cert/Cert_190456-208686_8TeV_PromptReco_Collisions12_JSON.txt")
 
             out = []
-            #out += specify(names = "HTMHT.Run2012B-13Jul2012-v1.AOD.job358", weights = jw2012)#, nFilesMax = 1, nEventsMax = 1000)
-            #out += specify(names = "HTMHT.Run2012C-24Aug2012-v1.AOD.job361", weights = jw2012)#, nFilesMax = 1, nEventsMax = 1000)
-            #out += specify(names = "HTMHT.Run2012C-PromptReco-v2.AOD.job360", weights = jw2012)#, nFilesMax = 1, nEventsMax = 1000)
-            #out += specify(names = "HT.Run2012A-13Jul2012-v1.AOD.job358",  weights = jw2012)#, nFilesMax = 1, nEventsMax = 1000)
-            #out += specify(names = "HT.Run2012A-recover-06Aug2012-v1.AOD.job359",  weights = jw2012)#, nFilesMax = 1, nEventsMax = 1000)
-            out += specify(names = "375_ge2b")
-            return out
-
-        def data_52X() :
-            jw2012 = calculables.other.jsonWeight("cert/Cert_190456-196531_8TeV_PromptReco_Collisions12_JSON.txt")
-
-            out = []
-            out += specify(names = "HT.Run2012A-PromptReco-v1.AOD.job229", weights = jw2012, overrideLumi = 707.3810)
-            out += specify(names = "HTMHT.Run2012B-PromptReco-v1.AOD.job228", weights = jw2012, overrideLumi = 3354.0000)
-            out += specify(names = "HTMHT.Run2012B-PromptReco-v1.AOD.job238",  weights = jw2012, overrideLumi = 923.7680)
+            out += specify(names = "HTMHTParked.Run2012B-22Jan2013-v1.job649",  weights = jw2012, nFilesMax = 1, nEventsMax = 20000)
+            out += specify(names = "HTMHTParked.Run2012C-22Jan2013-v1.job649",  weights = jw2012, nFilesMax = 1, nEventsMax = 20000)
+            out += specify(names = "HTMHTParked.Run2012D-22Jan2013-v1.job649",  weights = jw2012, nFilesMax = 1, nEventsMax = 20000)
             return out
 
         def data_52X_2b_skim() :
@@ -482,7 +470,7 @@ class hadronicLook(supy.analysis):
 
         def w_binned() :
             out = []
-            #out += specify(names = "wj_lv_mg_ht_10_150", color = r.kBlue, nFilesMax = 1, nEventsMax = 20000)
+            out += specify(names = "wj_lv_mg_ht_10_150", color = r.kBlue, nFilesMax = 1, nEventsMax = 20000)
             out += specify(names = "wj_lv_mg_ht_150_200.job663", color = r.kGreen, nFilesMax = 1, nEventsMax = 20000)
             out += specify(names = "wj_lv_mg_ht_200_250.job672", color = r.kCyan, nFilesMax = 1, nEventsMax = 20000)
             out += specify(names = "wj_lv_mg_ht_250_300.job498", color = r.kOrange, nFilesMax = 1, nEventsMax = 20000)
@@ -499,8 +487,10 @@ class hadronicLook(supy.analysis):
             return out
 
         def w_inclusive() :
-            return specify(names = "wj_lv_mg_ht_incl", color = r.kOrange)
-
+            out = []
+            for part in range(1,6):
+                out += specify(names = "wj_lv_mg_ht_incl_v2.job673_part%i"%part, nFilesMax = 1, nEventsMax = 1000)
+            return out
         def vv() :
             out = []
             out += specify("ww_py.job188")
@@ -538,16 +528,15 @@ class hadronicLook(supy.analysis):
             return out
 
         return (
-            #data_53X() +
-            #data_52X() +
+            data_53X() +
             #data_52X_2b_skim() +
-            w_binned() +
+            #w_binned() +
             #z_binned() +
             #top() +
             #vv() +
             #qcd_py6(30.0e3) +
             #qcd_b_py6(30.0e3) +
-            ##w_inclusive() +
+            #w_inclusive() +
             #sms() +
             []
             )
@@ -557,7 +546,6 @@ class hadronicLook(supy.analysis):
             x.update(y)
             return x
         
-        #org.mergeSamples(targetSpec = {"name":"2012 Data", "color":r.kBlack, "markerStyle":20}, allWithPrefix = "HT")
         org.mergeSamples(targetSpec = {"name":"2012 Data", "color":r.kBlack, "markerStyle":20}, allWithPrefix = "HT")
 
         mcOps = {"markerStyle":1, "lineWidth":3, "goptions":"hist"}
@@ -579,7 +567,7 @@ class hadronicLook(supy.analysis):
             "tt_8_mg.job315", "ttz_8_mg.job269",
             "t_s_powheg.job200", "t_t_powheg.job187", "t_tw_powheg.job187", "tbar_t_powheg.job194", "tbar_tw_powheg.job187"])
         org.mergeSamples(targetSpec = md({"name":"Z + jets", "color": r.kBlue}, mcOps), allWithPrefix = "zinv_mg_ht")
-        #org.mergeSamples(targetSpec = md({"name":"W + jets", "color": r.kOrange-3}, mcOps), allWithPrefix = "wj_lv_mg_ht_")
+        org.mergeSamples(targetSpec = md({"name":"W + jets", "color": r.kOrange-3}, mcOps), allWithPrefix = "wj_lv_mg_ht_")
         org.mergeSamples(targetSpec = md({"name":"VV", "color": r.kOrange+3}, mcOps), sources = ["ww_py.job188", "wz_py.job188", "zz_py.job188"])
         org.mergeSamples(targetSpec = md({"name":"ZH", "color":r.kMagenta}, mcOps), sources = ["zinv_hbb_125_powheg.job342"])
         org.mergeSamples(targetSpec = md({"name":"LM6", "color":r.kMagenta}, mcOps), allWithPrefix = "lm6")
@@ -611,7 +599,7 @@ class hadronicLook(supy.analysis):
                           showStatBox = True,
                           rowColors = [r.kBlack, r.kViolet+4],
                           #whiteList = ["lowestUnPrescaledTrigger"],
-                          doLog = False,
+                          doLog = True,
                           #pegMinimum = 0.1,
                           linYAfter = ("variableGreaterFilter", "xcak5JetAlphaTEtPat>=0.550 "),
                           blackList = ["lumiHisto","xsHisto","nJobsHisto"],
