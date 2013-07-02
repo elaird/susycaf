@@ -46,3 +46,10 @@ ewk17.add("zinv_mg_ht_100_200.job365", '%s/clucas//ICF/automated/2012_09_21_10_3
 ewk17.add("zinv_mg_ht_200_400.job365", '%s/clucas//ICF/automated/2012_09_21_10_32_59/%s")'%(pnfs, Zinv_S10_excl)%(200,400), xs = {"NNLO":49.2776, "LO":41.49}["NNLO"])
 ewk17.add("zinv_mg_ht_400_inf.job365", '%s/clucas//ICF/automated/2012_09_21_10_32_59/%s")'%(pnfs, Zinv_S10_excl)%(400,"inf"), xs = {"NNLO":6.2639, "LO":5.274}["NNLO"])
 
+ext_suffix = "ZJetsToNuNu_%s_HT_%s_TuneZ2Star_8TeV_madgraph_ext.Summer12_DR53X-PU_S10_START53_V7A-v1.AODSIM/"
+ewk17.add("zinv_mg_ht_50_100_ext.job500", '%s/karage//ICF/automated/2012_11_29_23_55_17/%s")' % (pnfs, ext_suffix % (50, 100)), xs={"NNLO":452.75, "LO":381.2}["NNLO"])
+ewk17.add("zinv_mg_ht_100_200_ext.job680", '%s/clucas//ICF/automated/2013_06_17_17_08_07/%s")' % (pnfs,
+                                                                                                  ext_suffix.replace("V7A","V7C") % (100, 200)),xs={"NNLO":190.39,
+                                                                                                                                                    "LO":160.3}["NNLO"])
+ewk17.add("zinv_mg_ht_200_400_ext.job500", '%s/karage//ICF/automated/2012_11_29_23_55_17/%s")' % (pnfs, ext_suffix % (200, 400)), xs={"NNLO":49.2776, "LO":41.49}["NNLO"])
+ewk17.add("zinv_mg_ht_400_inf_ext.job500", '%s/karage//ICF/automated/2012_11_29_23_55_17/%s")' % (pnfs, ext_suffix % (400, "inf")), xs={"NNLO":6.2639, "LO":5.274}["NNLO"])
