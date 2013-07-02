@@ -305,7 +305,7 @@ class singleJetHistogrammer(analysisStep) :
 
             self.book.fill(eta2,  "%s%s%sEta2mom" %(self.cs+(jetLabel,)), 50,  0.0, mom2Max, title=";jet%s #sigma_{#eta}^{2};events / bin"%jetLabel)
             self.book.fill(phi2,  "%s%s%sPhi2mom" %(self.cs+(jetLabel,)), 50,  0.0, mom2Max, title=";jet%s #sigma_{#phi}^{2};events / bin"%jetLabel)
-            self.book.fill(pt,  "%s%s%sPt" %(self.cs+(jetLabel,)), 50,  0.0, 500.0, title=";jet%s p_{T} (GeV);events / bin"%jetLabel)
+            self.book.fill(pt,  "%s%s%sPt" %(self.cs+(jetLabel,)), 100,  0.0, 1000.0, title=";jet%s p_{T} (GeV);events / bin"%jetLabel)
             self.book.fill(eta, "%s%s%seta"%(self.cs+(jetLabel,)), 50, -5.0,   5.0, title=";jet%s #eta;events / bin"%jetLabel)
             if i>self.maxIndex: continue
             for j,jJet in list(enumerate(cleanJetIndices))[i+1:self.maxIndex+1] :
