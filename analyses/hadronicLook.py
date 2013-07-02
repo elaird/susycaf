@@ -443,7 +443,7 @@ class hadronicLook(supy.analysis):
         from supy.samples import specify
 
         def data_53X():
-            jw2012 = calculables.other.jsonWeight("cert/Cert_190456-208686_8TeV_PromptRecon_Collisions12_JSON.txt")
+            jw2012 = calculables.other.jsonWeight("cert/Cert_190456-208686_8TeV_PromptReco_Collisions12_JSON.txt")
             out = []
             out += specify(names="HTMHTParked.Run2012B-22Jan2013-v1.job649", weights=jw2012)  # , nFilesMax=1, nEventsMax=20000)
             out += specify(names="HTMHTParked.Run2012C-22Jan2013-v1.job649", weights=jw2012)  # , nFilesMax=1, nEventsMax=20000)
@@ -535,8 +535,8 @@ class hadronicLook(supy.analysis):
 
         return (
             data_53X() +
-#            w_binned() +
-#            z_binned() +
+            w_binned() +
+            z_binned() +
             #top() +
             #vv() +
             #qcd_py6(30.0e3) +
