@@ -35,13 +35,13 @@ class hadronicLook(supy.analysis):
                                       {"muon": ("muon", "Pat"),
                                        "electron": ("electron", "Pat"),
                                        "photon": ("photon", "Pat"),
-                                       
+
                                        "jet": ("xcak5Jet", "Pat"),
                                        "jetId": "JetIDloose",
                                        "muonsInJets": False,
                                        "met": "metP4TypeIPF",
                                        "rechit": "Calo",
-                                     
+
                                        "jetComp": ("xcak5JetPF", "Pat"),
                                        "jetIdComp": "JetIDtight",
                                        "muonsInJetsComp": True,
@@ -59,7 +59,7 @@ class hadronicLook(supy.analysis):
                                         #"eq3b": (3, 3),
                                         #"ge4b": (4, None),
                                         }),
-                "thresholds": self.vary({#"200s": (200.0, 275.0,   73.3, 36.7),
+                "thresholds": self.vary({"200s": (200.0, 275.0,   73.3, 36.7),
                                          #"275s": (275.0, 325.0,  73.3, 36.7),
                                          #"325s": (325.0, 375.0,  86.7, 43.3),
                                          "375":  (375.0, None,  100.0, 50.0),
@@ -499,13 +499,14 @@ class hadronicLook(supy.analysis):
         def vv():
             out = []
             #out += specify("zinv_hbb_125_powheg.job342")
-            for diBos in ["ZZ", "WZ", "WW"]: out += specify("%s_pythia6.job370" % diBos)
+            for diBos in ["ZZ", "WZ", "WW"]:
+                out += specify("%s_pythia6.job370" % diBos)
             return out
 
         def top():
             out = []
             out += specify(names="ttbar_powheg_v1.job410")
-            for sTop in ["T_s","T_t", "T_tW", "Tbar_s", "Tbar_t", "Tbar_tW"]:
+            for sTop in ["T_s", "T_t", "T_tW", "Tbar_s", "Tbar_t", "Tbar_tW"]:
                 out += specify("%s_powheg.job368" % sTop)
             return out
 
