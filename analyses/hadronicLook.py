@@ -35,13 +35,13 @@ class hadronicLook(supy.analysis):
                                       {"muon": ("muon", "Pat"),
                                        "electron": ("electron", "Pat"),
                                        "photon": ("photon", "Pat"),
-
+                                       
                                        "jet": ("xcak5Jet", "Pat"),
                                        "jetId": "JetIDloose",
                                        "muonsInJets": False,
                                        "met": "metP4TypeIPF",
                                        "rechit": "Calo",
-
+                                     
                                        "jetComp": ("xcak5JetPF", "Pat"),
                                        "jetIdComp": "JetIDtight",
                                        "muonsInJetsComp": True,
@@ -308,7 +308,6 @@ class hadronicLook(supy.analysis):
             steps.jet.cleanJetHtMhtHistogrammer(_jet, params["etRatherThanPt"]),
             supy.steps.histos.histogrammer("%sDeltaPhiStar%s%s" % (_jet[0], params["lowPtName"], _jet[1]), 20, 0.0, r.TMath.Pi(), title=";#Delta#phi*;events / bin", funcString='lambda x:x[0][0]'),
             supy.steps.histos.histogrammer("%sDeltaPhiStar%s" % (_jet[0], _jet[1]), 20, 0.0, r.TMath.Pi(), title=";#Delta#phi*;events / bin", funcString='lambda x:x[0][0]'),
-            supy.steps.histos.histogrammer("%sMaxEmEnergyFraction%s" % (_jet[0], _jet[1]), 20, 0.0, 1.0, title=";MaxEmEnergyFraction;events / bin"),
             supy.steps.histos.histogrammer(_met, 100, 0.0, 500.0, title=";"+_met+" (GeV);events / bin", funcString="lambda x: x.pt()"),
             supy.steps.filters.label("kinematicPlots1"),
 
@@ -358,8 +357,8 @@ class hadronicLook(supy.analysis):
 
     def stepsOptional(self, params):
         return [
-            #supy.steps.other.skimmer(),
-            steps.other.duplicateEventCheck(),
+            supy.steps.other.skimmer(),
+            #steps.other.duplicateEventCheck(),
             #steps.other.pickEventSpecMaker(),
             #steps.other.cutBitHistogrammer(self.togglePfJet(_jet), self.togglePfMet(_met)),
             #steps.Print.jetPrinter(_jet),
@@ -423,12 +422,11 @@ class hadronicLook(supy.analysis):
                 self.stepsXclean(params) +
                 self.stepsOptional(params) +
                 self.stepsBtagJets(params) +
-                self.stepsPlotsOne(params) +
                 self.stepsQcdRejection(params) +
+                self.stepsPlotsOne(params) +
                 self.stepsPlotsTwo(params) +
                 #self.stepsMbb(params) +
                 #self.stepsDisplayer(params) +
-                
                 #self.stepsHtBins(params) +
                 #self.stepsEventCount(params, label="scanAfter") +
                 [])
@@ -437,7 +435,7 @@ class hadronicLook(supy.analysis):
         sh = supy.samples.SampleHolder()
         sh.add("275_ge2b", '["/uscms/home/elaird/08_mbb/02_skim/2012_5fb_275_ge2b.root"]', lumi=5.0e3)
         sh.add("375_ge2b", '["/uscms/home/yeshaq/nobackup/supy-output/hadronicLook/375_calo_ge2/HadronicRegion.root"]', lumi=5.0e3)
-        return [samples.ht17, samples.top17, samples.ewk17, samples.qcd17, sh, samples.susy17]
+        return [samples.ht17, samples.top17, samples.ewk17, samples.qcd17, sh, samples.susy17, samples.photon17]
 
     def listOfSamples(self, params):
         from supy.samples import specify
@@ -445,9 +443,9 @@ class hadronicLook(supy.analysis):
         def data_53X():
             jw2012 = calculables.other.jsonWeight("cert/Cert_190456-208686_8TeV_PromptReco_Collisions12_JSON.txt")
             out = []
-            out += specify(names="HTMHTParked.Run2012B-22Jan2013-v1.job649", weights=jw2012)  # , nFilesMax=1, nEventsMax=20000)
-            out += specify(names="HTMHTParked.Run2012C-22Jan2013-v1.job649", weights=jw2012)  # , nFilesMax=1, nEventsMax=20000)
-            out += specify(names="HTMHTParked.Run2012D-22Jan2013-v1.job649", weights=jw2012)  # , nFilesMax=1, nEventsMax=20000)
+            out += specify(names="HTMHTParked.Run2012B-22Jan2013-v1.job649", weights=jw2012)
+            out += specify(names="HTMHTParked.Run2012C-22Jan2013-v1.job649", weights=jw2012)
+            out += specify(names="HTMHTParked.Run2012D-22Jan2013-v1.job649", weights=jw2012)
             #out += specify(names="HTMHTParked_ICF_sync_test", weights=jw2012)  # , nFilesMax=1, nEventsMax=20000)
             return out
 
@@ -455,7 +453,7 @@ class hadronicLook(supy.analysis):
             low = map(lambda x: x[0], samples.__qcd17__.binsXs)[:-1]
             out = []
             for pt in low[low.index(80):]:
-                out += specify("qcd_py6_pt_%d" % pt, effectiveLumi=eL)
+                out += specify("qcd_py6_pt_v2_%d" % pt, effectiveLumi=eL)
             return out
 
         def qcd_b_py6(eL):
@@ -465,59 +463,50 @@ class hadronicLook(supy.analysis):
             return out
 
         def g_jets_mg(eL):
-            gM = [40, 100, 200]
-            return specify(effectiveLumi=eL, color=r.kGreen,
-                           names=[("g_jets_mg_ht_%d_%d")[:None if t[1] else -2] for t in zip(gM, gM[1:]+["inf"])])
+            out = []
+            out += specify("g_jets_mg_ht_200_400.job501", effectiveLumi=eL, color=r.kGreen)
+            out += specify("g_jets_mg_ht_400_inf.job501", effectiveLumi=eL, color=r.kGreen)
+            return out
 
         def w_binned():
             out = []
-            out += specify(names="wj_lv_mg_ht_10_150", color=r.kBlue)  # , nFilesMax=1, nEventsMax=20000)
-            out += specify(names="wj_lv_mg_ht_150_200.job663", color=r.kGreen)  # , nFilesMax=1, nEventsMax=20000)
-            out += specify(names="wj_lv_mg_ht_200_250.job672", color=r.kCyan)  # , nFilesMax=1, nEventsMax=20000)
-            out += specify(names="wj_lv_mg_ht_250_300.job498", color=r.kOrange)  # , nFilesMax=1, nEventsMax=20000)
-            out += specify(names="wj_lv_mg_ht_300_400.job498", color=r.kViolet)  # , nFilesMax=1, nEventsMax=20000)
-            out += specify(names="wj_lv_mg_ht_400_inf.job498", color=r.kAzure)  # , nFilesMax=1, nEventsMax=20000)
+            out += specify(names="wj_lv_mg_ht_10_150", color=r.kBlue)
+            out += specify(names="wj_lv_mg_ht_150_200.job663", color=r.kGreen)
+            out += specify(names="wj_lv_mg_ht_200_250.job672", color=r.kCyan)
+            out += specify(names="wj_lv_mg_ht_250_300.job498", color=r.kOrange)
+            out += specify(names="wj_lv_mg_ht_300_400.job498", color=r.kViolet)
+            out += specify(names="wj_lv_mg_ht_400_inf.job498", color=r.kAzure)
             return out
 
         def z_binned():
             out = []
-            out += specify("zinv_mg_ht_50_100.job407", color=r.kBlue)  # , nFilesMax=1, nEventsMax=20000)
-            out += specify("zinv_mg_ht_100_200.job365", color=r.kGreen)  # , nFilesMax=1, nEventsMax=20000)
-            out += specify("zinv_mg_ht_200_400.job365", color=r.kOrange)  # , nFilesMax=1, nEventsMax=20000)
-            out += specify("zinv_mg_ht_400_inf.job365", color=r.kViolet)  # , nFilesMax=1, nEventsMax=20000)
-            out += specify("zinv_mg_ht_50_100_ext.job500", color=r.kBlue)  # , nFilesMax=1, nEventsMax=20000)
-            out += specify("zinv_mg_ht_100_200_ext.job680", color=r.kGreen)  # , nFilesMax=1, nEventsMax=20000)
-            out += specify("zinv_mg_ht_200_400_ext.job500", color=r.kOrange)  # , nFilesMax=1, nEventsMax=20000)
-            out += specify("zinv_mg_ht_400_inf_ext.job500", color=r.kViolet)  # , nFilesMax=1, nEventsMax=20000)
+            out += specify("zinv_mg_ht_50_100.job407", color=r.kBlue)
+            out += specify("zinv_mg_ht_100_200.job365", color=r.kGreen)
+            out += specify("zinv_mg_ht_200_400.job365", color=r.kOrange)
+            out += specify("zinv_mg_ht_400_inf.job365", color=r.kViolet)
+            out += specify("zinv_mg_ht_50_100_ext.job500", color=r.kBlue)
+            out += specify("zinv_mg_ht_100_200_ext.job680", color=r.kGreen)
+            out += specify("zinv_mg_ht_200_400_ext.job500", color=r.kOrange)
+            out += specify("zinv_mg_ht_400_inf_ext.job500", color=r.kViolet)
             return out
 
         def w_inclusive():
             out = []
             for part in range(1, 6):
-                out += specify(names="wj_lv_mg_ht_incl_v2.job673_part%i" % part, nFilesMax=1, nEventsMax=1000)
+                out += specify(names="wj_lv_mg_ht_incl_v2.job673_part%i" % part)
             return out
 
         def vv():
             out = []
-            out += specify("ww_py.job188")
-            out += specify("wz_py.job188")
-            out += specify("zz_py.job188")
-            out += specify("zinv_hbb_125_powheg.job342")
+            #out += specify("zinv_hbb_125_powheg.job342")
+            for diBos in ["ZZ", "WZ", "WW"]: out += specify("%s_pythia6.job370" % diBos)
             return out
 
         def top():
             out = []
             out += specify(names="ttbar_powheg_v1.job410")
-            #out += specify(names="tt_8_mg.job188")
-            #out += specify(names="tt_8_mg.job315")
-            out += specify(names="ttz_8_mg.job269", nFilesMax=1)
-
-            out += specify("t_s_powheg.job200")
-            #oAut += specify("t_t_powheg.job187"    ) #low MC stats
-            out += specify("t_tw_powheg.job187")
-            out += specify("tbar_t_powheg.job194")
-            out += specify("tbar_tw_powheg.job187")
-
+            for sTop in ["T_s","T_t", "T_tW", "Tbar_s", "Tbar_t", "Tbar_tW"]:
+                out += specify("%s_powheg.job368" % sTop)
             return out
 
         def susy(eL):
@@ -535,12 +524,13 @@ class hadronicLook(supy.analysis):
 
         return (
             data_53X() +
-            w_binned() +
-            z_binned() +
+            #w_binned() +
+            #z_binned() +
             #top() +
             #vv() +
             #qcd_py6(30.0e3) +
             #qcd_b_py6(30.0e3) +
+            #g_jets_mg(30e3) +
             #w_inclusive() +
             #sms() +
             []
@@ -581,7 +571,7 @@ class hadronicLook(supy.analysis):
         org.mergeSamples(targetSpec=md({"name": "Standard Model ", "color": r.kAzure+6}, mcOps), sources=ewkSources + qcdSources, keepSources=True)
 
     def conclude(self, conf):
-        org = self.organizer(conf, verbose=True)
+        org = self.organizer(conf)
         self.mergeSamples(org)
         ##for skimming only
         #utils.printSkimResults(org)
