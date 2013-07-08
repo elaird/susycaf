@@ -53,3 +53,8 @@ ewk17.add("zinv_mg_ht_100_200_ext.job680", '%s/clucas//ICF/automated/2013_06_17_
                                                                                                                                                     "LO":160.3}["NNLO"])
 ewk17.add("zinv_mg_ht_200_400_ext.job500", '%s/karage//ICF/automated/2012_11_29_23_55_17/%s")' % (pnfs, ext_suffix % (200, 400)), xs={"NNLO":49.2776, "LO":41.49}["NNLO"])
 ewk17.add("zinv_mg_ht_400_inf_ext.job500", '%s/karage//ICF/automated/2012_11_29_23_55_17/%s")' % (pnfs, ext_suffix % (400, "inf")), xs={"NNLO":6.2639, "LO":5.274}["NNLO"])
+
+diBos = "%s_TuneZ2star_8TeV_pythia6_tauola.Summer12_DR53X-PU_S10_START53_V7A-v1.AODSIM/"
+diBosons ={"ZZ":8.25561, "WZ":32.3161, "WW":57.1097}
+for key in diBosons:
+    ewk17.add("%s_pythia6.job370" % key, '%s/zmeng/ICF/automated/2012_09_21_17_43_41/%s")' % (pnfs, diBos % key), xs = diBosons[key])
