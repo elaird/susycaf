@@ -33,3 +33,10 @@ qcd17.add("qcd_b_mg_ht_500", '%s/BJets_HT-500To1000_8TeV-madgraph.Summer12_DR53X
 qcd17.add("qcd_b_py6_pt_30", '%s/QCD_Pt-30To50_bEnriched_TuneZ2star_8TeV-pythia6-evtgen.Summer12_DR53X-PU_S10_START53_V7A-v1.AODSIM")'%bEn, xs = 6.677E7)
 qcd17.add("qcd_b_py6_pt_50", '%s/QCD_Pt-50To150_bEnriched_TuneZ2star_8TeV-pythia6-evtgen.Summer12_DR53X-PU_S10_START53_V7A-v1.AODSIM")'%bEn, xs = 9355000.0)
 qcd17.add("qcd_b_py6_pt_150", '%s/QCD_Pt-150_bEnriched_TuneZ2star_8TeV-pythia6-evtgen.Summer12_DR53X-PU_S10_START53_V7A-v1.AODSIM")'%bEn, xs = 67340.0)
+
+for i,(low,xs) in enumerate(binsXs[:-1]) :
+    hi = binsXs[i+1][0]
+    dir = "_.QCD_Pt-%d%s_TuneZ2star_8TeV_pythia6.Summer12-PU_S7_START52_V9-v1.AODSIM_/"%(low, "to%d"%hi if hi else "")
+    if i < 1 : dir = dir.replace("_.QCD", "QCD").replace("AODSIM_","AODSIM")
+    if low == 1800.: dir = dir.replace("AODSIM_","AODSIM") 
+    qcd17.add("qcd_py6_pt_v2_%d"%low, '%s/agapitos//ICF/automated/2012_09_22_14_28_53/%s")'%(pnfs, dir), xs = xs)
