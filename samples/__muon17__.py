@@ -1,7 +1,9 @@
 from supy.samples import SampleHolder
-from supy.sites import pnfs
+from supy.sites import pnfs, eos
 pnfs = pnfs()
+eos = eos()
 muon17 = SampleHolder()
+
 
 muon17.add("SingleMu.Run2012A-PromptReco-v1.AOD.job228", '%s/zmeng//ICF/automated/2012_06_14_11_22_04/SingleMu.Run2012A-PromptReco-v1.AOD/", alwaysUseLastAttempt = True)'%pnfs, lumi = 1 ) #/pb
 muon17.add("SingleMu.Run2012B-PromptReco-v1.AOD.job229", '%s/zmeng//ICF/automated/2012_06_14_14_26_12/SingleMu.Run2012B-PromptReco-v1.AOD/", alwaysUseLastAttempt = True)'%pnfs, lumi = 1 ) #/pb
@@ -24,3 +26,8 @@ muon17.add("SingleMu.Run2012C-PromptReco-v2.AOD.job474", '%s/yeshaq/ICF/automate
 
 muon17.add("SingleMu.Run2012D-PromptReco-v1.AOD.job508", '%s/yeshaq/ICF/automated/2012_12_04_16_51_31/SingleMu.Run2012D-PromptReco-v1.AOD/")'%pnfs, lumi = 1 ) #/pb
 muon17.add("SingleMu.Run2012D-PromptReco-v1.AOD.job525", '%s/yeshaq/ICF/automated/2013_01_18_14_00_11/")'%pnfs, lumi = 1 ) #/pb
+
+muon17.add("SingleMu.Run2012A-22Jan2013", '%s/clucas/Parked13/SingleMu_Run2012A_22Jan2013/")'%eos, lumi = 1) #/pb
+muon17.add("SingleMu.Run2012B-22Jan2013", '%s/clucas/Parked13/SingleMu_Run2012B_22Jan2013/")'%eos, lumi = 1) #/pb
+muon17.add("SingleMu.Run2012C-22Jan2013", '%s/clucas/Parked13/SingleMu_Run2012C_22Jan2013/")'%eos, lumi = 1) #/pb
+muon17.add("SingleMu.Run2012D-22Jan2013", '%s/clucas/Parked13/SingleMu_Run2012D_22Jan2013/")'%eos, lumi = 1) #/pb
