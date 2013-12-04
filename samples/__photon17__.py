@@ -23,3 +23,5 @@ for era in ["B","C","D"]:
     photon17.add("SinglePhotonParked.Run2012%s-22Jan2013"%era, '%s/clucas/Parked13/SinglePhoton_Run2012%s_22Jan2013/")' % (eos, era), lumi = 1.0)
 
 photon17.add("Photon.Run2012A-22Jan2013", '%s/clucas/Parked13/Photon_Run2012A_22Jan2013/")' % eos, lumi = 1.0)
+photon17.add("GJets_HT200to400", '%s/clucas/Parked13/GJets_200to400/")' % eos, xs={"LO": 960.5, "NLO":1140.78}["NLO"])
+photon17.add("GJets_HT400toinf", '%s/clucas/Parked13/GJets_400toinf/")' % eos, xs={"LO": 960.5, "NLO":1140.78}["NLO"])
