@@ -1,6 +1,7 @@
 from supy.samples import SampleHolder
-from supy.sites import pnfs
+from supy.sites import pnfs, eos
 pnfs = pnfs()
+eos = eos()
 ewk17 = SampleHolder()
 
 ### Wjets ###
@@ -20,6 +21,17 @@ ewk17.add("wj_lv_mg_ht_incl.job363",    '%s/clucas/ICF//automated/2012_09_21_09_
 
 for part in [1,2,3,4,5] :
     ewk17.add("wj_lv_mg_ht_incl_v2.job673_part%i"%part, '%s/yeshaq//ICF/automated/2013_05_23_14_13_07/part%i")'%(pnfs,part), xs = {"LO":30400.0, "NLO":36257.2}["NLO"])
+
+for part in [1,2,3,4] :
+    ewk17.add("wj_lv_mg_ht_incl_v2.job50_part%i"%part, '%s/zmeng/ICF/automated/2013_09_02_15_42_12/part%i")'%(pnfs,part), xs = {"LO":30400.0, "NLO":37509}["NLO"])
+
+ewk17.add("wj_lv_mg_ht_incl"    , '%s/clucas/Parked13/WJets_inc/")'      % eos, xs = {"NLO":37509}["NLO"])
+ewk17.add("wj_lv_mg_ht_10To150" , '%s/clucas/Parked13/WJets_10to150/")'  % eos, xs = {"NLO":37509.0}["NLO"])
+ewk17.add("wj_lv_mg_ht_150To200", '%s/clucas/Parked13/WJets_150to200/")' % eos, xs = {"NLO":253.84}["NLO"])
+ewk17.add("wj_lv_mg_ht_200To250", '%s/clucas/Parked13/WJets_200to250/")' % eos, xs = {"NLO":116.46}["NLO"])
+ewk17.add("wj_lv_mg_ht_250To300", '%s/clucas/Parked13/WJets_250to300/")' % eos, xs = {"NLO":57.6358}["NLO"])
+ewk17.add("wj_lv_mg_ht_300To400", '%s/clucas/Parked13/WJets_300to400/")' % eos, xs = {"NLO":48.3664}["NLO"])
+ewk17.add("wj_lv_mg_ht_400ToInf", '%s/clucas/Parked13/WJets_400toinf/")' % eos, xs = {"NLO":30.7777}["NLO"])
 
 #comment 1
 # CrossSection = ( NNLO_W_inclusive_from[1] / LO_W_inclusive_from_PREP[2] ) * LO_W_exclusive_from_PREP: [3]
