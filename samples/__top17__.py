@@ -1,7 +1,8 @@
 from supy.samples import SampleHolder
-from supy.sites import pnfs
+from supy.sites import pnfs, eos
 import itertools
 pnfs = pnfs()
+eos = eos()
 top17 = SampleHolder()
 
 top17.add("tt_8_mg.job315_1", '["/uscms/home/elaird/141_ntuples/job315/SusyCAF_Tree_100_1_h3D.root"]', xs = 234.)
@@ -19,6 +20,10 @@ top17.add("ttz_8_mg.job269_1", '["/uscms/home/elaird/141_ntuples/job269/SusyCAF_
 top17.add("ttbar_powheg_v1.job410", '%s/clucas//ICF/automated/2012_09_26_14_02_42/")'%pnfs, xs = 211.)
 top17.add("ttbar_powheg_v2.job404", '%s/zmeng//ICF/automated/2012_09_21_17_07_53/")'%pnfs, xs = 211.)
 
+top17.add("ttbar_CT10_powheg", '%s/clucas/Parked13/TT_CT10_Combined/")' % eos, xs=234)
+top17.add("ttz_mg", '%s/clucas/Parked13/TTZJets/")' % eos, xs=0.172)
+
+
 sTop = "-channel_TuneZ2star_8TeV-powheg-tauola.Summer12_DR53X-PU_S10_START53_V7A-v1.AODSIM/"
 combs = {"T_s":{"NLO":3.79, "LO":2.82},"T_t":{"NLO":56.4, "LO":47.0},"T_tW":{"NLO":11.1, "LO":10.7},
       "Tbar_s":{"NLO":1.76, "LO":1.57},"Tbar_t": {"NLO":30.7, "LO":25.0},"Tbar_tW":{"NLO":11.1, "LO":10.7}}
@@ -26,3 +31,4 @@ combs = {"T_s":{"NLO":3.79, "LO":2.82},"T_t":{"NLO":56.4, "LO":47.0},"T_tW":{"NL
 for key in combs: 
     top17.add("%s_powheg.job368"%key,
               '%s/zmeng//ICF/automated/2012_09_21_17_19_15/%s")'%(pnfs, (key + sTop).replace("tW-channel","tW-channel-DR")),combs[key]["NLO"])
+    top17.add("%s_powheg"%key, '%s/clucas/Parked13/%s_channel/")'%(eos, key),combs[key]["NLO"])
