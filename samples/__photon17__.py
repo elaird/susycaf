@@ -19,8 +19,9 @@ photon17.add("g_jets_mg_ht_200_400.job501", '%s/agapitos//ICF/automated/2012_11_
 photon17.add("g_jets_mg_ht_400_inf.job501", '%s/agapitos//ICF/automated/2012_11_29_18_15_22/%s")' % (pnfs, gJet % "400ToInf"),
              xs={"LO": 107.5, "NLO":124.68}["NLO"])
 
-for era in ["B","C","D"]:
+for era in ["B","C"]:
     photon17.add("SinglePhotonParked.Run2012%s-22Jan2013"%era, '%s/clucas/Parked13/SinglePhoton_Run2012%s_22Jan2013/")' % (eos, era), lumi = 1.0)
+photon17.add("SinglePhotonParked.Run2012D-22Jan2013", '%s/clucas/Parked13/SinglePhotonParked_Run2012D_22Jan2013/")' % eos, lumi = 1.0)
 
 photon17.add("Photon.Run2012A-22Jan2013", '%s/clucas/Parked13/Photon_Run2012A_22Jan2013/")' % eos, lumi = 1.0)
 photon17.add("GJets_HT200to400", '%s/clucas/Parked13/GJets_200to400/")' % eos, xs={"LO": 960.5, "NLO":1140.78}["NLO"])
