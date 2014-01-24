@@ -124,6 +124,23 @@ class metPlusParticles(wrappedChain.calculable) :
     def update(self, ignored) :
         self.value = self.source[self.met] + self.source["%sSumP4%s"%self.particles]
 ##############################
+class metPlusIndices(wrappedChain.calculable) :
+    @property
+    def name(self) :
+        return "%sPlus%sIndices%s"%(self.met, self.collection[0],self.collection[1])
+    def __init__(self, met, collection = None) :
+        self.collection = collection
+        self.fixes = collection
+        self.met = met
+        self.stash(["Indices","P4"])
+    def update(self, ignored) :
+        particleIndices = self.source[self.Indices]
+        particles       = self.source[self.P4]
+        self.value = self.source[self.met]
+        for iParticle in particleIndices:
+            self.value += particles.at(iParticle)
+##############################
+
 class minDeltaRToJet(wrappedChain.calculable) :
     @property
     def name(self) : return "%s%sMinDeltaRToJet%s%s"% (self.particles[0], self.particles[1], self.jets[0], self.jets[1])
