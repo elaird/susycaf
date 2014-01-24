@@ -26,7 +26,7 @@ class photonLook(supy.analysis) :
 
                  #required to be sorted
                  "triggerList": tuple(#["HLT_Photon135_v%d"%i for i in range(4,10)]+
-                                      ["HLT_Photon150_v%d"%i for i in range(1,4)]#+
+                                      ["HLT_Photon150_v%d"%i for i in range(1,5)]#+
                                       #["HLT_Photon160_v%d"%i for i in range(1,10)]
                                       ),
                  "tagTriggers": tuple(["HLT_Photon50_CaloIdVL_IsoL_v%d"%i for i in [14,15,16]]+
@@ -93,14 +93,18 @@ class photonLook(supy.analysis) :
                      calculables.jet.AlphaTWithPhoton1PtRatherThanMht(obj["jet"], photons = obj["photon"], etRatherThanPt = _etRatherThanPt),
                      calculables.jet.AlphaT(obj["jet"], _etRatherThanPt),
                      calculables.jet.AlphaTMet(obj["jet"], _etRatherThanPt, obj["met"]),
-                     calculables.jet.MhtOverMet((obj["jet"][0], obj["jet"][1]+params["highPtName"]), met = obj["met"]),
-                     calculables.jet.MhtOverMet((obj["jet"][0], obj["jet"][1]+params["highPtName"]), met = "%sPlus%s%s"%(obj["met"], obj["photon"][0], obj["photon"][1])),
+                     calculables.jet.MhtOverMet((obj["jet"][0], params["highPtName"]+obj["jet"][1]), met = obj["met"]),
+                     calculables.jet.MhtOverMet((obj["jet"][0], params["highPtName"]+obj["jet"][1]), met = "%sPlus%s%s"%(obj["met"], obj["photon"][0], obj["photon"][1])),
+                     #xcak5JetMhthighPtPatOvermetP4TypeIPF
+                     #calculables.jet.MhtOverMet((jet[0], highPtName + jet[1]),
+                     #                           met),
+
                      calculables.other.metPlusParticles(met = obj["met"], particles = obj["photon"]),
                      calculables.other.minDeltaRToJet(obj["photon"], obj["jet"]),
                      calculables.other.SumP4(obj["photon"]),
                      calculables.vertex.ID(),
                      calculables.vertex.Indices(),
-                     calculables.jet.deadEcalDR(obj["jet"], extraName = params["lowPtName"], minNXtals = 10),
+                     calculables.jet.DeadEcalDR(obj["jet"], extraName = params["lowPtName"], minNXtals = 10),
                      calculables.trigger.lowestUnPrescaledTrigger(params["triggerList"]),
                      ]
 
@@ -123,9 +127,13 @@ class photonLook(supy.analysis) :
             steps.trigger.physicsDeclaredFilter().onlyData(),
             steps.filters.monster(),
             steps.filters.hbheNoise().onlyData(),
-            steps.trigger.hltPrescaleHistogrammer(params["triggerList"]).onlyData(),
+            supy.steps.filters.value("beamHaloCSCTightHaloId", max=0).onlyData(),
+            supy.steps.filters.value("trackingFailureFilterFlag", min=1).onlyData(),
+            supy.steps.filters.value("hcalLaserEventFilterFlag", min=1).onlyData(),
+            supy.steps.filters.value("ecalDeadCellTPFilterFlag", min=1).onlyData(),
+            #steps.trigger.hltPrescaleHistogrammer(params["triggerList"]).onlyData(),
             supy.steps.filters.value("lowestUnPrescaledTrigger").onlyData(),
-            steps.trigger.lowestUnPrescaledTriggerHistogrammer().onlyData(),
+            #steps.trigger.lowestUnPrescaledTriggerHistogrammer().onlyData(),
             steps.trigger.lowestUnPrescaledTriggerFilter().onlyData(),
             #steps.trigger.triggerScan( pattern = r"HLT_Photon\d*_v\d", prescaleRequirement = "prescale==1", tag = "Photon"),
             #steps.trigger.triggerScan( pattern = r"HLT_Photon\d*_v\d", prescaleRequirement = "True", tag = "PhotonAll"),
@@ -135,8 +143,9 @@ class photonLook(supy.analysis) :
             outList += [
                 steps.photon.photonPtSelector(_photon, 150.0, 0),
                 steps.photon.photonEtaSelector(_photon, 1.45, 0),
-                supy.steps.filters.label("vertexDistribution1"),
+                #supy.steps.filters.label("vertexDistribution1"),
                 supy.steps.histos.histogrammer("vertexIndices", 20, -0.5, 19.5, title=";N vertices;events / bin", funcString="lambda x:len(x)"),
+
                 supy.steps.filters.multiplicity("%sIndices%s"%_jet, min = 1),
                 steps.photon.singlePhotonHistogrammer(_photon, _jet),
                 ]
@@ -144,6 +153,8 @@ class photonLook(supy.analysis) :
         #require vertex
         outList += [supy.steps.filters.multiplicity("vertexIndices", min = 1),
                     supy.steps.histos.multiplicity("vertexIndices", max = 41),
+                    supy.steps.histos.histogrammer("pileupTrueNumInteractions", 41, -0.5, 40.5, title=";true number of interacions;events / bin",
+                                                   funcString="lambda x:x[0]").onlySim(),
                     ]
 
         if params["vertexMode"] :
@@ -251,7 +262,7 @@ class photonLook(supy.analysis) :
             #supy.steps.histos.histogrammer("%sMht%sOver%s" %(_jet[0], _jet[1]+params["highPtName"], _met if params["zMode"] else _met+"Plus%s%s"%_photon),
             #                               100, 0.0, 3.0,
             #                               title = ";MHT %s%s / %s;events / bin"%(_jet[0], _jet[1], _met if params["zMode"] else _met+"Plus%s%s"%_photon)),
-            supy.steps.filters.value("%sMht%sOver%s" %(_jet[0], _jet[1]+params["highPtName"], _met if params["zMode"] else _met+"Plus%s%s"%_photon),
+            supy.steps.filters.value("%sMht%sOver%s" %(_jet[0], params["highPtName"]+_jet[1], _met if params["zMode"] else _met+"Plus%s%s"%_photon),
                                      max = 1.25),
             steps.other.deadEcalFilter(jets = _jet, extraName = params["lowPtName"], dR = 0.3, dPhiStarCut = 0.5),
 
@@ -304,7 +315,7 @@ class photonLook(supy.analysis) :
             supy.steps.histos.histogrammer("%sSumEt%s"%_jet, 6, 375.0, 975.0, title = ";H_{T} (GeV) from %s%s E_{T}s;events / bin"%_jet),
             supy.steps.histos.generic(("%sSumEt%s"%_jet, "%sIndicesBtagged2%s"%_jet), (6, 4), (375.0, -0.5), (975.0, 3.5),
                                       title = ";H_{T} (GeV);n_{b};events / bin", funcString = "lambda x:(x[0],len(x[1]))"),
-            ] + [supy.steps.filters.value("%sSumEt%s"%_jet, min = 375.0+100*iBin) for iBin in range(2,6)]
+            ] + [supy.steps.filters.value("%sSumEt%s"%_jet, min = 375.0+100*iBin) for iBin in range(1,6)]
         return outList
 
     def listOfSampleDictionaries(self) :
@@ -312,36 +323,47 @@ class photonLook(supy.analysis) :
 
     def listOfSamples(self,params) :
         from supy.samples import specify
+        jw2012 = calculables.other.jsonWeight("cert/Cert_190456-208686_8TeV_22Jan2013ReReco_Collisions12_JSON.txt")
 
-        jw2012 = calculables.other.jsonWeight("cert/Cert_190456-195947_8TeV_PromptReco_Collisions12_JSON_v2.txt")
 
         data  = []
-        #data += specify("Photon.2012A.job171",       weights = jw2012, overrideLumi = 660.1)
-        #data += specify("SinglePhoton.2012B.job171", weights = jw2012, overrideLumi = 890.1)
-        #data += specify("SinglePhoton.2012B.job171", weights = jw2012, overrideLumi = 890.1)
-
-        data += specify("Photon.2012A.job228", weights = jw2012, overrideLumi = 1.0)
-        #data += specify("Darren_skim")
+        data += specify(names="Photon.Run2012A-22Jan2013", weights=jw2012)#, nFilesMax=1)
+        for era in ["B","C","D"]:
+            data += specify(names="SinglePhotonParked.Run2012%s-22Jan2013"%era, weights=jw2012)#, nFilesMax=1)
 
         phw = calculables.photon.photonWeight(var = "vertexIndices", weightSet = "ZM")
-        mc = specify("GJets_HT400.job174", color = r.kBlue, weights = phw)
+        pu = calculables.gen.puWeight(var="pileupTrueNumInteractions", puEra="PU_Parked")
+        mc = []
+#        photon17.add("GJets_HT200to400", '%s/clucas/Parked13/GJets_200to400/")' % eos, xs={"LO": 960.5, "NLO":1140.78}["NLO"])
+#        photon17.add("GJets_HT400toinf", '%s/clucas/Parked13/GJets_400toinf/")' % eos, xs={"LO": 107.5, "NLO":124.68}["NLO"])
+
+        mc += specify("GJets_HT200to400", color = r.kRed, weights = pu)#, effectiveLumi=(19708.574*960.5/1140.78))#, nFilesMax=1)
+        mc += specify("GJets_HT400toinf", color = r.kBlue, weights = pu)#, nFilesMax=1)#, nEventsMax=5000)
         outList = []
 
         if not params["zMode"] :
             outList += data
             outList += mc
         else :
-            outList += specify("DYJetsToLL_M-50.job97", color = r.kMagenta, nFilesMax=1, nEventsMax=1000)
+            #outList += specify("dyll_HT_10To200_M-10To50", weights=pu, nFilesMax=1, nEventsMax=5000)
+            outList += specify("dyll_HT_10To200_M-50", weights=pu, nFilesMax=1)
+            outList += specify("dyll_HT_200To400_M-50", weights=pu, nFilesMax=1)
+            outList += specify("dyll_HT_400ToInf_M-50", weights=pu, nFilesMax=1)
+
             
         return outList
 
     def mergeSamples(self, org) :
         org.mergeSamples(targetSpec = {"name":"Data", "color":r.kBlack, "markerStyle":20},
-                         sources = ["Photon.2012A.job171.jsonWeight", "SinglePhoton.2012B.job171.jsonWeight"]
+                         sources = ["Photon.Run2012A-22Jan2013.jsonWeight"] +
+                         ["SinglePhotonParked.Run2012%s-22Jan2013.jsonWeight" % x for x in ["B","C","D"]]
                          )
 
-        org.mergeSamples(targetSpec = {"name":"SM", "color":r.kBlue, "markerStyle":1, "lineWidth":3, "goptions":"hist"},
-                         allWithPrefix = "GJets")
+        #org.mergeSamples(targetSpec = {"name":"SM", "color":r.kBlue, "markerStyle":1, "lineWidth":3, "goptions":"hist"},
+        #                 allWithPrefix = "GJets")
+
+        org.mergeSamples(targetSpec = {"name":"SM", "color":r.kRed, "markerStyle":1, "lineWidth":3, "goptions":"hist"},
+                         allWithPrefix = "dyll")
 
 
 #    def concludeAll(self) :
@@ -376,7 +398,7 @@ class photonLook(supy.analysis) :
             org.scale()
             
         self.makeStandardPlots(org)
-        self.makeRootFiles(org)
+        #self.makeRootFiles(org)
         #self.makeIndividualPlots(org)
         #self.makePurityPlots(org)
         #self.makeEfficiencyPlots(org)
