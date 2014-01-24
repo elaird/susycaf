@@ -36,7 +36,7 @@ class muonLook1(analysis.analysis) :
                                       ("325_scaled", (325.0, 375.0,  86.7, 43.3)),#3
                                       ("275_scaled", (275.0, 325.0,  73.3, 36.7)),#4
                                       ("225_scaled", (225.0, 275.0,  60.0, 30.0)),#5
-                                      ][2:] ),
+                                      ][2:3] ),
                  "triggerList": ("HLT_Mu3_v3", "HLT_Mu3_v4", "HLT_Mu5_v3", "HLT_Mu5_v4", "HLT_Mu8_v1", "HLT_Mu8_v2",
                                  "HLT_Mu12_v1", "HLT_Mu12_v2", "HLT_Mu15_v2", "HLT_Mu15_v3", "HLT_Mu20_v1", "HLT_Mu20_v2",
                                  "HLT_Mu24_v1", "HLT_Mu24_v2", "HLT_Mu30_v1", "HLT_Mu30_v2"),
@@ -226,9 +226,10 @@ class muonLook1(analysis.analysis) :
         def data() :
             jw = calculables.Other.jsonWeight("cert/Cert_160404-163869_7TeV_PromptReco_Collisions11_JSON.txt", acceptFutureRuns = False) #193/pb
             out = []
-            out += specify(names = "SingleMu.Run2011A-PR-v2.Alex_1muskim"  , weights = jw, overrideLumi = 12.27)
-            out += specify(names = "SingleMu.Run2011A-PR-v2.Robin1_1muskim", weights = jw, overrideLumi = 87.31)
-            out += specify(names = "SingleMu.Run2011A-PR-v2.Robin2_1muskim", weights = jw, overrideLumi = 79.34)
+            out += specify(names="Photon.Run2012A-22Jan2013", weights=jw2012, nFilesMax=1, nEventsMax=10)
+            for era in ["B","C","D"]:
+                out += specify(names="SinglePhotonParked.Run2012%s-22Jan2013"%era, weights=jw2012, nFilesMax=1, nEventsMax=10)
+
             return out
 
         eL = 3000 # 1/pb
