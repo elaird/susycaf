@@ -596,3 +596,30 @@ class isrWeight(wrappedChain.calculable) :
         h = self.histos[(self.source["susyScanmGL"], self.source["susyScanmLSP"])]
         x = self.source["susyIniSumP4"].pt()
         self.value = h.GetBinContent(h.FindBin(x))
+##############################
+class puWeight(wrappedChain.calculable) :
+    @property
+    def name(self) :
+        return self.puEra + self.var
+
+    def __init__(self, var = "", puEra = None, histo = None):
+        self.puEra = puEra
+        self.var = var
+        self.histo = None
+
+    def setup(self) :
+        f = r.TFile("data/calculatedWeightsFrom%s.root"%self.puEra)
+        for item in f.GetListOfKeys() :
+            name = item.GetName()
+            h = f.Get(name).Clone()
+            h.SetDirectory(0)
+            assert name.startswith("pu")
+            self.histo = h
+        f.Close()
+
+    def update(self,_) :
+        if not self.histo :
+            self.setup()
+        self.value = 1.0
+        nPu = self.source[self.var][0]
+        self.value = self.histo[self.histo.FindBin(nPu)]
