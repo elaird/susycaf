@@ -221,6 +221,73 @@ class IDRA3(wrappedChain.calculable) :
         for i in range(hoe.size()) :
             self.value.append(all([not pix.at(i), hoe.at(i)<0.05, shh.at(i)<0.011, r9.at(i)<1.0, iso[i]<6.0]))
 ####################################
+class SimpleCutBased2012(wrappedChain.calculable) :
+    #https://twiki.cern.ch/twiki/bin/viewauth/CMS/CutBasedPhotonID2012
+    def __init__(self, collection = None, id = None) :
+        self.fixes = collection
+        self.id = id
+        self.stash(["HadronicOverEm", "SigmaIetaIeta", "PassConvSafeElectronVeto",
+                    "ChPFIso", "PhPFIso", "NhPFIso", "P4"])
+
+    def update(self, _) :
+        self.value = []
+        pcsv = self.source[self.PassConvSafeElectronVeto]
+        chpf = self.source[self.ChPFIso]
+        nhpf = self.source[self.NhPFIso]
+        phpf = self.source[self.PhPFIso]
+        hoe = self.source[self.HadronicOverEm]
+        shh = self.source[self.SigmaIetaIeta]
+        rho = self.source["rho25"]
+        p4s = self.source[self.P4]
+
+        for i in range(hoe.size()) :
+            p4=p4s.at(i)
+
+            pt,absEta,thresh,subDet,effAreaCh,effAreaNh,effAreaPh = self.config(p4)
+
+            self.value.append(all([pcsv.at(i),
+                                   hoe.at(i)<thresh[subDet]["hoe"],
+                                   shh.at(i)<thresh[subDet]["shh"],
+                                   max(chpf.at(i) - rho*effAreaCh, 0) < thresh[subDet]["chpf"],
+                                   max(nhpf.at(i) - rho*effAreaNh, 0) < thresh[subDet]["nhpf"],
+                                   max(phpf.at(i) - rho*effAreaPh, 0) < thresh[subDet]["phpf"],
+                                   ]))
+    def config(self, p4) :
+        pt = p4.pt()
+
+        thresh = {"Tight":
+                  {"barrel": {"hoe":0.05, "shh":0.011,"chpf":0.7,"nhpf":0.4+0.04*pt,"phpf":0.5+0.005*pt},
+                   "endcap": {"hoe":0.05, "shh":0.031,"chpf":0.5,"nhpf":1.5+0.04*pt,"phpf":1.0+0.005*pt}},
+
+                  "Loose":
+                  {"barrel": {"hoe":0.05, "shh":0.012,"chpf":2.6,"nhpf":3.5+0.04*pt,"phpf":1.3+0.005*pt},
+                   "endcap": {"hoe":0.05, "shh":0.034,"chpf":2.3,"nhpf":2.9+0.04*pt,"phpf":999.}}
+                  }[self.id]
+
+        absEta = abs(p4.eta())
+        if absEta <  configuration.detectorSpecs()["cms"]["etaBE"] :
+            subDet = "barrel"
+        else :
+            subDet = "endcap"
+
+        effAreaCh = self.effArea(absEta)[self.ChPFIso]
+        effAreaNh = self.effArea(absEta)[self.NhPFIso]
+        effAreaPh = self.effArea(absEta)[self.PhPFIso]
+
+        return pt,absEta,thresh,subDet,effAreaCh,effAreaNh,effAreaPh
+
+    def effArea(self, eta=None):
+        keys = [self.ChPFIso, self.NhPFIso, self.PhPFIso]
+        val = [0.012, 0.030, 0.148]
+        if eta > 1.0 :    val = [0.010, 0.057, 0.130]
+        if eta > 1.479 :  val = [0.014, 0.039, 0.112]
+        if eta > 2.0 :    val = [0.012, 0.015, 0.216]
+        if eta > 2.2 :    val = [0.016, 0.024, 0.262]
+        if eta > 2.3 :    val = [0.020, 0.039, 0.260]
+        if eta > 2.4 :    val = [0.012, 0.072, 0.266]
+
+        return dict(zip(keys, val))
+####################################
 class photonIDEmFromTwiki(photonID) :
     def __init__(self, collection = None) :
         super(photonIDEmFromTwiki,self).__init__(collection,"EmFromTwiki")
@@ -264,6 +331,14 @@ class photonIDEGM_10_006_Tight(photonID) :
 class photonIDEGM_10_006_Loose(photonID) :
     def __init__(self, collection = None) :
         super(photonIDEGM_10_006_Loose,self).__init__(collection,"EGM_10_006_Loose")
+####################################
+class SimpleCutBased2012Tight(SimpleCutBased2012) :
+    def __init__(self, collection = None) :
+        super(SimpleCutBased2012Tight,self).__init__(collection,"Tight")
+####################################
+class SimpleCutBased2012Loose(SimpleCutBased2012) :
+    def __init__(self, collection = None) :
+        super(SimpleCutBased2012Loose,self).__init__(collection,"Loose")
 ####################################
 class photonWeight(wrappedChain.calculable) :
     def __init__(self, var = None, weightSet = "November 2011") :
