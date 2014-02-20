@@ -1,18 +1,33 @@
-#!/usr/bin/env python
+import os
+import array
+import copy
 
-import os,array,copy,ROOT as r
-import supy,steps,calculables,samples
+import ROOT as r
+import supy
+import steps
+import calculables
+import samples
 
 class photonLook(supy.analysis) :
     def parameters(self) :
         objects = self.vary()
-        fields =                              [ "jet",             "met",            "muon",        "electron",        "photon",       "rechit", "muonsInJets"]
-        objects["caloJet"] = dict(zip(fields, [("xcak5Jet","Pat"), "metP4TypeIPF",("muon","Pat"),("electron","Pat"),("photon","Pat"), "Calo" ,    False,    ]))
+        fields =                              [       "jet",             "met",        "muon",  "electron",
+                                                   "photon",          "rechit", "muonsInJets",   "jetComp",
+                                                "jetIdComp", "muonsInJetsComp",     "metComp", "rechitComp",]
+
+        objects["caloJet"] = dict(zip(fields, [("xcak5Jet","Pat"), "metP4TypeIPF", ("muon","Pat"),    ("electron","Pat"),
+                                                 ("photon","Pat"),        "Calo" ,           True, ("xcak5JetPF", "Pat"),   
+                                                     "JetIDtight",           True,      "metP4PF",                  "PF",]))
 
         return { "objects": objects,
-                 "nJetsMinMax" :      self.vary(dict([ ("ge2",(2,None)),  ("2",(2,2)),  ("ge3",(3,None)) ]       [0:1] )),
-                 #"nJetsMinMax" :      (2, None),
-                 "photonId" :         ["photonIDTightFromTwikiPat", "photonIDRA3Pat"][1],
+                 "nJetsMinMax": self.vary({"ge2j": (2, None),
+                                           #"le3j": (2, 3),
+                                           #"ge4j": (4, None),
+                                           }),
+                 "nBTagJets": self.vary({"eq0b": (0, 0),
+                                         #"eq1b": (1, 1),
+                                         }),
+                 "photonId" :         ["photonIDTightFromTwikiPat", "photonIDRA3Pat", "photonSimpleCutBased2012TightPat"][2],
                  "zMode" :            self.vary(dict([ ("Z",True), ("g",False) ]                                  [1:]  )),
                  "vertexMode" :       self.vary(dict([ ("vertexMode",True), ("",False) ]                         [1:2] )),
                  "subdet" :           self.vary(dict([ ("barrel", (0.0, 1.4442)), ("endcap", (1.566, 2.5)) ]      [:1 ] )),
@@ -22,12 +37,13 @@ class photonLook(supy.analysis) :
                  "lowPtName":"lowPt",
                  "highPtThreshold" : 50.0,
                  "highPtName" : "highPt",
-                 "thresholds": (375.0, None,  100.0, 50.0),
-
+                 "thresholds": self.vary({"375": (375.0, None,  100.0,  50.0),
+                                         }),
                  #required to be sorted
                  "triggerList": tuple(#["HLT_Photon135_v%d"%i for i in range(4,10)]+
-                                      ["HLT_Photon150_v%d"%i for i in range(1,5)]#+
-                                      #["HLT_Photon160_v%d"%i for i in range(1,10)]
+                                      #["HLT_Photon150_v%d"%i for i in range(1,5)]#+
+                                      ["HLT_Photon150_v%d"%i for i in range(1,20)]+
+                                      ["HLT_Photon160_v%d"%i for i in range(1,20)]
                                       ),
                  "tagTriggers": tuple(["HLT_Photon50_CaloIdVL_IsoL_v%d"%i for i in [14,15,16]]+
                                       ["HLT_Photon50_CaloIdVL_v%d"%i for i in [7,8,9]]+
@@ -39,74 +55,147 @@ class photonLook(supy.analysis) :
                  "possibleTriggers": tuple(["HLT_Photon60_CaloIdL_FJHT300_v%d"%i for i in [1,2,3]]),
                  }
 
+    
+    def calcListJet(self, obj, etRatherThanPt, ptMin,
+                    lowPtThreshold, lowPtName,
+                    highPtThreshold, highPtName, htThreshold):
+
+        def calcList(jet=None, jetId=None, met=None,
+                     photon=None, muon=None, muonsInJets=None, electron=None,
+                     **_):
+
+            return [calculables.xclean.xcJet(jet,
+                                             gamma=photon,
+                                             gammaDR=0.5,
+                                             muon=muon,
+                                             muonDR=0.5,
+                                             correctForMuons = not muonsInJets,
+                                             electron=electron,
+                                             electronDR=0.5),
+                    calculables.jet.Indices(jet,
+                                            ptMin=ptMin,
+                                            etaMax=3.0,
+                                            flagName=jetId,
+                                            ),
+                    calculables.jet.Indices(jet,
+                                            ptMin=lowPtThreshold,
+                                            etaMax=3.0,
+                                            flagName=jetId,
+                                            extraName=lowPtName,
+                                            ),
+                    calculables.jet.Indices(jet,
+                                            ptMin=highPtThreshold,
+                                            etaMax=3.0,
+                                            flagName=jetId,
+                                            extraName=highPtName,
+                                            ),
+                    calculables.jet.IndicesBtagged2(jet,
+                                                    tag="CombinedSecondaryVertexBJetTags",
+                                                    threshold=0.679,
+                                                    ),
+
+                    calculables.jet.SumP4(jet),
+                    calculables.jet.SumP4(jet, extraName=lowPtName),
+                    calculables.jet.SumP4(jet, extraName=highPtName),
+                    calculables.jet.SumP4(jet, extraName="Btagged2"),
+                    calculables.jet.DeltaPhiStar(jet, extraName=lowPtName),
+                    calculables.jet.DeltaPhiStar(jet),
+                    calculables.jet.MaxEmEnergyFraction(jet),
+                    calculables.jet.DeltaPseudoJet(jet, etRatherThanPt),
+                    calculables.jet.AlphaT(jet, etRatherThanPt),
+                    calculables.jet.AlphaTMet(jet, etRatherThanPt, met),
+                    calculables.jet.AlphaTWithPhoton1PtRatherThanMht(jet, photons = photon, etRatherThanPt = etRatherThanPt),
+                    calculables.jet.MhtOverMet((jet[0], highPtName + jet[1]),
+                                               met),
+                    calculables.jet.MhtOverMet((jet[0], highPtName + jet[1]),
+                                               met = "%sPlus%sIndices%s"%(met, photon[0], photon[1])),
+                    calculables.jet.DeadEcalDR(jet,
+                                               extraName=lowPtName,
+                                               minNXtals=10),
+                    supy.calculables.other.fixedValue("%sFixedHtBin%s" % jet,
+                                                      htThreshold),
+                    ] + supy.calculables.fromCollections(calculables.jet,
+                                                         [jet])
+
+        outList = calcList(**obj)
+        compList = ["jet", "met", "muonsInJets", "jetId"]
+        if all([(item+"Comp" in obj) for item in compList]):
+            obj2 = obj.copy()
+            for item in compList:
+                obj2[item] = obj[item+"Comp"]
+            outList += calcList(**obj2)
+        return outList
+
+
+    def calcListOther(self, obj, triggers, photonId):
+        return [calculables.xclean.IndicesUnmatched(collection=obj["photon"],
+                                                    xcjets=obj["jet"], DR=0.5,
+                                                    ),
+                calculables.xclean.IndicesUnmatched(collection=obj["electron"],
+                                                    xcjets=obj["jet"], DR=0.5,
+                                                    ),
+                calculables.muon.Indices(obj["muon"], ptMin = 10, isoMax = 0.12,
+                                         ISO = "PfIsolationR04DeltaBCorrected",
+                                         ID = "IdPog2012Tight"),
+                calculables.electron.Indices( obj["electron"], ptMin = 10, etaMax = 2.5,
+                                              flag2012 = "Veto"),
+                calculables.photon.Indices(obj["photon"], ptMin = 25,
+                                           flagName = photonId),
+                calculables.photon.CombinedIsoDR03RhoCorrected(obj["photon"]),
+                calculables.other.RecHitSumPt(obj["rechit"]),
+                calculables.other.RecHitSumP4(obj["rechit"]),
+                calculables.other.metPlusIndices(met = obj["met"], collection=obj["photon"]),
+                calculables.other.SumP4(obj["photon"]),
+                calculables.other.minDeltaRToJet(obj["photon"], obj["jet"]),
+                calculables.other.Mt(obj["muon"], obj["met"]),
+
+                calculables.vertex.ID(),
+                calculables.vertex.Indices(),
+                calculables.trigger.lowestUnPrescaledTrigger(triggers),
+                ]
+
+    def calcListGen(self):
+        
+        return [calculables.gen.genIndices( pdgs = [22], label = "Status3Photon", status = [3]),
+                calculables.gen.genMinDeltaRPhotonOther( label = "Status3Photon"),
+                calculables.gen.genIndices( pdgs = [22], label = "Status1Photon", status = [1]),
+                calculables.gen.genIndices( pdgs = [13], label = "Status1MuPlus", status = [1]),
+                calculables.gen.genIndices( pdgs = [-13], label = "Status1MuMinus", status = [1]),
+                calculables.gen.genIndices( pdgs = [23], label = "Status3Z", status = [3]),
+                calculables.gen.genIsolations(label = "Status1Photon", coneSize = 0.4),
+                calculables.gen.genPhotonCategory(label = "Status1Photon"),
+                ]
+
+
     def listOfCalculables(self, params) :
         if params["vertexMode"] :
             assert params["photonId"] in ["photonIDTightFromTwikiPat"],"In vertexMode but requested %s"%params["photonId"]
 
         obj = params["objects"]
-        _etRatherThanPt = params["etRatherThanPt"]
+        outList = supy.calculables.zeroArgs(supy.calculables) 
+        outList += supy.calculables.zeroArgs(calculables) 
+        outList += supy.calculables.fromCollections(calculables.muon,
+                                                    [obj["muon"]]
+                                                    ) 
+        outList += supy.calculables.fromCollections(calculables.electron,
+                                                    [obj["electron"]]
+                                                    ) 
+        outList += supy.calculables.fromCollections(calculables.photon,
+                                                    [obj["photon"]]
+                                                    )
+        outList += self.calcListOther(obj, params["triggerList"], params["photonId"])
+        outList += self.calcListJet(obj,
+                                    params["etRatherThanPt"],
+                                    params["thresholds"][3],
+                                    params["lowPtThreshold"],
+                                    params["lowPtName"],
+                                    params["highPtThreshold"],
+                                    params["highPtName"],
+                                    params["thresholds"][0],
+                                    )
+        outList += self.calcListGen()
 
-        return supy.calculables.zeroArgs(supy.calculables) +\
-               supy.calculables.zeroArgs(calculables) +\
-               supy.calculables.fromCollections(calculables.jet,[obj["jet"]]) +\
-               supy.calculables.fromCollections(calculables.muon,[obj["muon"]]) +\
-               supy.calculables.fromCollections(calculables.electron,[obj["electron"]]) +\
-               supy.calculables.fromCollections(calculables.photon,[obj["photon"]]) +\
-               [ calculables.xclean.xcJet( obj["jet"],
-                                           gamma = obj["photon"],
-                                           gammaDR = 0.5,
-                                           muon = obj["muon"],
-                                           muonDR = 0.5,
-                                           correctForMuons = not obj["muonsInJets"],
-                                           electron = obj["electron"], electronDR = 0.5
-                                           ),
-                 calculables.jet.Indices( obj["jet"], ptMin = params["thresholds"][3], etaMax = 3.0, flagName = params["jetId"]),
-                 calculables.jet.Indices( obj["jet"], ptMin = params["lowPtThreshold"], etaMax = 3.0, flagName = params["jetId"], extraName = params["lowPtName"]),
-                 calculables.jet.Indices( obj["jet"], ptMin = params["highPtThreshold"], etaMax = 3.0, flagName = params["jetId"], extraName = params["highPtName"]),
-                 calculables.jet.IndicesBtagged2(obj["jet"], tag = "CombinedSecondaryVertexBJetTags", threshold = 0.679),
-
-                 
-                 calculables.muon.Indices( obj["muon"], ptMin = 10, isoMax = 0.20, ISO = "PfIsolationR04DeltaBCorrected", ID = "IdPog2012Tight"),
-                 calculables.electron.Indices( obj["electron"], ptMin = 10, flag2012 = "Veto"),
-                 calculables.photon.Indices(obj["photon"], ptMin = 25, flagName = params["photonId"]),
-                 calculables.photon.CombinedIsoDR03RhoCorrected(obj["photon"]),
-
-                 calculables.gen.genIndices( pdgs = [22], label = "Status3Photon", status = [3]),
-                 calculables.gen.genMinDeltaRPhotonOther( label = "Status3Photon"),
-                 
-                 calculables.gen.genIndices( pdgs = [22], label = "Status1Photon", status = [1]),
-                 calculables.gen.genIndices( pdgs = [13], label = "Status1MuPlus", status = [1]),
-                 calculables.gen.genIndices( pdgs = [-13], label = "Status1MuMinus", status = [1]),
-                 calculables.gen.genIndices( pdgs = [23], label = "Status3Z", status = [3]),
-                 calculables.gen.genIsolations(label = "Status1Photon", coneSize = 0.4),
-                 calculables.gen.genPhotonCategory(label = "Status1Photon"),
-
-                 calculables.xclean.IndicesUnmatched(collection = obj["photon"], xcjets = obj["jet"], DR = 0.5),
-                 calculables.xclean.IndicesUnmatched(collection = obj["electron"], xcjets = obj["jet"], DR = 0.5)
-                 ] \
-                 + [ calculables.jet.SumP4(obj["jet"]),
-                     calculables.jet.SumP4(obj["jet"], extraName = params["lowPtName"]),
-                     calculables.jet.SumP4(obj["jet"], extraName = params["highPtName"]),
-                     calculables.jet.DeltaPhiStar(obj["jet"], extraName = ""),
-                     calculables.jet.DeltaPhiStar(obj["jet"], extraName = params["lowPtName"]),
-                     calculables.jet.DeltaPseudoJet(obj["jet"], _etRatherThanPt),
-                     calculables.jet.AlphaTWithPhoton1PtRatherThanMht(obj["jet"], photons = obj["photon"], etRatherThanPt = _etRatherThanPt),
-                     calculables.jet.AlphaT(obj["jet"], _etRatherThanPt),
-                     calculables.jet.AlphaTMet(obj["jet"], _etRatherThanPt, obj["met"]),
-                     calculables.jet.MhtOverMet((obj["jet"][0], params["highPtName"]+obj["jet"][1]), met = obj["met"]),
-                     calculables.jet.MhtOverMet((obj["jet"][0], params["highPtName"]+obj["jet"][1]), met = "%sPlus%s%s"%(obj["met"], obj["photon"][0], obj["photon"][1])),
-                     #xcak5JetMhthighPtPatOvermetP4TypeIPF
-                     #calculables.jet.MhtOverMet((jet[0], highPtName + jet[1]),
-                     #                           met),
-
-                     calculables.other.metPlusParticles(met = obj["met"], particles = obj["photon"]),
-                     calculables.other.minDeltaRToJet(obj["photon"], obj["jet"]),
-                     calculables.other.SumP4(obj["photon"]),
-                     calculables.vertex.ID(),
-                     calculables.vertex.Indices(),
-                     calculables.jet.DeadEcalDR(obj["jet"], extraName = params["lowPtName"], minNXtals = 10),
-                     calculables.trigger.lowestUnPrescaledTrigger(params["triggerList"]),
-                     ]
+        return outList
 
     def listOfSteps(self,params) :
         _jet  = params["objects"]["jet"]
@@ -123,6 +212,7 @@ class photonLook(supy.analysis) :
         outList = [
             supy.steps.printer.progressPrinter(),
             supy.steps.histos.value("genpthat", 200, 0, 1000, xtitle = "#hat{p_{T}} (GeV)").onlySim(),
+            supy.steps.filters.multiplicity("%sIndices%s"%_jet, min = params["nJetsMinMax"][0], max = params["nJetsMinMax"][1]), ##
             steps.trigger.l1Filter("L1Tech_BPTX_plus_AND_minus.v0").onlyData(),
             steps.trigger.physicsDeclaredFilter().onlyData(),
             steps.filters.monster(),
@@ -224,7 +314,7 @@ class photonLook(supy.analysis) :
             #supy.steps.filters.multiplicity("%sIndicesUnmatched%s"%_electron, max = 0),
             #supy.steps.filters.multiplicity("%sIndicesUnmatched%s"%_photon, max = 0),
             #steps.jet.uniquelyMatchedNonisoMuons(_jet),
-            supy.steps.filters.multiplicity("%sIndices%s"%_jet, min = params["nJetsMinMax"][0], max = params["nJetsMinMax"][1]),
+            #supy.steps.filters.multiplicity("%sIndices%s"%_jet, min = params["nJetsMinMax"][0], max = params["nJetsMinMax"][1]),
             ]
 
         outList+=[
@@ -262,8 +352,8 @@ class photonLook(supy.analysis) :
             #supy.steps.histos.histogrammer("%sMht%sOver%s" %(_jet[0], _jet[1]+params["highPtName"], _met if params["zMode"] else _met+"Plus%s%s"%_photon),
             #                               100, 0.0, 3.0,
             #                               title = ";MHT %s%s / %s;events / bin"%(_jet[0], _jet[1], _met if params["zMode"] else _met+"Plus%s%s"%_photon)),
-            supy.steps.filters.value("%sMht%sOver%s" %(_jet[0], params["highPtName"]+_jet[1], _met if params["zMode"] else _met+"Plus%s%s"%_photon),
-                                     max = 1.25),
+            supy.steps.filters.value("%sMht%sOver%s" %(_jet[0], params["highPtName"]+_jet[1],
+                                                       _met if params["zMode"] else _met+ "Plus%sIndices%s" % (_photon[0], _photon[1])), max=1.25),
             steps.other.deadEcalFilter(jets = _jet, extraName = params["lowPtName"], dR = 0.3, dPhiStarCut = 0.5),
 
             supy.steps.histos.histogrammer("%sIndices%s"%_jet,10,-0.5,9.5,
@@ -296,26 +386,37 @@ class photonLook(supy.analysis) :
             #steps.Gen.genParticlePrinter(minPt = -1.0, minStatus = 3),
             #steps.Gen.genParticlePrinter(minPt=-10.0,minStatus=1),
             #
-            #steps.Displayer.displayer(jets      = _jet,
-            #                          muons     = _muon,
-            #                          met       = params["objects"]["met"],
-            #                          electrons = params["objects"]["electron"],
-            #                          photons   = params["objects"]["photon"],                            
-            #                          recHits   = params["objects"]["rechit"],recHitPtThreshold=1.0,#GeV
-            #                          scale     = 400.0,#GeV
-            #                          etRatherThanPt = _etRatherThanPt,
-            #                          #doGenParticles = True,
-            #                          deltaPhiStarExtraName = params["lowPtName"],
-            #                          #deltaPhiStarExtraName = "%s%s"%("","PlusPhotons"),
-            #                          mhtOverMetName = "%sMht%sOver%s"%(_jet[0], _jet[1]+params["highPtName"], _met if params["zMode"] else _met+"Plus%s%s"%_photon),
-            #                          ),
+            supy.steps.filters.multiplicity("%sIndicesBtagged2%s" % _jet, min=params["nBTagJets"][0], max=params["nBTagJets"][1]),
+            supy.steps.histos.multiplicity("%sIndicesBtagged2%s"% _jet),
+            steps.displayer.displayer(jets=_jet,
+                                      muons=params["objects"]["muon"],
+                                      met = "%sPlus%sIndices%s" % (params["objects"]["met"],
+                                                                   params["objects"]["photon"][0],
+                                                                   params["objects"]["photon"][1]),
+                                      electrons=params["objects"]["electron"],
+                                      photons=params["objects"]["photon"],
+                                      recHits=params["objects"]["rechit"], recHitPtThreshold=1.0,  # GeV
+                                      scale=400.0,  # GeV
+                                      etRatherThanPt=params["etRatherThanPt"],
+                                      deltaPhiStarExtraName=params["lowPtName"],
+                                      deltaPhiStarCut=0.5,
+                                      deltaPhiStarDR=0.3,
+                                      j2Factor=params["thresholds"][2]/params["thresholds"][0],
+                                      mhtOverMetName="%sMht%sOver%sPlus%sIndices%s" % (_jet[0], params["highPtName"]+_jet[1],
+                                                                            params["objects"]["met"],
+                                                                            params["objects"]["photon"][0],
+                                                                            params["objects"]["photon"][1]),
+                      #                metOtherAlgo=params["objects"]["metComp"],
+                      #                jetsOtherAlgo=params["objects"]["jetComp"],
+                      #                prettyMode=False
+                                      #doGenJets=True,
+                                      ),
 
-            #supy.steps.histos.histogrammer("%sSumEt%s"%_jet, 40, 0, 1000, title = ";H_{T} (GeV) from %s%s E_{T}s;events / bin"%_jet),
-            supy.steps.histos.multiplicity("%sIndicesBtagged2%s"%_jet),
+            #supy.stepshistos.histogrammer("%sSumEt%s"%_jet, 40, 0, 1000, title = ";H_{T} (GeV) from %s%s E_{T}s;events / bin"%_jet),
             supy.steps.histos.histogrammer("%sSumEt%s"%_jet, 6, 375.0, 975.0, title = ";H_{T} (GeV) from %s%s E_{T}s;events / bin"%_jet),
             supy.steps.histos.generic(("%sSumEt%s"%_jet, "%sIndicesBtagged2%s"%_jet), (6, 4), (375.0, -0.5), (975.0, 3.5),
                                       title = ";H_{T} (GeV);n_{b};events / bin", funcString = "lambda x:(x[0],len(x[1]))"),
-            ] + [supy.steps.filters.value("%sSumEt%s"%_jet, min = 375.0+100*iBin) for iBin in range(1,6)]
+            ] + [supy.steps.filters.value("%sSumEt%s"%_jet, min = 375.0+100*iBin) for iBin in range(1,8)]
         return outList
 
     def listOfSampleDictionaries(self) :
@@ -327,9 +428,9 @@ class photonLook(supy.analysis) :
 
 
         data  = []
-        data += specify(names="Photon.Run2012A-22Jan2013", weights=jw2012)#, nFilesMax=1)
-        for era in ["B","C","D"]:
-            data += specify(names="SinglePhotonParked.Run2012%s-22Jan2013"%era, weights=jw2012)#, nFilesMax=1)
+        #data += specify(names="Photon.Run2012A-22Jan2013", weights=jw2012)#, nFilesMax=1)
+        for era in ["B","C","D"][-1:]:
+            data += specify(names="SinglePhotonParked.Run2012%s-22Jan2013"%era, weights=jw2012, nFilesMax=2)
 
         phw = calculables.photon.photonWeight(var = "vertexIndices", weightSet = "ZM")
         pu = calculables.gen.puWeight(var="pileupTrueNumInteractions", puEra="PU_Parked")
@@ -343,7 +444,7 @@ class photonLook(supy.analysis) :
 
         if not params["zMode"] :
             outList += data
-            outList += mc
+            #outList += mc
         else :
             #outList += specify("dyll_HT_10To200_M-10To50", weights=pu, nFilesMax=1, nEventsMax=5000)
             outList += specify("dyll_HT_10To200_M-50", weights=pu, nFilesMax=1)
