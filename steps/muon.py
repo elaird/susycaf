@@ -40,3 +40,30 @@ class diMuonHistogrammer(analysisStep) :
         self.book.fill(Z.Rapidity(), "%sDiMuonRapidity%s"%self.cs, 100, -5.0,          5.0,          title=";#mu#mu rapidity;events / bin")
         self.book.fill(Z.phi(),      "%sDiMuonPhi%s"     %self.cs, 100, -r.TMath.Pi(), r.TMath.Pi(), title=";#mu#mu #phi;events / bin")
 #####################################
+class diMuonNonIsoHistogrammer(analysisStep) :
+    def __init__(self, cs, xtitleSuffix = "") :
+        self.cs = cs
+        self.xtitleSuffix = xtitleSuffix
+        self.diMuonNonIso = "%sDiMuonNonIso%s"%self.cs
+    def uponAcceptance (self,eventVars) :
+        Z = eventVars[self.diMuonNonIso]
+        if not Z : return
+        self.book.fill(Z[0].mass(),     "%sDiMuonNonIsoMass%s"    %self.cs, 100,  0.0,          300.0,        title=";#mu#mu " + self.xtitleSuffix +" mass (GeV);events / bin")
+        self.book.fill(Z[0].pt(),       "%sDiMuonNonIsoPt%s"      %self.cs, 100,  0.0,          500.0,        title=";#mu#mu " + self.xtitleSuffix +" p_{T} (GeV);events / bin")
+        self.book.fill(Z[0].eta(),      "%sDiMuonNonIsoEta%s"     %self.cs, 100, -5.0,          5.0,          title=";#mu#mu " + self.xtitleSuffix +" #eta;events / bin")
+        self.book.fill(Z[0].Rapidity(), "%sDiMuonNonIsoRapidity%s"%self.cs, 100, -5.0,          5.0,          title=";#mu#mu " + self.xtitleSuffix +" rapidity;events / bin")
+        self.book.fill(Z[0].phi(),      "%sDiMuonNonIsoPhi%s"     %self.cs, 100, -r.TMath.Pi(), r.TMath.Pi(), title=";#mu#mu " + self.xtitleSuffix +" #phi;events / bin")
+#####################################
+class diMuonOtherHistogrammer(analysisStep) :
+    def __init__(self, cs, xtitleSuffix = "") :
+        self.cs = cs
+        self.xtitleSuffix = xtitleSuffix
+        self.diMuonOther = "%sDiMuonOther%s"%self.cs
+    def uponAcceptance (self,eventVars) :
+        Z = eventVars[self.diMuonOther]
+        if not Z : return
+        self.book.fill(Z[0].mass(),     "%sDiMuonOtherMass%s"    %self.cs, 100,  0.0,          300.0,        title=";#mu#mu " + self.xtitleSuffix +" mass (GeV);events / bin")
+        self.book.fill(Z[0].pt(),       "%sDiMuonOtherPt%s"      %self.cs, 100,  0.0,          500.0,        title=";#mu#mu " + self.xtitleSuffix +" p_{T} (GeV);events / bin")
+        self.book.fill(Z[0].eta(),      "%sDiMuonOtherEta%s"     %self.cs, 100, -5.0,          5.0,          title=";#mu#mu " + self.xtitleSuffix +" #eta;events / bin")
+        self.book.fill(Z[0].Rapidity(), "%sDiMuonOtherRapidity%s"%self.cs, 100, -5.0,          5.0,          title=";#mu#mu " + self.xtitleSuffix +" rapidity;events / bin")
+        self.book.fill(Z[0].phi(),      "%sDiMuonOtherPhi%s"     %self.cs, 100, -r.TMath.Pi(), r.TMath.Pi(), title=";#mu#mu " + self.xtitleSuffix +" #phi;events / bin")
