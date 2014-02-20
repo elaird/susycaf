@@ -165,9 +165,11 @@ class Indices(wrappedChain.calculable) :
     def __init__(self, collection = None, ptMin = None, isoMax = None, requireIsGlobal = True , ID = "IDtight", ISO = "CombinedRelativeIso", absEtaMax = 1000) :
         self.fixes = collection
         self.requireIsGlobal = requireIsGlobal
-        self.stash(["IndicesNonIso","IndicesOther","P4","IsGlobalMuon"])
+        self.stash(["IndicesNonIso","IndicesOther","P4","IsGlobalMuon","IsTrackerMuon","IsPFMuon"])
         self.ID = ID.join(collection)
+        self.looseID = ("IdPog2012Loose").join(collection)
         self.ISO = ISO.join(collection)
+
         self.ptMin = ptMin
         self.absEtaMax = absEtaMax
         self.isoMax = isoMax
@@ -179,8 +181,11 @@ class Indices(wrappedChain.calculable) :
         other  = self.source[self.IndicesOther]
         p4s    = self.source[self.P4]
         id  = self.source[self.ID]
+        looseId = self.source[self.looseID]
         iso = self.source[self.ISO]
         isGlobal = self.source[self.IsGlobalMuon]
+        isPF =  self.source[self.IsPFMuon]
+        isTrkMu =  self.source[self.IsTrackerMuon]
         for i in range(p4s.size()) :
             p4 = p4s.at(i)
             if p4.pt() < self.ptMin : continue
@@ -252,6 +257,36 @@ class DiMuon(wrappedChain.calculable) :
             p4s = self.source[self.P4]
             self.value = p4s.at(indices[0])+p4s.at(indices[1])
 ##############################
+class DiMuonNonIso(wrappedChain.calculable) :
+    def __init__(self, collection = None) :
+        self.fixes = collection
+        self.stash(["Indices","P4","IndicesNonIso"])
+    def update(self,ignored) :
+        indices = self.source[self.Indices]
+        indicesNonIso = self.source[self.IndicesNonIso]
+        self.value = []
+        if len(indices) + len(indicesNonIso) < 2 :
+            self.value=[]
+        else :
+            p4s = self.source[self.P4]
+            for iNonIsoMu in range(len(indicesNonIso)) :
+                self.value.append(p4s.at(indices[0])+p4s.at(indicesNonIso[iNonIsoMu]))
+##############################
+class DiMuonOther(wrappedChain.calculable) :
+    def __init__(self, collection = None) :
+        self.fixes = collection
+        self.stash(["Indices","P4","IndicesOther"])
+    def update(self,ignored) :
+        indices = self.source[self.Indices]
+        indicesOther = self.source[self.IndicesOther]
+        self.value = []
+        if len(indices) + len(indicesOther) < 2 :
+            self.value = []
+        else :
+            p4s = self.source[self.P4]
+            for iOtherMu in range(len(indicesOther)) :
+                self.value.append(p4s.at(indices[0])+p4s.at(indicesOther[iOtherMu]))
+##############################
 class DiMuonMass(wrappedChain.calculable) :
     def __init__(self, collection = None) :
         self.fixes = collection
@@ -259,6 +294,28 @@ class DiMuonMass(wrappedChain.calculable) :
     def update(self,ignored) :
         Z = self.source[self.DiMuon]
         self.value = 0 if not Z else Z.mass()
+##############################
+class DiMuonNonIsoInZMass(wrappedChain.calculable) :
+    def __init__(self, collection = None) :
+        self.fixes = collection
+        self.stash(["DiMuonNonIso"])
+    def update(self,ignored) :
+        Z = self.source[self.DiMuonNonIso]
+        self.value = []
+        for z in Z:
+            if 66.2 < z.mass() < 116.2:
+                self.value.append(z.mass())
+##############################
+class DiMuonOtherInZMass(wrappedChain.calculable) :
+    def __init__(self, collection = None) :
+        self.fixes = collection
+        self.stash(["DiMuonOther"])
+    def update(self,ignored) :
+        Z = self.source[self.DiMuonOther]
+        self.value = []
+        for z in Z:
+            if 66.2 < z.mass() < 116.2:
+                self.value.append(z.mass())
 ##############################
 class DiMuonPt(wrappedChain.calculable) :
     def __init__(self, collection = None) :
@@ -342,3 +399,25 @@ class IndicesIsoLoose(wrappedChain.calculable) :
                  isos[i] < self.isoMax and
                  isGlobal[i]
                  ) : self.value.append(i)
+##############################
+class IdPog2012Loose(wrappedChain.calculable) :
+    def __init__(self, collection = None) :
+        self.fixes = collection
+        self.stash(["IsGlobalMuon","IsTrackerMuon","IsPFMuon",
+                    ])
+        self.moreName = "https://twiki.cern.ch/twiki/bin/view/CMSPublic/SWGuideMuonId#Loose_Muon"
+
+    def update(self,ignored) :
+        self.value = []
+
+        gm = self.source[self.IsGlobalMuon]
+        pf = self.source[self.IsPFMuon]
+        tr = self.source[self.IsTrackerMuon]
+
+        for i in range(gm.size()) :
+            if pf.at(i):
+                if gm.at(i) or tr.at(i) :
+                    self.value.append(i)
+            else:
+                break
+##############################
