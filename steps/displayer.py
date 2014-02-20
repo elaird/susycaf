@@ -151,9 +151,9 @@ class displayer(supy.steps.displayer) :
     def printPhotons(self, eventVars, params, coords, photons, nMax) :
         self.prepareText(params, coords)
         p4Vector = eventVars["%sP4%s"        %photons]
-        loose    = eventVars["%sIDLooseFromTwiki%s"%photons]
-        tight    = eventVars["%sIDTightFromTwiki%s"%photons]
-            
+        tight    = eventVars["%sSimpleCutBased2012Tight%s"%photons]
+        loose    = eventVars["%sSimpleCutBased2012Loose%s"%photons]
+
         self.printText(self.renamedDesc(photons[0]+photons[1]))
         self.printText("ID   pT  eta  phi")
         self.printText("-----------------")
@@ -174,7 +174,10 @@ class displayer(supy.steps.displayer) :
         p4Vector = eventVars["%sP4%s"        %electrons]
         cIso = eventVars["%sIsoCombined%s"%electrons]
         ninetyFive = eventVars["%sID95%s"%electrons]
-     
+        veto = eventVars["%sIdVeto%s"%electrons]
+        loose = eventVars["%sIdLoose%s"%electrons]
+        tight = eventVars["%sIdTight%s"%electrons]
+
         self.printText(self.renamedDesc(electrons[0]+electrons[1]))
         self.printText("ID   pT  eta  phi")#  cIso")
         self.printText("-----------------")#------")
@@ -186,7 +189,7 @@ class displayer(supy.steps.displayer) :
                 break
             electron=p4Vector[iElectron]
 
-            outString = "%2s"%("95" if ninetyFive[iElectron] else "  ")
+            outString = "%1s%1s%1s" % ("V" if veto[iElectron] else " ", "L" if loose[iElectron] else " ", "T" if tight[iElectron] else " ")
             outString+="%5.0f %4.1f %4.1f"%(electron.pt(), electron.eta(), electron.phi())
             #outString+=" %5.2f"%cIso[iElectron] if cIso[iElectron]!=None else " %5s"%"-"
             self.printText(outString)
