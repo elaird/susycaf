@@ -8,12 +8,14 @@ class IndicesOther(calculables.IndicesOther) :
         self.moreName = "pass ptMin; fail id/iso"
 ##############################
 class Indices(wrappedChain.calculable) :
-    def __init__(self, collection = None, ptMin = None, flagName = None):
+    def __init__(self, collection = None, ptMin = None, etaMax = None, flagName = None):
         self.fixes = collection
         self.stash(["IndicesOther", "P4"])
         self.ptMin = ptMin
+        self.etaMax = etaMax
         self.flagName = flagName
-        self.moreName = "pT>=%.1f GeV; %s"% (ptMin, flagName if flagName else "")
+        self.etaStamp = "|eta|<%.1f;" % self.etaMax if self.etaMax else ""
+        self.moreName = "pT>=%.1f GeV; %s %s"% (ptMin, self.etaStamp, flagName if flagName else "")
     def update(self,ignored) :
         p4s = self.source[self.P4]
         ids = self.source[self.flagName] if self.flagName else p4s.size()*[1]
@@ -21,6 +23,7 @@ class Indices(wrappedChain.calculable) :
         other = self.source[self.IndicesOther]
         for i in range(p4s.size()):
             if p4s.at(i).pt() < self.ptMin: continue
+            if self.etaMax and abs(p4s.at(i).eta()) > self.etaMax : continue
             elif ids[i] : self.value.append(i)
             else: other.append(i)
 ##############################
