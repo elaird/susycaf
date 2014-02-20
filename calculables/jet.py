@@ -95,9 +95,7 @@ class Indices(wrappedChain.calculable) :
         for iOther in others :
             other.append(iOther)
         htBinContainer.append(htThreshold)
-        #print "%sIndices%s"%self.fixes,"=",self.source["%sIndices%s"%self.fixes]
-        #print "%sIndicesOther%s"%self.fixes,"=",self.source["%sIndicesOther%s"%self.fixes]
-        
+
     def updateWithScaling(self) :
         self.value = []
         p4s    = self.source[self.CorrectedP4]
@@ -130,7 +128,7 @@ class Indices(wrappedChain.calculable) :
         for i in range(p4s.size()) :
             pt2 = p4s.at(i).Perp2()
             pt2s.append(pt2)
-            if pt2 < self.pt2Min or i in killed: continue
+            if pt2 < self.pt2Min or i in killed : continue
             elif jetIds[i] and abs(p4s.at(i).eta()) < self.etaMax :
                 self.value.append(i)
             else: other.append(i)
@@ -151,6 +149,35 @@ class IndicesIgnored(wrappedChain.calculable) :
     def update(self,ignored) :
         self.value = list(set(range(len(self.source[self.CorrectedP4]))) - set(self.source[self.Indices]) - set(self.source[self.IndicesOther]))
 ###################################
+class IndicesWithOddMuon(wrappedChain.calculable) :
+    def __init__(self, collection = None):#, muonCollection = None) :
+        self.fixes = collection
+        self.stash(["CorrectedP4","Indices"])
+        self.muons = "muonIndicesNonIsoPat"
+
+    def update(self,ignored) :
+        self.value = []
+        jetsp4 = self.source[self.CorrectedP4]
+        for i in self.source[self.Indices]:
+            ijetp4 = jetsp4[i]
+            for ip4, p4 in enumerate(self.matchesIn("muon",ijetp4, exitEarly=False, indicesStr="%sIndicesNonIso%s")) :
+                if p4.pt() > .5 * ijetp4.pt() :
+                    self.value.append(i)
+
+    def matchesIn(self,label,p4, exitEarly = True, indicesStr = "%sIndices%s") :
+        dR = 0.5
+        collection = ("muon","Pat")
+        if not collection : return False
+        indices = self.source[indicesStr % collection]
+        objects = self.source["%sP4%s"%collection]
+        matches = []
+        for i in indices :
+            objP4 = objects.at(i)
+            if 0.5 > r.Math.VectorUtil.DeltaR(objP4,p4) :
+                if exitEarly: return True
+                else: matches.append(objP4)
+        return matches
+##############################
 class IndicesBtagged(wrappedChain.calculable) :
     '''
     CMS PAS BTV-09-001
