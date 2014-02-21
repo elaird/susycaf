@@ -18,7 +18,12 @@ class photonLook(supy.analysis) :
 
         objects["caloJet"] = dict(zip(fields, [("xcak5Jet","Pat"), "metP4TypeIPF", ("muon","Pat"),    ("electron","Pat"),
                                                  ("photon","Pat"),        "Calo" ,           True, ("xcak5JetPF", "Pat"),   
-                                                     "JetIDtight",           True,      "metP4PF",                  "PF",]))
+                                                     "JetIDtight",         True,      "metP4PF",                  "PF",]))
+
+        objects["pfJet"] = dict(zip(fields, [("xcak5JetPF","Pat"), "metP4TypeIPF", ("muon","PF"),      ("electron","PF"),
+                                                 ("photon","Pat"),          "PF" ,          True,    ("xcak5Jet", "Pat"),   
+                                                     "JetIDtight",           True,     "metP4PF",               "Calo",]))
+        
 
         return { "objects": objects,
                  "nJetsMinMax": self.vary({"ge2j": (2, None),
@@ -116,8 +121,10 @@ class photonLook(supy.analysis) :
                                                minNXtals=10),
                     supy.calculables.other.fixedValue("%sFixedHtBin%s" % jet,
                                                       htThreshold),
+                    calculables.jet.IndicesWithOddMuon(jet, muons = muon)
                     ] + supy.calculables.fromCollections(calculables.jet,
                                                          [jet])
+
 
         outList = calcList(**obj)
         compList = ["jet", "met", "muonsInJets", "jetId"]
@@ -220,22 +227,26 @@ class photonLook(supy.analysis) :
                 ]
 
     def stepsEvent(self, params):
-        return [steps.filters.monster(),
-                supy.steps.filters.multiplicity("%sIndices%s" % params["objects"]["jet"], min=params["nJetsMinMax"][0], max=params["nJetsMinMax"][1]),
-                steps.filters.hbheNoise().onlyData(),
-                supy.steps.filters.value("beamHaloCSCTightHaloId", max=0).onlyData(),
-                supy.steps.filters.value("trackingFailureFilterFlag", min=1).onlyData(),
-                supy.steps.filters.value("hcalLaserEventFilterFlag", min=1).onlyData(),
-                supy.steps.filters.value("ecalDeadCellTPFilterFlag", min=1).onlyData(),
-                supy.steps.filters.value("%sMaxEmEnergyFraction%s"%(params["objects"]["jet"]), min = .1),
-                supy.steps.histos.histogrammer("%sMaxEmEnergyFraction%s" % (params["objects"]["jet"]), 20, 0.0, 1.0, title=";MaxEmEnergyFraction;events / bin"),
-                #supy.steps.histos.histogrammer("logErrorTooManySeeds",    2, 0.0, 1.0, title = ";logErrorTooManySeeds;events / bin"),
-                #supy.steps.histos.histogrammer("logErrorTooManyClusters", 2, 0.0, 1.0, title = ";logErrorTooManyClusters;events / bin"),
-                supy.steps.histos.multiplicity("vertexIndices", max=60),
-                supy.steps.filters.multiplicity("vertexIndices", min=1),
-                supy.steps.histos.histogrammer("pileupTrueNumInteractions", 41, -0.5, 40.5, title=";true number of interacions;events / bin",
-                                               funcString="lambda x:x[0]").onlySim(),
-                ]
+        outList = [steps.filters.monster(),
+                   supy.steps.filters.multiplicity("%sIndices%s" % params["objects"]["jet"], min=params["nJetsMinMax"][0], max=params["nJetsMinMax"][1]),
+                   steps.filters.hbheNoise().onlyData(),
+                   supy.steps.filters.value("beamHaloCSCTightHaloId", max=0).onlyData(),
+                   supy.steps.filters.value("trackingFailureFilterFlag", min=1).onlyData(),
+                   supy.steps.filters.value("hcalLaserEventFilterFlag", min=1).onlyData(),
+                   supy.steps.filters.value("ecalDeadCellTPFilterFlag", min=1).onlyData(),]
+
+        if "PF" not in params["objects"]["jet"][0]: 
+            outList += [supy.steps.filters.value("%sMaxEmEnergyFraction%s"%(params["objects"]["jet"]), min = .1).onlyData(),
+                        supy.steps.histos.histogrammer("%sMaxEmEnergyFraction%s" % (params["objects"]["jet"]), 20, 0.0, 1.0,
+                                                       title=";MaxEmEnergyFraction;events / bin").onlyData(),]
+        outList += [#supy.steps.histos.histogrammer("logErrorTooManySeeds",    2, 0.0, 1.0, title = ";logErrorTooManySeeds;events / bin"),
+                    #supy.steps.histos.histogrammer("logErrorTooManyClusters", 2, 0.0, 1.0, title = ";logErrorTooManyClusters;events / bin"),
+                    supy.steps.histos.multiplicity("vertexIndices", max=60),
+                    supy.steps.filters.multiplicity("vertexIndices", min=1),
+                    supy.steps.histos.histogrammer("pileupTrueNumInteractions", 41, -0.5, 40.5, title=";true number of interacions;events / bin",
+                                                   funcString="lambda x:x[0]").onlySim(),
+                    ]
+        return outList
 
     def stepVertexMode(self, params):
         _jet  = params["objects"]["jet"]
@@ -350,29 +361,29 @@ class photonLook(supy.analysis) :
 
     def stepsDisplayer(self, params):
         return [steps.displayer.displayer(jets=params["objects"]["jet"],
-                                  muons=params["objects"]["muon"],
-                                  met = "%sPlus%sIndices%s" % (params["objects"]["met"],
-                                                               params["objects"]["photon"][0],
-                                                               params["objects"]["photon"][1]),
-                                  electrons=params["objects"]["electron"],
-                                  photons=params["objects"]["photon"],
-                                      recHits=params["objects"]["rechit"], recHitPtThreshold=1.0,  # GeV
-                                  scale=400.0,  # GeV
-                                  etRatherThanPt=params["etRatherThanPt"],
-                                  deltaPhiStarExtraName=params["lowPtName"],
-                                  deltaPhiStarCut=0.5,
-                                  deltaPhiStarDR=0.3,
-                                  j2Factor=params["thresholds"][2]/params["thresholds"][0],
-                                  mhtOverMetName="%sMht%sOver%sPlus%sIndices%s" % (params["objects"]["jet"][0],
-                                                                                   params["highPtName"]+params["objects"]["jet"][1],
-                                                                                   params["objects"]["met"],
-                                                                                   params["objects"]["photon"][0],
-                                                                                   params["objects"]["photon"][1]),
-                                  metOtherAlgo=params["objects"]["metComp"],
-                                  jetsOtherAlgo=params["objects"]["jetComp"],
-                                  prettyMode=False
-                                  #doGenJets=True,
-                                  ),]
+                                          muons=params["objects"]["muon"],
+                                          met = "%sPlus%sIndices%s" % (params["objects"]["met"],
+                                                                       params["objects"]["photon"][0],
+                                                                       params["objects"]["photon"][1]),
+                                          electrons=params["objects"]["electron"],
+                                          photons=params["objects"]["photon"],
+                                          recHits=params["objects"]["rechit"], recHitPtThreshold=1.0,  # GeV
+                                          scale=400.0,  # GeV
+                                          etRatherThanPt=params["etRatherThanPt"],
+                                          deltaPhiStarExtraName=params["lowPtName"],
+                                          deltaPhiStarCut=0.5,
+                                          deltaPhiStarDR=0.3,
+                                          j2Factor=params["thresholds"][2]/params["thresholds"][0],
+                                          mhtOverMetName="%sMht%sOver%sPlus%sIndices%s" % (params["objects"]["jet"][0],
+                                                                                           params["highPtName"]+params["objects"]["jet"][1],
+                                                                                           params["objects"]["met"],
+                                                                                           params["objects"]["photon"][0],
+                                                                                           params["objects"]["photon"][1]),
+                                          metOtherAlgo=params["objects"]["metComp"],
+                                          jetsOtherAlgo=params["objects"]["jetComp"],
+                                          prettyMode=False
+                                          #doGenJets=True,
+                                          ),]
 
     def stepsHtBins(self, params):
         _jet = params["objects"]["jet"]
