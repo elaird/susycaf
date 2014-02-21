@@ -150,10 +150,10 @@ class IndicesIgnored(wrappedChain.calculable) :
         self.value = list(set(range(len(self.source[self.CorrectedP4]))) - set(self.source[self.Indices]) - set(self.source[self.IndicesOther]))
 ###################################
 class IndicesWithOddMuon(wrappedChain.calculable) :
-    def __init__(self, collection = None):#, muonCollection = None) :
+    def __init__(self, collection = None, muons = None) :
         self.fixes = collection
         self.stash(["CorrectedP4","Indices"])
-        self.muons = "muonIndicesNonIsoPat"
+        self.muons = muons
 
     def update(self,ignored) :
         self.value = []
@@ -166,10 +166,10 @@ class IndicesWithOddMuon(wrappedChain.calculable) :
 
     def matchesIn(self,label,p4, exitEarly = True, indicesStr = "%sIndices%s") :
         dR = 0.5
-        collection = ("muon","Pat")
+        collection = self.muons
         if not collection : return False
         indices = self.source[indicesStr % collection]
-        objects = self.source["%sP4%s"%collection]
+        objects = self.source["%sP4%s" % collection]
         matches = []
         for i in indices :
             objP4 = objects.at(i)
@@ -684,11 +684,8 @@ class MaxEmEnergyFraction(wrappedChain.calculable) :
         if not sumP4 : return
         jets = self.source[self.CorrectedP4]
         emf = self.source[self.EmEnergyFraction]
-        #self.value = sorted([ (abs(r.Math.VectorUtil.DeltaPhi(jets.at(i),jets.at(i)-sumP4)), i) for i in self.source[self.Indices] ])
-        
-        #print([emf.at(i) for i in self.source[self.Indices]])
         self.value = max([emf.at(i) for i in self.source[self.Indices] ])
-#        print(self.value)
+
 ##############################
 class DeltaPhiMht(wrappedChain.calculable) :
     def __init__(self,collection = None) :
