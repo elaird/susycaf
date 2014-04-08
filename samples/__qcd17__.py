@@ -43,7 +43,7 @@ for i,(low,xs) in enumerate(binsXs[:-1]) :
     qcd17.add("qcd_py6_pt_v2_%d"%low, '%s/agapitos//ICF/automated/2012_09_22_14_28_53/%s")'%(pnfs, dir), xs = xs)
 
 for i,(low,xs) in enumerate(binsXs[4:-1]) :
-    hi = binsXs[i+1][0]
+    hi = binsXs[5+i][0]
     dir = "QCD_%d%s/"%(low, "to%d"%hi if hi else "")
     if low in (300,170) : dir = dir.replace("/","_merged/") 
     qcd17.add("qcd_py6_pt_%d"% low, '%s/clucas/Parked13/%s")'%(eos, dir), xs = xs)
