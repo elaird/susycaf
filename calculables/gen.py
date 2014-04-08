@@ -1,4 +1,5 @@
 from supy import wrappedChain,utils,calculables
+import math
 import ROOT as r
 ##############################
 class genSumP4(wrappedChain.calculable) :
@@ -600,7 +601,7 @@ class isrWeight(wrappedChain.calculable) :
 class puWeight(wrappedChain.calculable) :
     @property
     def name(self) :
-        return self.puEra + self.var
+        return "puWeight"
 
     def __init__(self, var = "", puEra = None, histo = None):
         self.puEra = puEra
@@ -621,5 +622,56 @@ class puWeight(wrappedChain.calculable) :
         if not self.histo :
             self.setup()
         self.value = 1.0
-        nPu = self.source[self.var][0]
+        nPu = self.source[self.var][0] - 1
         self.value = self.histo[self.histo.FindBin(nPu)]
+##############################
+class xsWeight(wrappedChain.calculable) :
+    @property
+    def name(self) :
+        return "xsWeight"
+
+    def __init__(self, file = None, histo = None):
+        self.file = file
+        self.histo = None
+
+    def setup(self) :
+        f = r.TFile("data/NNLO_xs_reweight/xs_%s_incl_over_excl.root" % self.file)
+        for item in f.GetListOfKeys() :
+            name = item.GetName()
+            if name != "xsWeights" : continue
+            h = f.Get(name).Clone()
+            h.SetDirectory(0)
+            self.histo = h
+        f.Close()
+
+    def update(self,_) :
+        if not self.histo :
+            self.setup()
+        self.value = 1.0
+        ht = self.source["genPartonHT"]
+        self.value = self.histo[self.histo.FindBin(ht)]
+        if ht>2000.: self.value = self.histo[self.histo.FindBin(1900.)]
+##############################
+class topPtWeight(wrappedChain.calculable):
+    #https://twiki.cern.ch/twiki/bin/viewauth/CMS/TopPtReweighting#Studies
+    @property
+    def name(self) :
+        return "topPtWeight"
+
+    def __init__(self, cs = "genIndicesStatus3t"):
+        self.collection = cs
+
+    def sf(self,x):
+        a = 0.156
+        b = -0.00137
+        return  math.exp(a + b*x)
+
+    def update(self,_) :
+        self.value = 1.0
+        genP4s = self.source["genP4"]
+        tops = self.source[self.collection]
+        for t in tops:
+            pt = genP4s.at(t).pt()
+            if pt>400.0: continue
+            self.value *= self.sf(pt)
+        self.value = math.sqrt(self.value)
