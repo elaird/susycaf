@@ -1124,10 +1124,48 @@ class IndexBestDijet(wrappedChain.calculable) :
                             key = lambda j : mhtht[tuple(sorted([i,j]))])
                        for i in indices]
 ######################################
-class RA1category(wrappedChain.calculable) :
-    def htBin(self, ht) :
+class ra1nBJetCategory(wrappedChain.calculable) :
+    def __init__(self, collection = None):
+        self.fixes = collection
+        self.stash(["IndicesBtagged2"])
+
+    def update(self,_) :
+        nbJets = len(self.source[self.IndicesBtagged2])
+        tags = ["ge4b" if nbJets>=4 else "eq%db"%nbJets,
+                ]
+        self.value = "_".join(tags)
+######################################
+class ra1nJetCategory(wrappedChain.calculable) :
+    def __init__(self, collection = None):
+        self.fixes = collection
+        self.stash(["Indices"])
+
+    def update(self,_) :
+        nJets = len(self.source[self.Indices])
+        tags = ["le3j" if nJets<4 else "ge4j",
+                ]
+        self.value = "_".join(tags)
+######################################
+class ra1Category(wrappedChain.calculable) :
+    def __init__(self, collection = None):
+        self.fixes = collection
+        self.stash(["ra1nBJetCategory", "ra1nJetCategory"])
+
+    def update(self,_) :
+        nJets = self.source[self.ra1nJetCategory]
+        nbJets = self.source[self.ra1nBJetCategory]
+        self.value = "_".join([nJets, nbJets])
+######################################
+class ra1CategoryPlusHT(wrappedChain.calculable) :
+    def __init__(self, collection = None):
+        self.fixes = collection
+        self.stash(["SumEt","ra1Category"])
+
+    def htBin(self,ht):
         htTag = ""
-        if ht >= 875.0 :  htTag = "875"
+        if ht >= 1075.0 :  htTag = "1075"
+        elif 975.0 <= ht < 1075.0 : htTag = "975_1075"
+        elif 875.0 <= ht < 975.0 : htTag = "875_975"
         elif 775.0 <= ht < 875.0 : htTag = "775_875"
         elif 675.0 <= ht < 775.0 : htTag = "675_775"
         elif 575.0 <= ht < 675.0 : htTag = "575_675"
@@ -1135,16 +1173,152 @@ class RA1category(wrappedChain.calculable) :
         elif 375.0 <= ht < 475.0 : htTag = "375_475"
         elif 325.0 <= ht < 375.0 : htTag = "325_375"
         elif 275.0 <= ht < 325.0 : htTag = "275_325"
-        elif 225.0 <= ht < 275.0 : htTag = "225_275"
+        elif 200.0 <= ht < 275.0 : htTag = "200_275"
         return htTag
 
     def update(self,_) :
-        nJets = len(self.source["xcak5JetIndicesPat"])
-        nbJets = len(self.source["xcak5JetIndicesBtagged2Pat"])
-        ht = self.source["xcak5JetSumEtPat"]
-        tags = ["le3j" if nJets<4 else "ge4j",
-                "ge4b" if nbJets>=4 else "eq%db"%nbJets,
+        ra1Cat = self.source[self.RA1Category]
+        ht = self.source[self.SumEt]
+        tags = [ra1Cat,
                 self.htBin(ht),
                 ]
         self.value = "_".join(tags)
+######################################
+class BTagProbability(wrappedChain.calculable) :
 
+    '''https://twiki.cern.ch/twiki/bin/viewauth/CMS/BtagPOG
+    Tagger: CSVM within 20 < pt < 800 GeV, abs(eta) < 2.4, x = pt'''
+
+    def __init__(self, collection=None, selection=None, sample=None):
+        self.fixes = collection
+        self.stash(["Indices", "CorrectedP4"])
+        self.genJetFlavour = "%sgenJetFlavour%s" % xcStrip(collection)
+        self.effHistos = {}
+        self.selection = selection
+        self.sample = sample
+        self.ptBins = [20, 30, 40, 50, 60,
+                       70, 80, 100, 120,
+                       160, 210, 260, 320,
+                       400, 500, 600]
+        self.sFb_error = [0.0415707, 0.0204209, 0.0223227, 0.0206655,
+                          0.0199325, 0.0174121, 0.0202332, 0.0182446,
+                          0.0159777, 0.0218531, 0.0204688, 0.0265191,
+                          0.0313175, 0.0415417, 0.0740446, 0.0596716]
+
+        self.sFc_error = [i*2 for i in self.sFb_error]
+        self.bOrC = {4:"C", 5:"B"}
+        self.setup()
+
+    def probablities(self, jet):
+        probs = []
+        p4s = self.source[self.CorrectedP4]
+        genFlavor = self.source[self.genJetFlavour]
+        p4 = p4s.at(jet)
+        genId = abs(genFlavor.at(jet))
+
+        sf = self.scaleFactors(genId, p4)
+        eff = self.fetchEff(genId, p4)
+
+        probs.append(eff)
+        probs.append(eff*sf["sF"])
+        probs.append(eff*sf["sFErrDn"])
+        probs.append(eff*sf["sFErrUp"])
+        return probs
+
+    def update(self, _) :
+        indices = self.source[self.Indices]
+        self.value = map(self.probablities, indices)
+
+    def fetchEff(self, genId, p4):
+        pt = p4.pt()
+        eta = abs(p4.eta())
+
+        if genId in self.bOrC:
+            h = self.effHistos["gen%s" % self.bOrC[genId]]
+        else :
+            h = self.effHistos["genL"]
+        return h.GetBinContent(h.FindBin(pt,eta))
+
+    def setup(self) :
+        fileDict = {}
+        if self.selection == "photon":
+            fileDict[(   "xcak5Jet","Pat")] = "data/g_barrel_375_caloJet_ge2j__GJets_bTagEff.root"
+            fileDict[( "xcak5JetPF","Pat")] = "data/g_barrel_375_pfJet_ge2j__GJets_bTagEff.root"
+        elif self.selection == "muon":
+            fileDict[(   "xcak5Jet","Pat")] = "data/caloJet_ge2j_375_Standard_Model__bTagEff.root"
+            fileDict[( "xcak5JetPF","Pat")] = "data/pfJet_ge2j_375_Standard_Model__bTagEff.root"
+
+        f = r.TFile(fileDict[self.fixes], "READ")
+        for item in f.GetListOfKeys() :
+            name = item.GetName()
+            h = f.Get(name).Clone()
+            h.SetDirectory(0)
+            assert name.startswith("gen")
+            self.effHistos[name] = h
+        f.Close()
+
+    def getPtBin(self, pt) :
+        for b in reversed(self.ptBins) :
+            bin = self.ptBins.index(b)
+            if pt > b : break
+        return bin
+
+    def scaleFactors(self, genId, p4) :
+
+        sF = {}
+        pt = p4.pt()
+        ptBin = self.getPtBin(pt)
+        eta = abs(p4.eta())
+        m = 2.0 if pt>800.0 else 1.0
+        if genId == 4:
+            sF["sF"] = (0.938887+(0.00017124*pt))+(-2.76366e-07*(pt*pt));
+            sF["sFErrDn"] = sF["sF"] - self.sFc_error[ptBin]*m
+            sF["sFErrUp"] = sF["sF"] + self.sFc_error[ptBin]*m
+        elif genId == 5:
+            sF["sF"] = (0.938887+(0.00017124*pt))+(-2.76366e-07*(pt*pt));
+            sF["sFErrDn"] = sF["sF"] - self.sFb_error[ptBin]*m
+            sF["sFErrUp"] = sF["sF"] + self.sFb_error[ptBin]*m
+        else:
+            if eta <= 0.8:
+                sF["sF"] = ((1.07541+(0.00231827*pt))+(-4.74249e-06*(pt*pt)))+(2.70862e-09*(pt*(pt*pt)))
+                sF["sFErrDn"] = ((0.964527+(0.00149055*pt))+(-2.78338e-06*(pt*pt)))+(1.51771e-09*(pt*(pt*pt)))
+                sF["sFErrUp"] = ((1.18638+(0.00314148*pt))+(-6.68993e-06*(pt*pt)))+(3.89288e-09*(pt*(pt*pt)))
+            elif 0.8 < eta <=1.6:
+                sF["sF"] = ((1.05613+(0.00114031*pt))+(-2.56066e-06*(pt*pt)))+(1.67792e-09*(pt*(pt*pt)))
+                sF["sFErrDn"] = ((0.946051+(0.000759584*pt))+(-1.52491e-06*(pt*pt)))+(9.65822e-10*(pt*(pt*pt)))
+                sF["sFErrUp"] = ((1.16624+(0.00151884*pt))+(-3.59041e-06*(pt*pt)))+(2.38681e-09*(pt*(pt*pt)))
+            else:
+                sF["sF"] = ((1.05625+(0.000487231*pt))+(-2.22792e-06*(pt*pt)))+(1.70262e-09*(pt*(pt*pt)))
+                sF["sFErrDn"] = ((0.956736+(0.000280197*pt))+(-1.42739e-06*(pt*pt)))+(1.0085e-09*(pt*(pt*pt)))
+                sF["sFErrUp"] = ((1.15575+(0.000693344*pt))+(-3.02661e-06*(pt*pt)))+(2.39752e-09*(pt*(pt*pt)))
+        return sF
+##############################
+class BTagWeight(wrappedChain.calculable) :
+    @property
+    def name(self) : return "bTagWeight"
+
+    def __init__(self, cs=None):
+        self.fixes = cs
+        self.stash(["Indices", "IndicesBtagged2", "BTagProbability"])
+
+    def update(self, _):
+        indices = self.source[self.Indices]
+        mcProb = 1.0
+        dataProb = 1.0
+        for j,jet in enumerate(indices):
+            mcEff, dataEff = self.effs(j,jet)
+            if mcEff == 0.0 : continue
+            mcProb *= mcEff
+            dataProb  *= dataEff
+        self.value = dataProb/mcProb
+
+    def effs(self, j, jet):
+        bJets = self.source[self.IndicesBtagged2]
+        bTagProb = self.source[self.BTagProbability]
+        if jet in bJets:
+            mcEff = bTagProb[j][0]
+            dataEff = bTagProb[j][1]
+        else :
+            mcEff = 1-bTagProb[j][0]
+            dataEff = 1-bTagProb[j][1]
+        return mcEff, dataEff
