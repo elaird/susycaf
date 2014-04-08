@@ -20,7 +20,7 @@ top17.add("ttz_8_mg.job269_1", '["/uscms/home/elaird/141_ntuples/job269/SusyCAF_
 top17.add("ttbar_powheg_v1.job410", '%s/clucas//ICF/automated/2012_09_26_14_02_42/")'%pnfs, xs = 211.)
 top17.add("ttbar_powheg_v2.job404", '%s/zmeng//ICF/automated/2012_09_21_17_07_53/")'%pnfs, xs = 211.)
 
-top17.add("ttbar_CT10_powheg", '%s/clucas/Parked13/TT_CT10_Combined/")' % eos, xs=234)
+top17.add("ttbar_CT10_powheg", '%s/clucas/Parked13/TT_CT10_Combined/")' % eos, xs={"NLO":234,"NNLO":245.8}["NNLO"])
 top17.add("ttz_mg", '%s/clucas/Parked13/TTZJets/")' % eos, xs=0.172)
 
 
