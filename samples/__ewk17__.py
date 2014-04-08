@@ -20,19 +20,40 @@ ewk17.add("wj_lv_mg_ht_incl.job363",    '%s/clucas/ICF//automated/2012_09_21_09_
 
 
 for part in [1,2,3,4,5] :
-    ewk17.add("wj_lv_mg_ht_incl_v2.job673_part%i"%part, '%s/yeshaq//ICF/automated/2013_05_23_14_13_07/part%i")'%(pnfs,part), xs = {"LO":30400.0, "NLO":36257.2}["NLO"])
+    ewk17.add("wj_lv_mg_ht_incl_v2.job673_part%i"%part, '%s/yeshaq//ICF/automated/2013_05_23_14_13_07/part%i")'%(pnfs,part), xs = {"LO": 30400.0, "NNLO":37509}["NNLO"])
 
 for part in [1,2,3,4] :
-    ewk17.add("wj_lv_mg_ht_incl_v2.job50_part%i"%part, '%s/zmeng/ICF/automated/2013_09_02_15_42_12/part%i")'%(pnfs,part), xs = {"LO":30400.0, "NLO":37509}["NLO"])
+    ewk17.add("wj_lv_mg_ht_incl_v2.job50_part%i"%part, '%s/zmeng/ICF/automated/2013_09_02_15_42_12/part%i")'%(pnfs,part), xs = {"LO":30400.0, "NNLO":37509}["NNLO"])
 
-ewk17.add("wj_lv_mg_ht_incl"    , '%s/clucas/Parked13/WJets_inc/")'      % eos, xs = {"NLO":37509}["NLO"])
-ewk17.add("wj_lv_mg_ht_10To150" , '%s/clucas/Parked13/WJets_10to150/")'  % eos, xs = {"NLO":37509.0}["NLO"])
-ewk17.add("wj_lv_mg_ht_150To200", '%s/clucas/Parked13/WJets_150to200/")' % eos, xs = {"NLO":253.84}["NLO"])
-ewk17.add("wj_lv_mg_ht_200To250", '%s/clucas/Parked13/WJets_200to250/")' % eos, xs = {"NLO":116.46}["NLO"])
-ewk17.add("wj_lv_mg_ht_250To300", '%s/clucas/Parked13/WJets_250to300/")' % eos, xs = {"NLO":57.6358}["NLO"])
-ewk17.add("wj_lv_mg_ht_300To400", '%s/clucas/Parked13/WJets_300to400/")' % eos, xs = {"NLO":48.3664}["NLO"])
-ewk17.add("wj_lv_mg_ht_400ToInf", '%s/clucas/Parked13/WJets_400toinf/")' % eos, xs = {"NLO":30.7777}["NLO"])
+##The LO xs are from PREP
+skimFactor = 13992013./57645905.
+ewk17.add("wj_lv_mg_ht_incl_LO"    , '%s/clucas/Parked13/WJets_inc/")'      % eos, xs = {"LO":30400}["LO"])
+ewk17.add("wj_lv_mg_ht_10To150_LO" , '%s/clucas/Parked13/WJets_10to150/")'  % eos, xs = {"LO":30400*skimFactor}["LO"])
+ewk17.add("wj_lv_mg_ht_150To200_LO", '%s/clucas/Parked13/WJets_150to200/")' % eos, xs = {"LO":235.6}["LO"])
+ewk17.add("wj_lv_mg_ht_200To250_LO", '%s/clucas/Parked13/WJets_200to250/")' % eos, xs = {"LO":90.27}["LO"])
+ewk17.add("wj_lv_mg_ht_250To300_LO", '%s/clucas/Parked13/WJets_250to300/")' % eos, xs = {"LO":48.01}["LO"])
+ewk17.add("wj_lv_mg_ht_300To400_LO", '%s/clucas/Parked13/WJets_300to400/")' % eos, xs = {"LO":38.30}["LO"])
+ewk17.add("wj_lv_mg_ht_400ToInf_LO", '%s/clucas/Parked13/WJets_400toinf/")' % eos, xs = {"LO":25.22}["LO"])
 
+kFactor = 37509./30400.
+ewk17.add("wj_lv_mg_ht_incl"    , '%s/clucas/Parked13/WJets_inc/")'      % eos, xs = {"NNLO":30400*kFactor}["NNLO"])
+ewk17.add("wj_lv_mg_ht_10To150" , '%s/clucas/Parked13/WJets_10to150/")'  % eos, xs = {"NNLO":30400*kFactor*skimFactor}["NNLO"])
+ewk17.add("wj_lv_mg_ht_150To200", '%s/clucas/Parked13/WJets_150to200/")' % eos, xs = {"NNLO":235.6*kFactor}["NNLO"])
+ewk17.add("wj_lv_mg_ht_200To250", '%s/clucas/Parked13/WJets_200to250/")' % eos, xs = {"NNLO":90.27*kFactor}["NNLO"])
+ewk17.add("wj_lv_mg_ht_250To300", '%s/clucas/Parked13/WJets_250to300/")' % eos, xs = {"NNLO":48.01*kFactor}["NNLO"])
+ewk17.add("wj_lv_mg_ht_300To400", '%s/clucas/Parked13/WJets_300to400/")' % eos, xs = {"NNLO":38.30*kFactor}["NNLO"]) 
+ewk17.add("wj_lv_mg_ht_400ToInf", '%s/clucas/Parked13/WJets_400toinf/")' % eos, xs = {"NNLO":25.22*kFactor}["NNLO"])
+
+ewk17.add("wj_lv_mg_ht_N1", '%s/clucas/HCP_transfer/W1JetsToLNu/")' % eos, xs = {"IC":6381.2, "PREP": 5500, "Other":5400, "NNLO":5500*kFactor}["NNLO"])
+ewk17.add("wj_lv_mg_ht_N2", '%s/clucas/HCP_transfer/W2JetsToLNu/")' % eos, xs = {"IC":2039.8, "PREP": 1800, "Other":1750, "NNLO":1800*kFactor}["NNLO"])
+ewk17.add("wj_lv_mg_ht_N3", '%s/clucas/HCP_transfer/W3JetsToLNu/")' % eos, xs = {"IC":612.5, "PREP": 520, "Other":519., "NNLO":520*kFactor}["NNLO"])
+ewk17.add("wj_lv_mg_ht_N4", '%s/clucas/HCP_transfer/W4JetsToLNu/")' % eos, xs = {"IC":251.0, "PREP": 210, "Other":214., "NNLO":210*kFactor}["NNLO"])
+
+ewk17.add("wj_lv_mg_ht_N1_LO", '%s/clucas/HCP_transfer/W1JetsToLNu/")' % eos, xs = {"IC":6381.2, "PREP": 5500, "Other":5400, "NNLO":5500*kFactor}["PREP"])
+ewk17.add("wj_lv_mg_ht_N2_LO", '%s/clucas/HCP_transfer/W2JetsToLNu/")' % eos, xs = {"IC":2039.8, "PREP": 1800, "Other":1750, "NNLO":1800*kFactor}["PREP"])
+ewk17.add("wj_lv_mg_ht_N3_LO", '%s/clucas/HCP_transfer/W3JetsToLNu/")' % eos, xs = {"IC":612.5, "PREP": 520, "Other":519., "NNLO":520*kFactor}["PREP"])
+ewk17.add("wj_lv_mg_ht_N4_LO", '%s/clucas/HCP_transfer/W4JetsToLNu/")' % eos, xs = {"IC":251.0, "PREP": 210, "Other":214., "NNLO":210*kFactor}["PREP"])
+#
 #comment 1
 # CrossSection = ( NNLO_W_inclusive_from[1] / LO_W_inclusive_from_PREP[2] ) * LO_W_exclusive_from_PREP: [3]
                                                         
