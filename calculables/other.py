@@ -1,6 +1,6 @@
 from supy import wrappedChain,utils
 import configuration
-import math,ROOT as r
+import math,re,os,ROOT as r
 try:
     import numpy as np
 except:
@@ -233,3 +233,111 @@ class KarlsruheDiscriminant(wrappedChain.calculable) :
     def update(self,_) :
         met = self.source[self.met].pt()
         self.value = -8*met if met<40 else self.source[self.M3]
+#####################################
+class hcalLaserEvent2012(wrappedChain.calculable):
+    def __init__(self, file="AllBadHCALLaser.txt") :
+        self.file = file
+        self.moreName = "pass HCAL laser 2012 event filter"
+        self.setup()
+
+    def setup(self) :
+        f = file("data/%s"%self.file, 'r')
+        self.laserEvents = f.read()
+        f.close()
+
+    def update(self,_):
+        run = self.source["run"]
+        lum = self.source["lumiSection"]
+        evtNum = self.source["event"]
+        if run > 203742 : self.value = 1  #HCAL calibration laser was off in RunD
+        else:
+            evt = "%s:%s:%s"%(run,lum,evtNum)
+            laserEvent = re.search(evt, self.laserEvents)
+            self.value = 0 if laserEvent else 1
+#####################################
+class ecalLaserCalibEvent2012(wrappedChain.calculable):
+    def __init__(self) :
+        self.moreName = "pass Ecal laser calibration 2012 event filter"
+        self.setup()
+
+    def setup(self) :
+        f_A = file("data/ecalLaserFilter_HT_Run2012A.txt", 'r')
+        f_B = file("data/ecalLaserFilter_HTMHT_Run2012B.txt", 'r')
+        self.laserEvents_A = f_A.read()
+        self.laserEvents_B = f_B.read()
+        f_A.close()
+        f_B.close()
+
+    def update(self,_):
+        run = self.source["run"]
+        lum = self.source["lumiSection"]
+        evtNum = self.source["event"]
+        evt = "%s:%s:%s"%(run,lum,evtNum)
+
+        if run > 196600: #last run in HTMHTParked_Run2012B
+            self.value = 1
+        elif run > 193621: #last run in HT_Run2012A
+            laserEvent = re.search(evt, self.laserEvents_B)
+            self.value = 0 if laserEvent else 1
+        else:
+            laserEvent = re.search(evt, self.laserEvents_A)
+            self.value = 0 if laserEvent else 1
+#####################################
+class singleIsolatedTrack(wrappedChain.calculable):
+    def __init__(self, ptMin=10., etaMax=None, dzMax = 1.0, relIso=.12, muons=None, electrons=None):
+        self.ptMin = ptMin
+        self.etaMax = etaMax
+        self.dzMax = dzMax
+        self.relIso = relIso
+        self.muons = "Indices".join(muons)
+        self.muonsP4 = "P4".join(muons)
+        self.electrons = "Indices".join(electrons)
+        self.electronsP4 = "P4".join(electrons)
+        self.jetsP4 = "CorrectedP4".join(("xcak5Jet","Pat"))
+        self.jets = "Indices".join(("xcak5Jet","Pat"))
+        self.iEvent = 0
+
+    def update(self,_):
+        self.iEvent +=1
+        #may not have p4s
+        pt = self.source["PFCandsPt"]
+        p4s = self.source["PFCandsP4"]
+        pfCharge = self.source["PFCandsChrg"]
+        pfDz = self.source["PFCandsDzPV"]
+        pfTrkIso = self.source["PFCandsTrkIso"]
+
+        muons = self.source[self.muons]
+        electrons = self.source[self.electrons]
+        jets = self.source[self.jets]
+
+        mP4 = self.source[self.muonsP4]
+        eP4 = self.source[self.electronsP4]
+        jP4 = self.source[self.jetsP4]
+
+        mP4List = [mP4.at(x) for x in muons]
+        eP4List = [eP4.at(x) for x in electrons]
+        jP4List = [jP4.at(x) for x in jets]
+
+        self.value = []
+
+        assert len(pt)==len(p4s)
+        for ip4,p4 in enumerate(p4s):
+            dr =[]
+            if p4.pt() < self.ptMin: continue
+            if self.etaMax:
+                if p4.eta() > self.etaMax: continue
+            if pfCharge[ip4] == 0: continue
+            if pfDz[ip4] > self.dzMax: continue
+            if pfTrkIso[ip4]/p4.pt() > self.relIso: continue
+            if self.matchesIn(p4, mP4List): continue
+            if self.matchesIn(p4, eP4List): continue
+            self.value.append(p4)
+
+    def matchesIn(self, p4, P4List):
+        dR = 0.5
+        if not P4List : return False
+        matches = []
+        for P4 in P4List:
+            if 0.5 > r.Math.VectorUtil.DeltaR(P4,p4) :
+                matches.append(P4)
+        return matches
