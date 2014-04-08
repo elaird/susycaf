@@ -688,3 +688,51 @@ class RA1categoryHistogrammer(analysisStep) :
         title = "RA1 Category"
         binning = (1, 0.0, 1.0)
         self.book.fill(0.5, cat, *binning)
+#####################################
+class bTagEfficiencyHistogrammer(analysisStep) :
+    def __init__(self, jets=None):
+
+        self.ptBins = (20, 30, 40, 50, 60, 70, 80, 100, 120, 160, 210, 260, 320, 400, 500, 600, 800, 2000)
+        self.etaBins = (0.0, 0.8, 1.6, 2.5, 5.0)
+
+        self.bins = (self.ptBins, self.etaBins)
+
+        self.cs = jets
+        self.CorrectedP4 = '%sCorrectedP4%s' % self.cs
+        self.Indices = '%sIndices%s' % self.cs
+        self.genFlavorMatched = "%sgenJetFlavour%s" % (self.cs[0].lstrip("xc"), self.cs[1])
+        self.btags = "%sIndicesBtagged2%s" % self.cs
+
+    def uponAcceptance(self,eventVars):
+        genFlavorMatched = eventVars[self.genFlavorMatched]
+        genP4s = eventVars['genP4']
+        jets = eventVars[self.Indices]
+        btags = eventVars[self.btags]
+        p4s = eventVars[self.CorrectedP4]
+
+        for i in jets:
+            p4 = p4s.at(i)
+            if abs(genFlavorMatched.at(i)) is 5:
+                self.book.fillVarBin((p4.pt(), p4.eta()), "genB", self.bins,
+                                     title = "; %s pt; %s eta; matched to b genJets events / bin" % (self.Indices,
+                                                                                                     self.Indices))
+                if i in btags:
+                    self.book.fillVarBin((p4.pt(), p4.eta()), "genB_btagged", self.bins,
+                                         title = "; %s pt; %s eta; matched to b genJets events / bin" % (self.btags,
+                                                                                                         self.btags))
+            elif abs(genFlavorMatched.at(i)) is 4:
+                self.book.fillVarBin((p4.pt(), p4.eta()), "genC", self.bins,
+                                     title = "; %s pt; %s eta; matched to c genJets events / bin" % (self.Indices,
+                                                                                                     self.Indices,))
+                if i in btags:
+                    self.book.fillVarBin((p4.pt(), p4.eta()), "genC_btagged", self.bins,
+                                         title = "; %s pt; %s eta; matched to c genJets events / bin" % (self.btags,
+                                                                                                         self.btags))
+            else :
+                self.book.fillVarBin((p4.pt(), p4.eta()), "genL", self.bins,
+                                     title = "; %s pt; %s eta; matched to light q genJets events / bin" % (self.Indices,
+                                                                                                           self.Indices,))
+                if i in btags:
+                    self.book.fillVarBin((p4.pt(), p4.eta()), "genL_btagged",
+                                         self.bins, title = "; %s pt; %s eta; matched to light q genJets events / bin" % (self.btags,
+                                                                                                                          self.btags,))
