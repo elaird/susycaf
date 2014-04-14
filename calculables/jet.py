@@ -1184,18 +1184,32 @@ class ra1CategoryPlusHT(wrappedChain.calculable) :
                 ]
         self.value = "_".join(tags)
 ######################################
+class ra1AlphaTCategory(wrappedChain.calculable):
+    def __init__(self, collection = None, etRatherThanPt = None) :
+        self.fixes = (collection[0], ("Et" if etRatherThanPt else "Pt") + collection[1])
+        self.stash(["AlphaT"])
+    def update(self,_):
+        aT = self.source[self.AlphaT]
+        tag = ""
+        if aT < 0.55:
+            tag = "aTl55"
+        else:
+            tag = "aTge55"
+        assert tag != "", tag
+        self.value = tag
+######################################
 class BTagProbability(wrappedChain.calculable) :
 
     '''https://twiki.cern.ch/twiki/bin/viewauth/CMS/BtagPOG
     Tagger: CSVM within 20 < pt < 800 GeV, abs(eta) < 2.4, x = pt'''
 
-    def __init__(self, collection=None, selection=None, sample=None):
+    def __init__(self, collection=None, selection=None):
         self.fixes = collection
         self.stash(["Indices", "CorrectedP4"])
         self.genJetFlavour = "%sgenJetFlavour%s" % xcStrip(collection)
         self.effHistos = {}
         self.selection = selection
-        self.sample = sample
+        assert self.selection in ["had","muon","phot"], self.selection
         self.ptBins = [20, 30, 40, 50, 60,
                        70, 80, 100, 120,
                        160, 210, 260, 320,
@@ -1241,12 +1255,15 @@ class BTagProbability(wrappedChain.calculable) :
 
     def setup(self) :
         fileDict = {}
-        if self.selection == "photon":
-            fileDict[(   "xcak5Jet","Pat")] = "data/g_barrel_375_caloJet_ge2j__GJets_bTagEff.root"
-            fileDict[( "xcak5JetPF","Pat")] = "data/g_barrel_375_pfJet_ge2j__GJets_bTagEff.root"
+        if self.selection == "phot":
+            fileDict[(   "xcak5Jet","Pat")] = "data/bTagEff/phot_g_barrel_375_caloJet_ge2j__GJets_bTagEff.root"
+            fileDict[( "xcak5JetPF","Pat")] = "data/bTagEff/phot_g_barrel_375_pfJet_ge2j__GJets_bTagEff.root"
+        elif self.selection == "had":
+            fileDict[(   "xcak5Jet","Pat")] = "data/bTagEff/had_375_caloJet_ge2j_Standard_Model__bTagEff.root"
+            fileDict[( "xcak5JetPF","Pat")] = "data/bTagEff/had_375_pfJet_ge2j_Standard_Model__bTagEff.root"
         elif self.selection == "muon":
-            fileDict[(   "xcak5Jet","Pat")] = "data/caloJet_ge2j_375_Standard_Model__bTagEff.root"
-            fileDict[( "xcak5JetPF","Pat")] = "data/pfJet_ge2j_375_Standard_Model__bTagEff.root"
+            fileDict[(   "xcak5Jet","Pat")] = "data/bTagEff/muon_caloJet_ge2j_375_Standard_Model__bTagEff.root"
+            fileDict[( "xcak5JetPF","Pat")] = "data/bTagEff/muon_pfJet_ge2j_375_Standard_Model__bTagEff.root"
 
         f = r.TFile(fileDict[self.fixes], "READ")
         for item in f.GetListOfKeys() :
