@@ -88,10 +88,10 @@ ewk17.add("zinv_mg_ht_200_400_ext.job500", '%s/karage//ICF/automated/2012_11_29_
 ewk17.add("zinv_mg_ht_400_inf_ext.job500", '%s/karage//ICF/automated/2012_11_29_23_55_17/%s")' % (pnfs, ext_suffix % (400, "inf")), xs={"NNLO":6.2639, "LO":5.274}["NNLO"])
 
 ht = [(50,100),(100,200),(200,400),(400,"inf")]
-xss = [{"NNLO":452.75, "LO":381.2}["NNLO"],
-       {"NNLO":190.39, "LO":160.3}["NNLO"],
-       {"NNLO":49.2776, "LO":41.49}["NNLO"],
-       {"NNLO":6.2639, "LO":5.274}["NNLO"]]
+xss = [{"RA1NNLO": 435.7, "NNLO":452.75, "LO":381.2}["RA1NNLO"],
+       {"RA1NNLO": 186.8, "NNLO": 190.39, "LO":160.3}["RA1NNLO"],
+       {"RA1NNLO": 45.6, "NNLO":49.2776, "LO":41.49}["RA1NNLO"],
+       {"RA1NNLO": 6.3, "NNLO":6.2639, "LO":5.274}["RA1NNLO"]]
 for ht,xs in zip(ht,xss):
     ewk17.add("zinv_mg_ht_%s_%s" % ht, '%s/clucas/Parked13/ZJets_%sto%s_Combined/")' % (eos, ht[0], ht[1]), xs=xs)
 
