@@ -1,0 +1,6 @@
+pfJet_ge2j_200 
+xcak5JetPFSumEtPat_eq0b: Purity, Data, MC, MC error, Correction, Correction error 
+0.941,64382.000,67433.933,827.178,0.899,0.010 
+pfJet_ge2j_200 
+xcak5JetPFSumEtPat_eq2b: Purity, Data, MC, MC error, Correction, Correction error 
+0.703,339.000,230.661,6.571,1.033,0.009 

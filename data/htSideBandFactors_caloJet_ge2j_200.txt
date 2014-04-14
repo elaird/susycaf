@@ -1,0 +1,6 @@
+caloJet_ge2j_200 
+xcak5JetSumEtPat_eq0b: Purity, Data, MC, MC error, Correction, Correction error 
+0.904,17891.000,20475.460,97.369,0.790,0.003 
+caloJet_ge2j_200 
+xcak5JetSumEtPat_eq2b: Purity, Data, MC, MC error, Correction, Correction error 
+0.821,893.000,713.181,11.314,1.028,0.032 
