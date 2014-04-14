@@ -95,7 +95,7 @@ class muonLook(supy.analysis):
                     calculables.jet.DeltaPseudoJet(jet, etRatherThanPt),
                     calculables.jet.AlphaT(jet, etRatherThanPt),
                     calculables.jet.AlphaTMet(jet, etRatherThanPt, met),
-
+                    calculables.jet.ra1AlphaTCategory(jet, etRatherThanPt),
                     calculables.jet.MhtOverMet((jet[0], highPtName + jet[1]),
                                                met),
                     calculables.jet.MhtOverMet((jet[0], highPtName + jet[1]),
@@ -111,7 +111,7 @@ class muonLook(supy.analysis):
                                                       htThreshold),
                     ] + supy.calculables.fromCollections(calculables.jet,
                                                          [jet])
-
+        
         outList = calcList(**obj)
         compList = ["jet", "met", "muonsInJets", "jetId"]
         if all([(item+"Comp" in obj) for item in compList]):
@@ -333,6 +333,7 @@ class muonLook(supy.analysis):
     def stepsPlotsTwo(self, params):
         _jet = params["objects"]["jet"]
         _met = params["objects"]["met"]
+        _et = "Et" if params["etRatherThanPt"] else "Pt"
         ssteps = supy.steps
         return [
             ssteps.histos.multiplicity("vertexIndices" , max = 60),
@@ -360,6 +361,7 @@ class muonLook(supy.analysis):
             ssteps.histos.generic("%sSumEt%s"%_jet, 9, 150, 375.0, title = ";H_{T} (GeV) from %s%s E_{T}s;events / bin"%_jet, suffix="ra1nBJetCategory".join(_jet)),
             ssteps.histos.generic("%sSumEt%s"%_jet, 9, 150, 375.0, title = ";H_{T} (GeV) from %s%s E_{T}s;events / bin"%_jet,),
             ssteps.histos.generic("%sSumEt%s"%_jet, 8, 375.0, 1175.0, title = ";H_{T} (GeV) from %s%s E_{T}s;events / bin"%_jet),
+            ssteps.histos.generic("%sSumEt%s"%_jet, 8, 375.0, 1175.0, title = ";H_{T} (GeV) from %s%s E_{T}s;events / bin"%_jet, suffix=("ra1AlphaTCategory"+_et).join(_jet)),
             ssteps.histos.generic("%sSumEt%s"%_jet, 8, 375.0, 1175.0, title = ";H_{T} (GeV) from %s%s E_{T}s;events / bin"%_jet, suffix="ra1nBJetCategory".join(_jet)),
             ssteps.histos.generic("%sSumEt%s"%_jet, 8, 375.0, 1175.0, title = ";H_{T} (GeV) from %s%s E_{T}s;events / bin"%_jet, suffix="ra1Category".join(_jet))]
 
@@ -466,17 +468,17 @@ class muonLook(supy.analysis):
         def w_binned():
             out = []
             #out += specify(names="wj_lv_mg_ht_10To150", color=r.kBlue, weights=w, nEventsMax=10)
-            out += specify(names="wj_lv_mg_ht_150To200", color=r.kOrange+1, weights=w)
-            out += specify(names="wj_lv_mg_ht_200To250", color=r.kOrange+3, weights=w)
-            out += specify(names="wj_lv_mg_ht_250To300", color=r.kOrange+5, weights=w)
-            out += specify(names="wj_lv_mg_ht_300To400", color=r.kOrange+7, weights=w)
-            out += specify(names="wj_lv_mg_ht_400ToInf", color=r.kOrange+9, weights=w)
+            #out += specify(names="wj_lv_mg_ht_150To200", color=r.kOrange+1, weights=w)
+            #out += specify(names="wj_lv_mg_ht_200To250", color=r.kOrange+3, weights=w)
+            #out += specify(names="wj_lv_mg_ht_250To300", color=r.kOrange+5, weights=w)
+            #out += specify(names="wj_lv_mg_ht_300To400", color=r.kOrange+7, weights=w)
+            out += specify(names="wj_lv_mg_ht_400ToInf", color=r.kOrange+9, weights=w, nEventsMax= 60000)
             return out
 
 
         def w_binned_LO():
             out = []
-            #out += specify(names="wj_lv_mg_ht_10To150", color=r.kBlue, weights=w, nEventsMax=10)
+            out += specify(names="wj_lv_mg_ht_10To150", color=r.kBlue, weights=w, nEventsMax=10)
             out += specify(names="wj_lv_mg_ht_150To200_LO", color=r.kOrange+1, weights=w)#, nEventsMax=50)
             out += specify(names="wj_lv_mg_ht_200To250_LO", color=r.kOrange+3, weights=w)# nEventsMax=50)
             out += specify(names="wj_lv_mg_ht_250To300_LO", color=r.kOrange+5, weights=w)# nEventsMax=50)
@@ -547,16 +549,11 @@ class muonLook(supy.analysis):
         def md(x, y):
             x.update(y)
             return x
-
-        wjetSideBandCorr = .808
-        ttSideBandCorr = 1.038
-#        wjetSideBandCorr = 1.0
-#        ttSideBandCorr = 1.0
+        wjetSideBandCorr = .790
+        ttSideBandCorr = 1.028
         if "pf" in org.tag:
-#            wjetSideBandCorr = 1.0
-#            ttSideBandCorr = 1.0
-            wjetSideBandCorr = .907
-            ttSideBandCorr = 1.041
+            wjetSideBandCorr = .899
+            ttSideBandCorr = 1.033
         muonTrigEff = .9
         weightString = ".puWeight.bTagWeight"
         xsweightString = ".puWeight.bTagWeight.xsWeight"
@@ -585,8 +582,7 @@ class muonLook(supy.analysis):
         org.mergeSamples(targetSpec=md({"name": "W->lv + jets Incl.", "color": r.kOrange-3}, mcOps), sources = ["wj_lv_mg_ht_incl"+weightString],
                          scaleFactors = [muonTrigEff*1./kFactor])
         ##DY
-        skimFactor = 8111524./30171503.
-        org.mergeSamples(targetSpec=md({"name": "Drell-Yan", "color": r.kMagenta-3}, mcOps), allWithPrefix="dyll", scaleFactors=[skimFactor * muonTrigEff]+[muonTrigEff]*2)
+        org.mergeSamples(targetSpec=md({"name": "Drell-Yan", "color": r.kMagenta-3}, mcOps), allWithPrefix="dyll", scaleFactors=[muonTrigEff]*3)
         ##VV
         org.mergeSamples(targetSpec=md({"name": "VV", "color": r.kOrange+3}, mcOps), sources=[x+weightString for x in ["WW_py6", "ZZ_py6", "WZ_py6"]],
                          scaleFactors=[muonTrigEff]*3)
@@ -608,8 +604,8 @@ class muonLook(supy.analysis):
         #        self.makeBTagEfficiencyPlots(org, sample["name"])
         #self.makeIndividualPlots(org)
         #self.makeEfficiencyPlots(org)
-        self.wJetHTSidebandCorrectionFactor(org)
-
+        #self.wJetHTSidebandCorrectionFactor(org)
+        
     def makeStandardPlots(self, org):
         #plot
         pl = supy.plotter(org,
@@ -796,7 +792,7 @@ class muonLook(supy.analysis):
         canvas.SetRightMargin(0.2)
         canvas.SetTickx()
         canvas.SetTicky()
-        psFileName = "%s_%s_bTagEff.ps"% (org.tag, sample.replace(" ","_"))
+        psFileName = "data/bTagEff/muon_%s_%s_bTagEff.ps"% (org.tag, sample.replace(" ","_"))
         canvas.Print(psFileName+"[","Lanscape")
         f = r.TFile(psFileName.replace(".ps", ".root"), "RECREATE")
         for variable in [("genB","Bottom Jets",1.1),("genC","Charm Jets",0.8),
