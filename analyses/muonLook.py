@@ -30,12 +30,6 @@ class muonLook(supy.analysis):
 					      #"le3j": (2, 3),
 					      #"ge4j": (4, None),
 					      }),
-                    #"nBTagJets": self.vary({"eq0b": (0, 0),
-                    #                    #"eq1b": (1, 1),
-		    #			#"eq2b": (2, 2),
-		    #			#"eq3b": (3, 3),
-		    #			#"ge4b": (4, None),
-		    #			}),
 		    "thresholds": self.vary(dict([("375",  (375.0, None, 100.0, 50.0)),
                                                   ("200",  (200.0, 325.0 , 73.3, 36.6)),
 						  ])),
@@ -44,7 +38,7 @@ class muonLook(supy.analysis):
 		    "lowPtName": "lowPt",
 		    "highPtThreshold": 50.0,
 		    "highPtName": "highPt",
-			#required to be sorted
+                    #required to be sorted
 		    "triggerList": tuple(["HLT_IsoMu24_eta2p1_v%i" % v for v in range(11,16)]),
 		    }
 
@@ -211,10 +205,10 @@ class muonLook(supy.analysis):
     def stepsTrigger(self, params):
         return [
             steps.trigger.lowestUnPrescaledTriggerFilter().onlyData(),
-            #steps.trigger.hltPrescaleHistogrammer(params["triggerList"]).onlyData(),
+            steps.trigger.hltPrescaleHistogrammer(params["triggerList"]).onlyData(),
             steps.trigger.l1Filter("L1Tech_BPTX_plus_AND_minus.v0").onlyData(),
             steps.trigger.physicsDeclaredFilter().onlyData(),
-            ]+([] if params["thresholds"][1] != 275.0 else [steps.trigger.lowestUnPrescaledTriggerFilter().onlyData()])  # apply trigger in lowest HT bin
+            ]
 
     def stepsGenValidation(self):
         return [
@@ -289,7 +283,7 @@ class muonLook(supy.analysis):
             steps.other.deadEcalFilter(jets=params["objects"]["jet"], extraName=params["lowPtName"], dR=0.3, dPhiStarCut=0.5),
             supy.steps.filters.multiplicity("%sIndices%s" % _muon, min= 1, max=1),
             supy.steps.filters.pt("%sP4%s"%_muon, min = 30.0, indices = "%sIndices%s"%_muon, index = 0),
-            supy.steps.filters.eta("%sP4%s"%_muon, min = -2.5, max = 2.5, indices = "%sIndices%s"%_muon, index = 0),
+            supy.steps.filters.eta("%sP4%s"%_muon, min = -2.1, max = 2.1, indices = "%sIndices%s"%_muon, index = 0),
             supy.steps.filters.value("%sMt%s%s"% (_muon[0], _muon[1], params["objects"]["met"]), min = 30.),
             supy.steps.filters.multiplicity("%sDiMuonNonIsoInZMass%s"%_muon, min=0, max=0),
             #supy.steps.filters.multiplicity("%sDiMuonOtherInZMass%s"%_muon, min=0, max=0),
@@ -329,6 +323,14 @@ class muonLook(supy.analysis):
 							   title=";MaxEmEnergyFraction;events / bin").onlyData(),]
 
 	return outList
+
+    def stepsMuonPlots(self, params):
+        _muon = params["objects"]["muon"]
+        ssteps = supy.steps
+        return [
+            ssteps.histos.pt("%sP4%s"%_muon, 60, 0, 600, indices = "%sIndices%s"%_muon, index = 0),
+            ssteps.histos.eta("%sP4%s"%_muon, 50, -2.5, 2.5, indices = "%sIndices%s"%_muon, index = 0),
+            ssteps.histos.phi("%sP4%s"%_muon, 60, 0, r.TMath.Pi(), indices = "%sIndices%s"%_muon, index = 0),]
 
     def stepsPlotsTwo(self, params):
         _jet = params["objects"]["jet"]
@@ -426,6 +428,7 @@ class muonLook(supy.analysis):
                 self.stepsPlotsOne(params) +
                 self.stepsPlotsTwo(params) +
                 self.stepsBtagJets(params) +
+                self.stepsMuonPlots(params) +
                 self.stepsPlotsTwo(params) +
                 #self.stepsDisplayer(params) +
                 self.stepsHtBins(params) +
@@ -441,122 +444,94 @@ class muonLook(supy.analysis):
         pu = calculables.gen.puWeight(var="pileupTrueNumInteractions", puEra="PU_Parked")
         #w = []
         btag = calculables.jet.BTagWeight(params["objects"]["jet"])
-        w = [pu, btag]
 
         def data_53X() :
             jw2012 = calculables.other.jsonWeight("cert/Cert_190456-208686_8TeV_22Jan2013ReReco_Collisions12_JSON.txt")
             out = []
             for era in ["A","B","C","D"]:
-                out += specify(names="SingleMu.Run2012%s-22Jan2013" % era, weights=jw2012)#, nFilesMax=10)#, nEventsMax=60000)
+                out += specify(names="SingleMu.Run2012%s-22Jan2013" % era, weights=jw2012,)# nEventsMax=60000)
 
             return out
 
-        def qcd_py6(eL=None):
-            low = map(lambda x: x[0], samples.__qcd17__.binsXs)[4:-1]
-            out = []
-            for pt in low:
-                out += specify("qcd_py6_pt_%d" % pt, color = r.kPink+7, weights=w, nFilesMax=1, nEventsMax=10)
-            return out
-
-        def dyll():
+        def dyll(w=[]):
 		out = []
-		out += specify(names="dyll_HT_10To200_M-50", color=r.kBlue, weights=w)
-		out += specify(names="dyll_HT_200To400_M-50", color=r.kBlue, weights=w)
-		out += specify(names="dyll_HT_400ToInf_M-50",  color=r.kBlue, weights=w)
+		out += specify(names="dyll_HT_10To200_M-50", color=r.kBlue, weights=w  ,)
+		out += specify(names="dyll_HT_200To400_M-50", color=r.kBlue, weights=w ,)
+		out += specify(names="dyll_HT_400ToInf_M-50",  color=r.kBlue, weights=w,)
 		return out
 
-        def w_binned():
-            out = []
-            #out += specify(names="wj_lv_mg_ht_10To150", color=r.kBlue, weights=w, nEventsMax=10)
-            #out += specify(names="wj_lv_mg_ht_150To200", color=r.kOrange+1, weights=w)
-            #out += specify(names="wj_lv_mg_ht_200To250", color=r.kOrange+3, weights=w)
-            #out += specify(names="wj_lv_mg_ht_250To300", color=r.kOrange+5, weights=w)
-            #out += specify(names="wj_lv_mg_ht_300To400", color=r.kOrange+7, weights=w)
-            out += specify(names="wj_lv_mg_ht_400ToInf", color=r.kOrange+9, weights=w, nEventsMax= 60000)
-            return out
-
-
-        def w_binned_LO():
-            out = []
-            out += specify(names="wj_lv_mg_ht_10To150", color=r.kBlue, weights=w, nEventsMax=10)
-            out += specify(names="wj_lv_mg_ht_150To200_LO", color=r.kOrange+1, weights=w)#, nEventsMax=50)
-            out += specify(names="wj_lv_mg_ht_200To250_LO", color=r.kOrange+3, weights=w)# nEventsMax=50)
-            out += specify(names="wj_lv_mg_ht_250To300_LO", color=r.kOrange+5, weights=w)# nEventsMax=50)
-            out += specify(names="wj_lv_mg_ht_300To400_LO", color=r.kOrange+7, weights=w)# nEventsMax=50)
-            out += specify(names="wj_lv_mg_ht_400ToInf_LO", color=r.kOrange+9, weights=w)#, nEventsMax=60000)
-            return out
-
-        def w_binned_LO_XS():
+        def w_binned_LO_XS(w=[]):
             out = []
             xs = calculables.gen.xsWeight(file="wj_lv_mg_ht")
-            out += specify(names="wj_lv_mg_ht_10To150_LO", color=r.kBlue, weights=w,)# nEventsMax=10)
+            out += specify(names="wj_lv_mg_ht_10To150_LO", color=r.kBlue, weights=w,)
             out += specify(names="wj_lv_mg_ht_150To200_LO", color=r.kOrange+1, weights=w+[xs],)# nEventsMax=50)
-            out += specify(names="wj_lv_mg_ht_200To250_LO", color=r.kOrange+3, weights=w+[xs],)# nEventsMax=50)
-            out += specify(names="wj_lv_mg_ht_250To300_LO", color=r.kOrange+5, weights=w+[xs],)# nEventsMax=50)
-            out += specify(names="wj_lv_mg_ht_300To400_LO", color=r.kOrange+7, weights=w+[xs],)# nEventsMax=50)
-            out += specify(names="wj_lv_mg_ht_400ToInf_LO", color=r.kOrange+9, weights=w+[xs],)#, nEventsMax=60000)
+            out += specify(names="wj_lv_mg_ht_200To250_LO", color=r.kOrange+3, weights=w+[xs],)# nEventsMax=20)
+            out += specify(names="wj_lv_mg_ht_250To300_LO", color=r.kOrange+5, weights=w+[xs], )# nEventsMax=50)
+            out += specify(names="wj_lv_mg_ht_300To400_LO", color=r.kOrange+7, weights=w+[xs], )# nEventsMax=50)
+            out += specify(names="wj_lv_mg_ht_400ToInf_LO", color=r.kOrange+9, weights=w+[xs], )# nEventsMax=60000)
             return out
 
-
-        def z_binned():
+        def w_inclusive(w=[]):
             out = []
-            out += specify("zinv_mg_ht_50_100", color=r.kRed, weights=w)
-            out += specify("zinv_mg_ht_100_200", color=r.kRed, weights=w)
-            out += specify("zinv_mg_ht_200_400", color=r.kRed, weights=w)
-            out += specify("zinv_mg_ht_400_inf", color=r.kRed, weights=w)
+            out += specify(names="wj_lv_mg_ht_incl_LO", color=r.kBlue, weights=w)
             return out
 
-        def w_inclusive():
+        def z_binned(w=[]):
             out = []
-            out += specify(names="wj_lv_mg_ht_incl", color=r.kBlue, weights=w)
+            out += specify("zinv_mg_ht_50_100", color=r.kRed, weights=w , )
+            out += specify("zinv_mg_ht_100_200", color=r.kRed, weights=w, )
+            out += specify("zinv_mg_ht_200_400", color=r.kRed, weights=w, )
+            out += specify("zinv_mg_ht_400_inf", color=r.kRed, weights=w, )
             return out
 
-        def w_Nbinned():
-            out = []
-            out += specify(names="wj_lv_mg_ht_N1", color=r.kOrange+1,weights=w)# nFilesMax = 1, nEventsMax = 20)
-            out += specify(names="wj_lv_mg_ht_N2", color=r.kOrange+3,weights=w)# nFilesMax = 1, nEventsMax = 20)
-            out += specify(names="wj_lv_mg_ht_N3", color=r.kOrange+5,weights=w)# nFilesMax = 1, nEventsMax = 20)
-            out += specify(names="wj_lv_mg_ht_N4", color=r.kOrange+7,weights=w)# nFilesMax = 1, nEventsMax = 20)
-            return out
-
-        def vv():
+        def vv(w=[]):
             out = []
             for diBos in ["ZZ", "WZ", "WW"]:
-                out += specify("%s_py6" % diBos, color=r.kGreen, weights=w)
+                out += specify("%s_py6" % diBos, color=r.kGreen, weights=w, )
             return out
 
-        def top():
+        def top(w=[]):
             out = []
-            out += specify(names="ttbar_CT10_powheg", color=r.kViolet, weights=w+["topPtWeight"])
+            out += specify(names="ttbar_CT10_powheg", color=r.kViolet, weights=w+["topPtWeight"], )
             for sTop in ["T_s", "T_t", "T_tW", "Tbar_s", "Tbar_t", "Tbar_tW"]:
-                out += specify("%s_powheg" % sTop, color=r.kCyan, weights=w)
+                out += specify("%s_powheg" % sTop, color=r.kCyan, weights=w, )
             return out
 
         return (
             data_53X() +
-            #w_binned() +
-            w_binned_LO_XS() +
-            #w_Nbinned() +
-            #w_inclusive() +
-            #z_binned() +
-            vv() +
-            top()+
-	    dyll()+
+            w_binned_LO_XS(w=[pu,btag]) +
+            vv(w=[pu,btag]) +
+            top(w=[pu,btag])+
+	    dyll(w=[pu,btag])+
             []
             )
 
-    def mergeSamples(self, org):
+    def mergeSamples(self, org, withTrigEff=None, withSideBandWeight=None):
         def md(x, y):
             x.update(y)
             return x
-        wjetSideBandCorr = .790
-        ttSideBandCorr = 1.028
-        if "pf" in org.tag:
-            wjetSideBandCorr = .899
-            ttSideBandCorr = 1.033
-        muonTrigEff = .9
+
+        wjetSideBandCorr = 1.0
+        ttSideBandCorr = 1.0
+
+        if withSideBandWeight:
+            wjetSideBandCorr = .868
+            ttSideBandCorr = 1.110
+            if "pf" in org.tag:
+                wjetSideBandCorr = 1.005
+                ttSideBandCorr = 1.122
+
+        muonTrigEff = 1.0
+
+        if withTrigEff :
+            muonTrigEff = .9
+
         weightString = ".puWeight.bTagWeight"
         xsweightString = ".puWeight.bTagWeight.xsWeight"
+
+        weightString2 = ".puWeight"
+        xsweightString2 = ".puWeight.xsWeight"
+
 
         org.mergeSamples(targetSpec={"name": "2012 Data", "color": r.kBlack, "markerStyle": 20}, allWithPrefix="SingleMu")
 
@@ -566,52 +541,62 @@ class muonLook(supy.analysis):
                          sources=[x+weightString for x in ["T_s_powheg", "T_t_powheg",
                                                            "T_tW_powheg", "Tbar_t_powheg", "Tbar_tW_powheg",
                                                            "Tbar_s_powheg"]], scaleFactors=[muonTrigEff]*6)
+
         ##tt
+        ttScaleFactor= 234./245.8
         org.mergeSamples(targetSpec=md({"name": "tt", "color": r.kRed+1}, mcOps),
-                         sources=[x+weightString+".topPtWeight" for x in ["ttbar_CT10_powheg"]], scaleFactors=[muonTrigEff*ttSideBandCorr])
+                         sources=[x+weightString+".topPtWeight" for x in ["ttbar_CT10_powheg"]], scaleFactors=[muonTrigEff*ttSideBandCorr*ttScaleFactor])
+
         ##wjet
         kFactor = 37509./30400.
+
+        ra1=[x*muonTrigEff for x in [257.73/235.6, 114.22/90.27, 56.39/48.01, 46.60/38.30, 28.97/25.22]]
+
         org.mergeSamples(targetSpec=md({"name": "W->lv + jets", "color": r.kOrange-3}, mcOps),
                          sources = [m + weightString for m in ["wj_lv_mg_ht_10To150_LO"]] +
                          [x+xsweightString for x in ["wj_lv_mg_ht_%s_LO" % y for y in ["150To200","200To250","250To300","300To400","400ToInf"]]]
-                         , scaleFactors=[kFactor*muonTrigEff*wjetSideBandCorr]+[muonTrigEff*wjetSideBandCorr]*6, )
+                         , scaleFactors=[muonTrigEff*wjetSideBandCorr*kFactor] +[muonTrigEff*wjetSideBandCorr]*5, )
 
-        org.mergeSamples(targetSpec=md({"name": "W->lv + N-jets", "color": r.kOrange-3}, mcOps), sources = ["wj_lv_mg_ht_N%i" % i for i in range(1,5)],
-                         scaleFactors = [k*muonTrigEff*1./kFactor for k in [5400./5500., 1750./1800., 519./520., 214./210.]])
 
-        org.mergeSamples(targetSpec=md({"name": "W->lv + jets Incl.", "color": r.kOrange-3}, mcOps), sources = ["wj_lv_mg_ht_incl"+weightString],
-                         scaleFactors = [muonTrigEff*1./kFactor])
+        org.mergeSamples(targetSpec=md({"name": "W->lv + jets", "color": r.kOrange-3}, mcOps),
+                                                  sources = [m + weightString for m in ["wj_lv_mg_ht_incl_LO"]]
+                                                  , scaleFactors=[muonTrigEff*wjetSideBandCorr])
+
         ##DY
         org.mergeSamples(targetSpec=md({"name": "Drell-Yan", "color": r.kMagenta-3}, mcOps), allWithPrefix="dyll", scaleFactors=[muonTrigEff]*3)
         ##VV
         org.mergeSamples(targetSpec=md({"name": "VV", "color": r.kOrange+3}, mcOps), sources=[x+weightString for x in ["WW_py6", "ZZ_py6", "WZ_py6"]],
                          scaleFactors=[muonTrigEff]*3)
+
+
         ##EWK
         ewkSources = ["tt", "SingleTop", "Z->vv + jets", "W->lv + jets", "VV", "Drell-Yan"]
+        ewkSourcesNoTrigEff = [x + " no Trig Eff" for x in ["tt", "SingleTop", "Z->vv + jets", "W->lv + jets", "VV", "Drell-Yan"]]
 
         org.mergeSamples(targetSpec=md({"name": "Standard Model ", "color": r.kAzure+6}, mcOps), sources=ewkSources, keepSources=True,)
+        #org.mergeSamples(targetSpec=md({"name": "Standard Model no btagWeights", "color": r.kAzure+3}, mcOps), sources=ewkSources2, keepSources=False,)
+
 
     def conclude(self, conf):
         org = self.organizer(conf)
-        self.mergeSamples(org)
-        ##for skimming only
-        #utils.printSkimResults(org)
+        self.mergeSamples(org, withTrigEff=True, withSideBandWeight=False)
         org.scale()
         self.makeStandardPlots(org)
         #self.makeRootFiles(org)
+        #self.makeAlphaTRootFiles(org)
+        #self.makeNJetRootFiles(org)
         #for sample in org.samples:
         #    if sample["name"] in ["Standard Model "]:
         #        self.makeBTagEfficiencyPlots(org, sample["name"])
-        #self.makeIndividualPlots(org)
         #self.makeEfficiencyPlots(org)
-        #self.wJetHTSidebandCorrectionFactor(org)
+        self.wJetHTSidebandCorrectionFactor(org)
         
     def makeStandardPlots(self, org):
         #plot
         pl = supy.plotter(org,
                           pdfFileName=self.pdfFileName(org.tag),
                           samplesForRatios=("2012 Data", "Standard Model "),
-                          sampleLabelsForRatios=("data", "s.m."),
+                          sampleLabelsForRatios=("data","s.m."),
                           #samplesForRatios=("2012 Data","tt"),
                           #sampleLabelsForRatios=("data","tt"),
                           printRatios=True,
@@ -834,11 +819,11 @@ class muonLook(supy.analysis):
                 if sample["name"]==name : return iSample
             assert False, "could not find sample %s"%name
 
-        def histo(name = "", samples = ["2012 Data", "Standard Model "]):
+        def histo(name = "", suffix = "", samples = ["2012 Data", "Standard Model "]):
             lst = []
             for selection in org.steps :
                 if selection.name != "generic" : continue
-                if selection.title!="(lambda x:(x[0],len(x[1])))(%s)"%(name+"xcak5JetPFra1nJetCategoryPat") : continue
+                if selection.title!="(lambda x:(x[0],len(x[1])))(%s)"%(name+suffix) : continue
                 dct = {}
                 for s in samples :
                     dct[s] = {}
@@ -847,18 +832,27 @@ class muonLook(supy.analysis):
                 lst.append(dct)
             return lst[-1]
 
-        dct = histo(name = "xcak5JetPFIndicesBtagged2Pat_vs_xcak5JetPFSumEtPat")
+        ewkSources = ["Standard Model ", "tt", "SingleTop", "W->lv + jets", "VV", "Drell-Yan"]
+        allSources = ["2012 Data"] + ewkSources
+        histNames = ["Data", "MCYield", "TTbar", "SingleTop", "WJets", "DiBoson", "DY"]
+        if "calo" in org.tag:
+            dct = histo(samples=allSources, name = "xcak5JetIndicesBtagged2Pat_vs_xcak5JetSumEtPat",
+                        suffix="xcak5Jetra1nJetCategoryPat" )
+        else:
+            dct = histo(samples=allSources, name="xcak5JetPFIndicesBtagged2Pat_vs_xcak5JetPFSumEtPat",
+                        suffix="xcak5JetPFra1nJetCategoryPat" )
+
         for nJet in ["le3j","ge4j"]:
+                if "375" not in org.tag: continue
 	        for iBTag in range(4) :
-	            f = r.TFile("%s_%s_%db.root"%(org.tag, nJet, iBTag), "RECREATE")
+	            f = r.TFile("yields/%s_%s_%db.root"%(org.tag, nJet, iBTag), "RECREATE")
 	            f.mkdir("muon")
 	            f.cd("muon")
 	            for s in ["lumiData", "lumiMc"] :
 	                lumi = r.TH1D(s, s, 1, -0.5, 0.5)
 	                lumi.SetBinContent(1, org.lumi*1.0e-3)#/fb
 	                lumi.Write()
-
-	            for name,key in [("Data","2012 Data"), ("muon", "Standard Model ")] :
+	            for name,key in zip(histNames, allSources):
 	                hIn = dct[key][nJet]
 
 	                xMin   = hIn.GetXaxis().GetXmin()
@@ -890,6 +884,137 @@ class muonLook(supy.analysis):
 	                hOut.Write()
 	            f.Close()
 
+    def makeAlphaTRootFiles(self, org) :
+
+        def sampleIndex(org, name) :
+            for iSample,sample in enumerate(org.samples) :
+                if sample["name"]==name : return iSample
+            assert False, "could not find sample %s"%name
+
+        def histo(name = "", suffix = "", samples = ["2012 Data", "Standard Model "]):
+            lst = []
+            for selection in org.steps :
+                if selection.name != "generic" : continue
+                if selection.title!="(%s)"%(name+suffix) : continue
+                dct = {}
+                for s in samples :
+                    dct[s] = {}
+                    for nJet in ["le3j","ge4j"]:
+                        for aT in ["aTge55","aTl55"]:
+                            dct[s][nJet+"_"+aT] = selection[name+"_"+nJet+"_"+aT][sampleIndex(org, s)]
+                lst.append(dct)
+            return lst[-1]
+
+        ewkSources = ["Standard Model ", "tt", "SingleTop", "W->lv + jets", "VV", "Drell-Yan"]
+        allSources = ["2012 Data"] + ewkSources
+        histNames = ["Data", "MCYield", "TTbar", "SingleTop", "WJets", "DiBoson", "DY"]
+        if "calo" in org.tag:
+            dct = histo(samples=allSources, name = "xcak5JetSumEtPat",
+                        suffix="xcak5Jetra1AlphaTCategoryEtPat" )
+        else:
+            dct = histo(samples=allSources, name="xcak5JetPFSumEtPat",
+                        suffix="xcak5JetPFra1AlphaTCategoryEtPat" )
+
+        for nJet in ["le3j","ge4j"]:
+                if "375" not in org.tag: continue
+                f = r.TFile("yields/%s_aT_%s.root"%(org.tag, nJet), "RECREATE")
+                f.mkdir("muon")
+                f.cd("muon")
+                for s in ["lumiData", "lumiMc"] :
+                    lumi = r.TH1D(s, s, 1, -0.5, 0.5)
+                    lumi.SetBinContent(1, org.lumi*1.0e-3)#/fb
+                    lumi.Write()
+                for name,key in zip(histNames, allSources):
+                    hl55 = dct[key][nJet+"_aTl55"]
+                    hge55 = dct[key][nJet+"_aTge55"]
+
+                    xMin   = hl55.GetXaxis().GetXmin()
+                    xMax   = hl55.GetXaxis().GetXmax()
+                    nBinsX = hl55.GetXaxis().GetNbins()
+
+                    assert abs(xMin-375.)<1.0e-6,xMin
+                    assert abs(xMax-1175.)<1.0e-6,xMax
+                    assert nBinsX==8,nBinsX
+
+                    xBinsLo = array.array('d',[275., 325.]+[375.+100*i for i in range(9)])
+                    yBinsLo = array.array('d',[0,55.0,100.0])
+                    hOut = r.TH2D(name, name, len(xBinsLo)-1, xBinsLo, len(yBinsLo)-1, yBinsLo)
+
+                    for iBinX in range(1,1+hl55.GetNbinsX()) :
+                        hOut.SetBinContent(2+iBinX, 1, hl55.GetBinContent(iBinX))
+                        hOut.SetBinError(2+iBinX, 1, hl55.GetBinError(iBinX))
+                        hOut.SetBinContent(2+iBinX, 2, hge55.GetBinContent(iBinX))
+                        hOut.SetBinError(2+iBinX, 2, hge55.GetBinError(iBinX))
+
+                    hOut.Write()
+                f.Close()
+
+    def makeNJetRootFiles(self, org) :
+
+        def sampleIndex(org, name) :
+            for iSample,sample in enumerate(org.samples) :
+                if sample["name"]==name : return iSample
+            assert False, "could not find sample %s"%name
+
+        def histo(name = "", suffix = "", samples = ["2012 Data", "Standard Model "]):
+            lst = []
+            for selection in org.steps :
+                if selection.name != "generic" : continue
+                if selection.title!="(%s)"%(name+suffix) : continue
+                dct = {}
+                for s in samples :
+                    dct[s] = {}
+                    for nJet in ["le3j","ge4j"]:
+                        for bjet in ["eq0b","eq1b","eq2b"]:
+                            dct[s][nJet+"_"+bjet] = selection[name+"_"+nJet+"_"+bjet][sampleIndex(org, s)]
+                lst.append(dct)
+            return lst[-1]
+
+        ewkSources = ["Standard Model ", "tt", "SingleTop", "W->lv + jets", "VV", "Drell-Yan"]
+        allSources = ["2012 Data"] + ewkSources
+        histNames = ["Data", "MCYield", "TTbar", "SingleTop", "WJets", "DiBoson", "DY"]
+        if "calo" in org.tag:
+            dct = histo(samples=allSources, name = "xcak5JetSumEtPat",
+                        suffix="xcak5Jetra1CategoryPat" )
+        else:
+            dct = histo(samples=allSources, name="xcak5JetPFSumEtPat",
+                        suffix="xcak5JetPFra1CategoryPat" )
+
+        for nJet in ["le3j","ge4j"]:
+                if "375" not in org.tag: continue
+                f = r.TFile("yields/%s_nJet_%s.root"%(org.tag, nJet), "RECREATE")
+                f.mkdir("muon")
+                f.cd("muon")
+                for s in ["lumiData", "lumiMc"] :
+                    lumi = r.TH1D(s, s, 1, -0.5, 0.5)
+                    lumi.SetBinContent(1, org.lumi*1.0e-3)#/fb
+                    lumi.Write()
+                for name,key in zip(histNames, allSources):
+                    h0 = dct[key][nJet+"_eq0b"]
+                    h1 = dct[key][nJet+"_eq1b"]
+                    h2 = dct[key][nJet+"_eq2b"]
+                    hTmp = h0.Clone()
+                    hTmp.Add(hTmp,h1)
+                    hTmp.Add(hTmp,h2)
+                    h = hTmp.Clone()
+                    xMin   = h.GetXaxis().GetXmin()
+                    xMax   = h.GetXaxis().GetXmax()
+                    nBinsX = h.GetXaxis().GetNbins()
+
+                    assert abs(xMin-375.)<1.0e-6,xMin
+                    assert abs(xMax-1175.)<1.0e-6,xMax
+                    assert nBinsX==8,nBinsX
+
+                    xBinsLo = array.array('d',[275., 325.]+[375.+100*i for i in range(9)])
+                    yBinsLo = array.array('d',[0,55.0])
+                    hOut = r.TH2D(name, name, len(xBinsLo)-1, xBinsLo, len(yBinsLo)-1, yBinsLo)
+
+                    for iBinX in range(1,1+h.GetNbinsX()) :
+                        hOut.SetBinContent(2+iBinX, 1, h.GetBinContent(iBinX))
+                        hOut.SetBinError(2+iBinX, 1, h.GetBinError(iBinX))
+                    hOut.Write()
+                f.Close()
+
     def wJetHTSidebandCorrectionFactor(self, org) :
 
         def sampleIndex(org, name) :
@@ -915,7 +1040,7 @@ class muonLook(supy.analysis):
             return lst[-1]
 
         if "200" not in org.tag : return
-        f = open("data/htSideBandFactors_%s.txt" % org.tag,'w')
+        f = open("data/tmp/htSideBandFactors_%s.txt" % org.tag,'w')
         for b in [("eq0b","W->lv + jets"), ("eq2b","tt")]:
            dct = histo(org, btag=b[0], samples =["2012 Data", "Standard Model ", b[1]])
            mc = dct[b[1]].Clone()
@@ -927,15 +1052,19 @@ class muonLook(supy.analysis):
            purity.Divide(mc,sm,1,1,"b")
            cFactor.Reset()
            cFactor.Divide(data,sm,1,1,"b")
+           f.write("%s \n" %org.tag)
+           f.write("%s: \n\nHT bin, Purity, Data, MC, MC error, Correction, Correction error \n" % mc.GetName())
            for ibin in range(data.GetXaxis().GetNbins()):
-               if data.GetXaxis().GetBinLowEdge(ibin) == 200.0:
-                   f.write("%s \n" %org.tag)
-                   f.write("%s: Purity, Data, MC, MC error, Correction, Correction error \n" % mc.GetName())
-                   vals = "%1.3f,%1.3f,%1.3f,%1.3f,%1.3f,%1.3f \n" % (purity.GetBinContent(ibin),
-                                                                      data.GetBinContent(ibin),
-                                                                      mc.GetBinContent(ibin),
-                                                                      mc.GetBinError(ibin),
-                                                                      cFactor.GetBinContent(ibin),
-                                                                      cFactor.GetBinError(ibin))
+               ht = data.GetXaxis().GetBinLowEdge(ibin)
+               if (ht == 200.0 or ht == 300.0):
+                   vals = "%s, %1.3f, %1.3f, %1.3f, %1.3f, %1.3f, %1.3f \n" % ("%i-%i" %(ht,ht+25),
+                                                                               purity.GetBinContent(ibin),
+                                                                               data.GetBinContent(ibin),
+                                                                               mc.GetBinContent(ibin),
+                                                                               mc.GetBinError(ibin),
+                                                                               cFactor.GetBinContent(ibin),
+                                                                               cFactor.GetBinError(ibin))
                    f.write(vals)
+
+
         f.close()
