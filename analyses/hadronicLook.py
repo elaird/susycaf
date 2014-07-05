@@ -1,4 +1,5 @@
 import os
+import array
 
 import ROOT as r
 import calculables
@@ -17,7 +18,7 @@ def triggerTuple(l=[], keys=[]):
             out.append("%s_v%d" % (stem, version))
     return tuple(out)
 
-triggers_2012 = [{"HT": 200, "AlphaT": 0.57, "v":    [5, 6, 8]},
+triggers_2012 = [#{"HT": 200, "AlphaT": 0.57, "v":    [5, 6, 8]},
                  {"HT": 250, "AlphaT": 0.55, "v": range(1,  9)},
                  {"HT": 300, "AlphaT": 0.53, "v": range(1,  4)},
                  {"HT": 350, "AlphaT": 0.52, "v": range(1,  9)},
@@ -46,7 +47,7 @@ class hadronicLook(supy.analysis):
         return {"objects": objects,
                 "nJetsMinMax": self.vary({"ge2j": (2, None),
                                           }),
-                "thresholds": self.vary(dict([("200", (200.0, 325.0,   73.3, 36.7)),
+                "thresholds": self.vary(dict([#("200", (200.0, 325.0,   73.3, 36.7)),
                                              ("375",  (375.0, None,  100.0,  50.0)),
                                          ])),
                 "etRatherThanPt": True,
@@ -213,11 +214,11 @@ class hadronicLook(supy.analysis):
 
     def stepsTrigger(self, params):
         return [
-            steps.trigger.lowestUnPrescaledTriggerFilter().onlyData(),
-            #steps.trigger.hltPrescaleHistogrammer(params["triggerList"]).onlyData(),
             steps.trigger.l1Filter("L1Tech_BPTX_plus_AND_minus.v0").onlyData(),
             steps.trigger.physicsDeclaredFilter().onlyData(),
-            ]+([] if params["thresholds"][1] != 275.0 else [steps.trigger.lowestUnPrescaledTriggerFilter().onlyData()])  # apply trigger in lowest HT bin
+            #steps.trigger.lowestUnPrescaledTriggerFilter().onlyData(),
+            #steps.trigger.anyTrigger(sortedListOfPaths=params["triggerList"]).onlyData(),
+            ]
 
     def stepsGenValidation(self):
         return [
@@ -453,19 +454,19 @@ class hadronicLook(supy.analysis):
         def data_53X():
             jw2012 = calculables.other.jsonWeight("cert/Cert_190456-208686_8TeV_22Jan2013ReReco_Collisions12_JSON.txt")
             out = []
-            #out += specify(names="HT.Run2012A-22Jan2013", weights=jw2012,)
-            for era in ["B","C","D"][1:2]:
-                out += specify(names="HTMHTParked.Run2012%s-22Jan2013"%era, weights=jw2012, )
+            out += specify(names="HT.Run2012A-22Jan2013", weights=jw2012)
+            for era in ["B","C","D"]:
+                out += specify(names="HTMHTParked.Run2012%s-22Jan2013"%era, weights=jw2012)
             return out
 
-        def dyll():
+        def dyll(w=[]):
 		out = []
 		out += specify(names="dyll_HT_10To200_M-50", color=r.kBlue, weights=w, )
 		out += specify(names="dyll_HT_200To400_M-50", color=r.kBlue, weights=w, )
 		out += specify(names="dyll_HT_400ToInf_M-50",  color=r.kBlue, weights=w, )
 		return out
 
-        def w_binned_LO_XS():
+        def w_binned_LO_XS(w=[]):
             out = []
             xs = calculables.gen.xsWeight(file="wj_lv_mg_ht")
             out += specify(names="wj_lv_mg_ht_10To150_LO", color=r.kBlue, weights=w, )# )
@@ -476,7 +477,7 @@ class hadronicLook(supy.analysis):
             out += specify(names="wj_lv_mg_ht_400ToInf_LO", color=r.kOrange+9, weights=w+[xs], )#, nEventsMax=60000)
             return out
 
-        def z_binned():
+        def z_binned(w=[]):
             out = []
             out += specify("zinv_mg_ht_50_100", color=r.kBlue, weights=w,)
             out += specify("zinv_mg_ht_100_200", color=r.kGreen, weights=w,)
@@ -484,13 +485,13 @@ class hadronicLook(supy.analysis):
             out += specify("zinv_mg_ht_400_inf", color=r.kViolet, weights=w,)
             return out
 
-        def vv():
+        def vv(w=[]):
             out = []
             for diBos in ["ZZ", "WZ", "WW"]:
                 out += specify("%s_py6" % diBos, weights=w,)
             return out
 
-        def top():
+        def top(w=[]):
             out = []
             out += specify(names="ttbar_CT10_powheg", weights=w+["topPtWeight"],)
             for sTop in ["T_s", "T_t", "T_tW", "Tbar_s", "Tbar_t", "Tbar_tW"]:
@@ -512,11 +513,11 @@ class hadronicLook(supy.analysis):
 
         return (
             data_53X() +
-            #dyll() +
-            #w_binned_LO_XS() +
-            #z_binned() +
-            #top() +
-            #vv() +
+            #dyll(w=[pu,btag]) +
+            #w_binned_LO_XS(w=[pu,btag]) +
+            #z_binned(w=[pu,btag]) +
+            #top(w=[pu,btag]) +
+            #vv(w=[pu,btag]) +
             #sms() +
             []
             )
@@ -530,17 +531,14 @@ class hadronicLook(supy.analysis):
 
         mcOps = {"markerStyle": 1, "lineWidth": 3, "goptions": "hist"}
 
-#        wjetSideBandCorr = .808
-#        ttSideBandCorr = 1.038
-        wjetSideBandCorr = 1.0
-        ttSideBandCorr = 1.0
+        wjetSideBandCorr = .790
+        ttSideBandCorr = 1.028
         if "pf" in org.tag:
-            wjetSideBandCorr = 1.0
-            ttSideBandCorr = 1.0
-#            wjetSideBandCorr = .907
-#            ttSideBandCorr = 1.041
-        weightString = ".puWeight"
-        xsweightString = ".puWeight.xsWeight"
+            wjetSideBandCorr = .899
+            ttSideBandCorr = 1.033
+
+        weightString = ".puWeight.bTagWeight"
+        xsweightString = ".puWeight.bTagWeight.xsWeight"
 
 
         ##SingleTop
@@ -550,17 +548,17 @@ class hadronicLook(supy.analysis):
                                                            "Tbar_s_powheg"]],)
         ##tt
         org.mergeSamples(targetSpec=md({"name": "tt", "color": r.kRed+1}, mcOps),
-                         sources=[x+weightString+".topPtWeight" for x in ["ttbar_CT10_powheg"]],)
+                         sources=[x+weightString+".topPtWeight" for x in ["ttbar_CT10_powheg"]], scaleFactors=[ttSideBandCorr])
         ##wjet
         kFactor = 37509./30400.
         org.mergeSamples(targetSpec=md({"name": "W->lv + jets", "color": r.kOrange-3}, mcOps),
                          sources = [m + weightString for m in ["wj_lv_mg_ht_10To150_LO"]] +
                          [x+xsweightString for x in ["wj_lv_mg_ht_%s_LO" % y for y in ["150To200","200To250","250To300","300To400","400ToInf"]]]
-                         , scaleFactors=[kFactor]+[1]*6, )
+                         , scaleFactors=[kFactor*wjetSideBandCorr]+[wjetSideBandCorr]*6, )
         ##zinv
         org.mergeSamples(targetSpec=md({"name": "Z->vv + jets", "color": r.kMagenta-3}, mcOps), allWithPrefix="zinv")
         ##DY
-        org.mergeSamples(targetSpec=md({"name": "Drell-Yan", "color": r.kMagenta-3}, mcOps), allWithPrefix="dyll")
+        org.mergeSamples(targetSpec=md({"name": "Drell-Yan", "color": r.kMagenta-2}, mcOps), allWithPrefix="dyll")
         ##VV
         org.mergeSamples(targetSpec=md({"name": "VV", "color": r.kOrange+3}, mcOps),
                          sources=[x+weightString for x in ["WW_py6", "ZZ_py6", "WZ_py6"]])
@@ -575,13 +573,14 @@ class hadronicLook(supy.analysis):
         self.mergeSamples(org)
         ##for skimming only
         #utils.printSkimResults(org)
-        org.scale(20000) if not self.parameters()["signalScan"] else org.scale(100.0)
+        org.scale() if not self.parameters()["signalScan"] else org.scale(100.0)
         self.makeStandardPlots(org)
+        #self.makeRootFiles(org)
         #self.makeIndividualPlots(org)
         #self.makeEfficiencyPlots(org)
-        for sample in org.samples:
-                if sample["name"] in ["Standard Model "]:
-                    self.makeBTagEfficiencyPlots(org, sample["name"])
+        #for sample in org.samples:
+        #        if sample["name"] in ["Standard Model "]:
+        #            self.makeBTagEfficiencyPlots(org, sample["name"])
 
     def makeStandardPlots(self, org):
         #plot
@@ -747,6 +746,78 @@ class hadronicLook(supy.analysis):
         os.system(cmd)
         os.remove(psFileName)
         file.Close()
+
+    def makeRootFiles(self, org) :
+
+        def sampleIndex(org, name) :
+            for iSample,sample in enumerate(org.samples) :
+                if sample["name"]==name : return iSample
+            assert False, "could not find sample %s"%name
+
+        def histo(name = "", suffix = "", samples = ["2012 Data", "Standard Model "]):
+            lst = []
+            for selection in org.steps :
+                if selection.name != "generic" : continue
+                if selection.title!="(lambda x:(x[0],len(x[1])))(%s)"%(name+suffix) : continue
+                dct = {}
+                for s in samples :
+                    dct[s] = {}
+                    for nJet in ["le3j","ge4j"]:
+                        dct[s][nJet] = selection[name+"_"+nJet][sampleIndex(org, s)]
+                lst.append(dct)
+            return lst[-1]
+
+        ewkSources = ["Standard Model ", "tt", "SingleTop", "W->lv + jets", "Z->vv + jets", "VV", "Drell-Yan"]
+        allSources = ["2012 Data"] + ewkSources
+        histNames = ["Data", "MCYield", "TTbar", "SingleTop", "WJets", "Zinv", "DiBoson", "DY"]
+        if "calo" in org.tag:
+            dct = histo(samples=allSources, name = "xcak5JetIndicesBtagged2Pat_vs_xcak5JetSumEtPat",
+                        suffix="xcak5Jetra1nJetCategoryPat" )
+        else:
+            dct = histo(samples=allSources, name="xcak5JetPFIndicesBtagged2Pat_vs_xcak5JetPFSumEtPat",
+                        suffix="xcak5JetPFra1nJetCategoryPat" )
+
+        for nJet in ["le3j","ge4j"]:
+                if "375" not in org.tag: continue
+	        for iBTag in range(4) :
+	            f = r.TFile("yields/had_%s_%s_%db.root"%(org.tag, nJet, iBTag), "RECREATE")
+	            f.mkdir("had")
+	            f.cd("had")
+	            for s in ["lumiData", "lumiMc"] :
+	                lumi = r.TH1D(s, s, 1, -0.5, 0.5)
+	                lumi.SetBinContent(1, org.lumi*1.0e-3)#/fb
+	                lumi.Write()
+	            for name,key in zip(histNames, allSources):
+	                hIn = dct[key][nJet]
+
+	                xMin   = hIn.GetXaxis().GetXmin()
+	                xMax   = hIn.GetXaxis().GetXmax()
+	                nBinsX = hIn.GetXaxis().GetNbins()
+
+	                assert abs(xMin-375.)<1.0e-6,xMin
+	                assert abs(xMax-1175.)<1.0e-6,xMax
+	                assert nBinsX==8,nBinsX
+
+	                yMin   = hIn.GetYaxis().GetXmin()
+	                yMax   = hIn.GetYaxis().GetXmax()
+	                nBinsY = hIn.GetYaxis().GetNbins()
+
+	                assert abs(yMin+0.5)<1.0e-6,yMin
+	                assert abs(yMax-3.5)<1.0e-6,yMax
+	                assert nBinsY==4,nBinsY
+
+	                h1 = hIn.ProjectionX("%s_projX"%name, 1+iBTag, 1+iBTag)
+
+	                xBinsLo = array.array('d',[275., 325.]+[375.+100*i for i in range(9)])
+	                yBinsLo = array.array('d',[55.0, 60.0])
+	                hOut = r.TH2D(name, name, len(xBinsLo)-1, xBinsLo, len(yBinsLo)-1, yBinsLo)
+
+	                for iBinX in range(1,1+h1.GetNbinsX()) :
+	                    hOut.SetBinContent(2+iBinX, 1, h1.GetBinContent(iBinX))
+	                    hOut.SetBinError(2+iBinX, 1, h1.GetBinError(iBinX))
+
+	                hOut.Write()
+	            f.Close()
 
 
     def makeBTagEfficiencyPlots(self, org, sample) :
