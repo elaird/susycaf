@@ -573,30 +573,19 @@ class qDirExpectation_RapiditySum(qDirExpectation) :
 
 ##############################
 class isrWeight(wrappedChain.calculable) :
-    def __init__(self, model = "", var = "") :
-        assert model in ["T1", "T2"],model
-        self.model = model
+    def __init__(self, var= "") :
         self.var = var
-        self.histos = {}
-
-    def setup(self) :
-        f = r.TFile("data/ISRWeights_Topology%s.root"%self.model)
-        for item in f.GetListOfKeys() :
-            name = item.GetName()
-            h = f.Get(name).Clone()
-            h.SetDirectory(0)
-            assert name.startswith("h_ISRWeight_lastPt_")
-            mX,mY = name.split("_")[-2:]
-            self.histos[(float(mX),float(mY))] = h
-        f.Close()
-
     def update(self,_) :
-        if not self.histos :
-            self.setup()
-
-        h = self.histos[(self.source["susyScanmGL"], self.source["susyScanmLSP"])]
-        x = self.source["susyIniSumP4"].pt()
-        self.value = h.GetBinContent(h.FindBin(x))
+        pt = self.source["susyIniSumP4"].pt()
+        if pt <= 120.:
+            x = 1.00
+        if 120. < pt <= 150.:
+            x = .95
+        if 150. < pt <= 250.:
+            x = .90
+        if pt > 250.:
+            x = .80
+        self.value = x
 ##############################
 class puWeight(wrappedChain.calculable) :
     @property
