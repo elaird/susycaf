@@ -26,4 +26,4 @@ photon17.add("SinglePhotonParked.Run2012D-22Jan2013", '%s/clucas/Parked13/Single
 
 photon17.add("Photon.Run2012A-22Jan2013", '%s/clucas/Parked13/Photon_Run2012A_22Jan2013/")' % eos, lumi = 886.5740)
 photon17.add("GJets_HT200to400", '%s/clucas/Parked13/GJets_200to400/")' % eos, xs={"LO": 960.5, "NLO":1140.78}["LO"])
-photon17.add("GJets_HT400toinf", '%s/clucas/Parked13/GJets_400toinf/")' % eos, xs={"LO": 107.5, "NLO":124.68}["NLO"])
+photon17.add("GJets_HT400toinf", '%s/clucas/Parked13/GJets_400toinf/")' % eos, xs={"LO": 107.5, "NLO":124.68}["LO"])
