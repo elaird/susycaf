@@ -225,6 +225,41 @@ class hltTurnOnHistogrammer(analysisStep) :
         efficiency.Write()
         print "Output updated with TurnOn %s."%self.effTitle[0]
 #####################################
+class hltTurnOnHistogrammer2D(analysisStep) :
+    def __init__(self, var = None, N = None, low = None, up = None, probe = None, tags = None, permissive = False, suffix="") :
+        for item in ["var","N","low","up","probe","tags","permissive"] :
+            setattr(self,item,eval(item))
+        self.suffix = suffix
+        self.tagsStr = "{%s}"%(','.join([t.replace("HLT_","") for t in self.tags]))
+        self.probeStr = self.probe.replace("HLT_","")
+        self.moreName = "%s by %s vs. %s, given %s;" % (probe, var[0],var[1], tags)
+
+    def uponAcceptance(self,eventVars) :
+        value = tuple(map(eventVars.__getitem__,self.var))
+        probe = self.probeStr
+        tags = self.tagsStr
+        var = self.var
+
+        self.tagTitle   = ( "tag_%s_%s_%s" % (probe,tags,("_").join(var)), "pass %s;%s;%s;events / bin" % (tags,var[0],var[1]))
+        self.probeTitle = ( "probe_%s_%s_%s" % (probe,tags,("_").join(var)), "pass %s given %s;%s;%s;events / bin" % (probe, tags,var[0],var[1]))
+        self.effTitle   = ( "turnon_%s_%s_%s" % (probe,tags,("_").join(var)), "%s Turn On;%s;%s;P(%s | %s)" % (probe, var[0], var[1], probe,tags))
+
+
+        if not any([eventVars["triggered"][t] for t in self.tags]) : return
+        if (not self.permissive) and 1 != eventVars["prescaled"][self.probe] : return
+        if self.suffix in eventVars:
+            nJet = eventVars[self.suffix]
+            self.tagTitle   = ( "tag_%s_%s_%s_%s" % (probe,tags,("_").join(var),nJet), "pass %s %s;%s;%s;events / bin" % (tags,nJet,var[0],var[1]))
+            self.probeTitle = ( "probe_%s_%s_%s_%s" % (probe,tags,("_").join(var),nJet), "pass %s given %s %s;%s;%s;events / bin" % (probe, tags,nJet,var[0],var[1]))
+            self.effTitle   = ( "turnon_%s_%s_%s_%s" % (probe,tags,("_").join(var),nJet), "%s Turn On %s;%s;%s;P(%s | %s)" % (probe, nJet, var[0], var[1], probe,tags))
+
+            for t in ([self.tagTitle] if not eventVars["triggered"][self.probe] else [self.tagTitle,self.probeTitle]) :
+                self.book.fill( value, t[0], self.N, self.low, self.up, title = t[1] )
+        else:
+            for t in ([self.tagTitle] if not eventVars["triggered"][self.probe] else [self.tagTitle,self.probeTitle]) :
+                self.book.fill( value, t[0], self.N, self.low, self.up, title = t[1] )
+
+######################################
 class jetMetTriggerHistogrammer(analysisStep) :
 
     def __init__(self,triggerJets,triggerMet,offlineJets,offlineMht) :
