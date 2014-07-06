@@ -21,4 +21,4 @@ ht17.add("HTMHTParked_ICF_sync_test", '%s/yeshaq//ICF/supy-output/ICF_sync_test/
 
 for era,lum in zip(["B","C","D"],[4427.0,6893.0,7263.0])  :
     ht17.add("HTMHTParked.Run2012%s-22Jan2013"%era, '%s/clucas/Parked13/HTMHTParked_Run2012%s_22Jan2013/")'%(eos,era), lumi=lum) 
-ht17.add("HT.Run2012A-22Jan2013", '%s/clucas/Parked13/HT_Run2012A_22Jan2013/")'%eos, lumi=lum) 
+ht17.add("HT.Run2012A-22Jan2013", '%s/clucas/Parked13/HT_Run2012A_22Jan2013/")'%eos, lumi=886.1) 
