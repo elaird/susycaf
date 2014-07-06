@@ -1188,13 +1188,15 @@ class ra1AlphaTCategory(wrappedChain.calculable):
     def __init__(self, collection = None, etRatherThanPt = None) :
         self.fixes = (collection[0], ("Et" if etRatherThanPt else "Pt") + collection[1])
         self.stash(["AlphaT"])
+        self.ra1nJetCategory = "ra1nJetCategory".join(collection)
     def update(self,_):
         aT = self.source[self.AlphaT]
-        tag = ""
+        nJet = self.source[self.ra1nJetCategory]
+        tag = nJet + "_"
         if aT < 0.55:
-            tag = "aTl55"
+            tag += "aTl55"
         else:
-            tag = "aTge55"
+            tag += "aTge55"
         assert tag != "", tag
         self.value = tag
 ######################################
