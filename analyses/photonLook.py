@@ -293,8 +293,8 @@ class photonLook(supy.analysis) :
     def stepsHtLeadingJets(self, params):
         _jet = params["objects"]["jet"]
         _et = "Et" if params["etRatherThanPt"] else "Pt"
-        htUpper = [supy.steps.filters.value("%sSum%s%s"%(_jet[0], _et, _jet[1]), min = params["thresholds"][1])] if params["thresholds"][1]!=None else []
-        
+        htUpper = [supy.steps.filters.value("%sSum%s%s"%(_jet[0], _et, _jet[1]), max = params["thresholds"][1])] if params["thresholds"][1]!=None else []
+
         outList = [steps.jet.jetPtSelector(_jet, params["thresholds"][2], 0),
                    steps.jet.jetPtSelector(_jet, params["thresholds"][2], 1),
                    steps.jet.jetEtaSelector(_jet,2.5,0),
@@ -307,7 +307,7 @@ class photonLook(supy.analysis) :
                                                    title=";number of %s%s passing ID#semicolon p_{T}#semicolon #eta cuts;events / bin"%_jet,
                                                    funcString="lambda x:len(x)"),
                     supy.steps.histos.value("rho", 100, 0.0, 50.0),]
-        
+
         return outList
 
     def stepsXclean(self, params):
