@@ -515,11 +515,21 @@ class muonLook(supy.analysis):
         ttSideBandCorr = 1.0
 
         if withSideBandWeight:
+            #200-225GeV
             wjetSideBandCorr = .868
             ttSideBandCorr = 1.110
+            #300-325GeV
+            #wjetSideBandCorr = .823
+            #ttSideBandCorr = .968
+
             if "pf" in org.tag:
+                #200-225GeV
                 wjetSideBandCorr = 1.005
                 ttSideBandCorr = 1.122
+                #300-325GeV
+                #wjetSideBandCorr = 0.929
+                #ttSideBandCorr = 1.063
+
 
         muonTrigEff = 1.0
 
@@ -579,12 +589,12 @@ class muonLook(supy.analysis):
 
     def conclude(self, conf):
         org = self.organizer(conf)
-        self.mergeSamples(org, withTrigEff=True, withSideBandWeight=False)
+        self.mergeSamples(org, withTrigEff=True, withSideBandWeight=True)
         org.scale()
         self.makeStandardPlots(org)
-        #self.makeRootFiles(org)
-        #self.makeAlphaTRootFiles(org)
-        #self.makeNJetRootFiles(org)
+        self.makeRootFiles(org)
+        self.makeAlphaTRootFiles(org)
+        self.makeNJetRootFiles(org)
         #for sample in org.samples:
         #    if sample["name"] in ["Standard Model "]:
         #        self.makeBTagEfficiencyPlots(org, sample["name"])
